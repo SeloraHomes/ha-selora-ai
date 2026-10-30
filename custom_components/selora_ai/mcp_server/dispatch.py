@@ -101,11 +101,14 @@ from .files import (
 )
 from .frigate import (
     _tool_add_cameras_to_frigate,
+    _tool_add_face_photo,
+    _tool_get_face_recognition,
     _tool_get_frigate_snapshot,
     _tool_get_frigate_status,
     _tool_move_frigate_camera,
     _tool_remove_frigate_camera,
     _tool_set_camera_objects,
+    _tool_set_face_recognition,
 )
 from .groups import _tool_create_group, _tool_delete_group, _tool_list_groups, _tool_update_group
 from .hacs import (
@@ -135,6 +138,7 @@ from .names import (
     TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
+    TOOL_ADD_FACE_PHOTO,
     TOOL_ASSIGN_AREA,
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
@@ -187,6 +191,7 @@ from .names import (
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
+    TOOL_GET_FACE_RECOGNITION,
     TOOL_GET_FRIGATE_SNAPSHOT,
     TOOL_GET_FRIGATE_STATUS,
     TOOL_GET_HOME_SNAPSHOT,
@@ -255,6 +260,7 @@ from .names import (
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
+    TOOL_SET_FACE_RECOGNITION,
     TOOL_SET_INTEGRATION_ENABLED,
     TOOL_SET_INTEGRATION_OPTIONS,
     TOOL_SET_SCRIPT,
@@ -532,6 +538,9 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_SET_CAMERA_OBJECTS: _tool_set_camera_objects,
         TOOL_MOVE_FRIGATE_CAMERA: _tool_move_frigate_camera,
         TOOL_REMOVE_FRIGATE_CAMERA: _tool_remove_frigate_camera,
+        TOOL_GET_FACE_RECOGNITION: _tool_get_face_recognition,
+        TOOL_SET_FACE_RECOGNITION: _tool_set_face_recognition,
+        TOOL_ADD_FACE_PHOTO: _tool_add_face_photo,
         TOOL_LIST_CALENDAR_EVENTS: _tool_list_calendar_events,
         TOOL_SET_CALENDAR_EVENT: _tool_set_calendar_event,
         TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,

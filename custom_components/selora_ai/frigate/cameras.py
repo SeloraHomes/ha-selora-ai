@@ -89,9 +89,11 @@ class Candidate:
     sub: Stream | None
     # Its only stream is a substream (Reolink's Clear is disabled by default),
     # so it records in low resolution. main_off names the disabled
-    # main-stream entity to turn on, when the camera has one.
+    # main-stream entity to turn on, when the camera has one; main_off_id is
+    # that entity, which the card's button turns on.
     low_res: bool = False
     main_off: str | None = None
+    main_off_id: str | None = None
 
     @property
     def entity_ids(self) -> list[str]:
@@ -387,6 +389,7 @@ async def async_camera_candidates(
                 sub=Stream(subs[0][0].entity_id, for_go2rtc(subs[0][1])) if subs else None,
                 low_res=low_res,
                 main_off=_entity_name(off) if off else None,
+                main_off_id=off.entity_id if off else None,
             )
         )
     return candidates, skipped

@@ -28,11 +28,11 @@ const reply = (result) => ({
 });
 
 describe("renderFaceLibraryLink", () => {
-  it("opens the Face Library under a reply where it is on", () => {
+  it("opens Frigate under a reply where it is on", () => {
     const out = flatten(
       renderFaceLibraryLink(host(), reply({ face_library: true })),
     );
-    expect(out).toContain("Open the Face Library in Frigate");
+    expect(out).toContain("Open in Frigate");
   });
 
   it("offers nothing while face recognition is off", () => {

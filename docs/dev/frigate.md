@@ -41,8 +41,8 @@ Frigate feature is off.
 
 Selora AI writes only **per-camera** sections: `cameras.<name>` and the
 `go2rtc.streams` it restreams them from. The one global exception is
-`face_recognition.enabled` (see "Face recognition"): it needs the user's yes
-and no hardware choice. Detectors, hardware acceleration, models, MQTT and
+`face_recognition` (see "Face recognition"): `enabled`, on the user's yes, and
+on a Selora hub the large model. Detectors, hardware acceleration, models, MQTT and
 every other global section belong to Selora OS, which knows the hardware. A camera config that needs a global change (a different detector, a
 hwaccel preset) is a request to the OS, not something to write from here.
 
@@ -108,9 +108,9 @@ it:
 After the restart a background task waits for `/api/version` and reloads the
 Frigate integration so the new camera entities appear.
 
-**A Frigate that cannot restart itself still has the cameras.** Frigate's
-`/api/restart` only works when it runs as its own container; run by the Selora
-OS host it answers "Unable to restart Frigate". The config is saved by then, so
+**A Frigate that cannot restart itself still has the cameras.** When
+`/api/restart` fails (Frigate answers "Unable to restart Frigate" when it is
+not run in a way it can restart itself), the config is saved by then, so
 the confirm answers `status: saved, restart_failed` and the conversation says
 the cameras start with Frigate's next restart, instead of reporting a failure.
 
@@ -144,8 +144,13 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   unless that stream is a substream (Reolink with Clear left disabled): it is
   detected on at its own size, since scaling a 640×360 stream up to 720p costs
   the detector and sharpens nothing. The card and the model are told it records
-  in low resolution, naming the disabled main-stream entity to turn on; a
-  disabled entity has no state, so its name comes from the registry.
+  in low resolution, naming the disabled main-stream entity; a disabled entity
+  has no state, so its name comes from the registry. The card's "Record in full
+  quality" (`selora_ai/frigate/full_quality`) enables that entity and waits, up
+  to 90 s, for the stream: HA reloads the integration 30 s after an entity is
+  enabled, and only then does it have a state and a stream. The plan keeps its
+  id and approves the new streams, and the redrawn rows replace the card's in
+  the saved conversation, so a reload shows what Approve now adds.
 - **"Already in Frigate" compares host, port and path**, since Frigate redacts
   credentials in `GET /api/config` and go2rtc wraps sources
   (`ffmpeg:…#video=copy`).
@@ -493,6 +498,7 @@ the card does.
     that is the MCP resource, which takes only Connect's token, so a browser
     gets Pangolin's 401. Nor the external URL alone: on a hub it is often the
     LAN address, and nobody types the proxy's hostname into it.
+
 ## Camera descriptions
 
 Selora AI can have Frigate write a description of each person and vehicle a
@@ -616,22 +622,63 @@ homeowner's answer.
 
 Frigate looks for a face on each person it detects and matches it against its
 Face Library (`frigate/faces.py`). It cannot be on by default: it recognizes
-nobody until someone adds photos of each person, and that happens in Frigate's
-own UI.
+nobody until someone adds photos of each person.
 
-- **Selora AI switches it** (`set_face_recognition`, a card with
-  `kind: "frigate_faces"`, then a restart): only `face_recognition.enabled`,
-  read from the saved file. The model is left at Frigate's default, the small
-  one, which runs on the hub's CPU (AVX2 needed), so there is no hardware
-  choice to make here. The Face Library is kept when it is turned off.
-- **People are added in Frigate, never here.** `get_face_recognition` returns
-  who is in the library and with how many photos (`GET /api/faces`, minus its
-  `train` folder of unmatched faces), and a `guide`: it runs on the hub, 5 to
-  10 clear front-facing photos per person to begin with, then assign Recent
-  Recognitions. With it on, the panel draws a button under the reply that opens
-  Frigate's `faces` page (`face-library-link.js`, through `frigate-ui.js`).
+- **Selora AI switches it**, on the user's yes, then restarts Frigate:
+  `face_recognition.enabled`, read from the saved file. The Face Library is
+  kept when it is turned off.
+- **A hub gets the large model.** A Frigate entry at the hub's own Frigate
+  (`managed_by_hub`, see above) runs on hardware with a GPU, so
+  turning it on also writes `model_size: large`, unless the saved file already
+  names a model (Selora OS may have chosen). Elsewhere Frigate's default, the
+  small model on the CPU, is left alone: the integration cannot tell whether
+  a user's Frigate has a GPU.
+- **Asking starts from a home suggestion, without the model**, like camera
+  descriptions: `selora_ai/frigate/faces_start` writes the conversation (the
+  row's title, then what it gives and needs as points and the question, as
+  `faces_card`), and the buttons carry their answer (`face_answer`) to
+  `selora_ai/frigate/faces_answer`. A click is the user's own yes, so there is
+  no confirmation card. "Not now" writes nothing and dismisses `faces:off`. A
+  yes from an older message, once it is on, is refused. Opened while it is
+  already on, the guide goes straight to the people card. The model's way
+  (`set_face_recognition`, a `frigate_faces` card) stays for a request typed
+  in chat.
+- **People are added on the people card** (`render-faces-card.js`), not
+  through the model. A name and photos; each photo is downscaled in the
+  browser and sent alone to `selora_ai/frigate/faces_add_photo` (HA closes the
+  websocket on a frame past 4 MiB), which posts it to Frigate's
+  `POST /api/faces/<name>/register`. Frigate finds the face, keeps only that,
+  and refuses a photo without one ("No face was detected."), which the card
+  lists by file. A photo is never kept, logged, put in the conversation or
+  shown to a model. Clicking a known person adds more photos to them.
+- **The name is the folder, as typed.** Frigate reports the folder's name as
+  the event's `sub_label`, so spaces and accents stay; whitespace is collapsed
+  and a path's characters, a leading dot and `train` are refused
+  (`face_name`). Frigate's own `create` turns spaces into underscores, so it
+  is not called: `register` makes the folder.
+- **Frigate takes a photo only while it runs face recognition**: `register`
+  checks the running config. The card reads `selora_ai/frigate/faces_people`
+  (running or not, and who is in the library) every few seconds until Frigate
+  is back, for five minutes; then it offers to check again. A Frigate that
+  could not restart itself starts it only on its next restart.
+- `get_face_recognition` returns who is in the library and with how many
+  photos (`GET /api/faces`, minus its `train` folder of unmatched faces), a
+  `guide`, and `add_people`: in chat the card, and never photos in chat. With it on,
+  the panel draws the people card under the reply, and a button that opens
+  Frigate's `faces` page (`face-library-link.js`, through `frigate-ui.js`),
+  where the faces Frigate saw are assigned to the right person.
 - **A face needs a person.** Cameras that do not look for people are listed
   (`cameras_not_looking_for_people`), since they recognize no one.
 - **The suggestion has two states with their own ids**: `faces:off` (offer to
   turn it on) and `faces:empty` (on, nobody in the library). Dismissing the
-  first does not hide the second.
+  first does not hide the second. Both open the guide.
+- **Over MCP, a person is added from a camera event**
+  (`selora_add_face_photo`, `async_add_event_photo`): a name and an
+  `event_id` from `selora_find_camera_events`, whose snapshot goes from
+  Frigate to its own `register`, never through the client. An MCP client
+  cannot pass on a photo the user showed it (it would have to write the image
+  out as base64), so it takes none; the people card is the way to upload one.
+  An event without a snapshot is refused: its thumbnail is too small to learn
+  a face from. `selora_get_face_recognition` and the confirm of
+  `selora_set_face_recognition` (two calls, like the camera changes) say so
+  in place of the card (`FROM_EVENTS`).

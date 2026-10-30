@@ -7,6 +7,7 @@
 // descriptor is sent. A login a camera refuses comes back per camera, and the
 // card stays open to fix it.
 import { html } from "lit";
+import { renderActionButton } from "../shared/action-button.js";
 import { interpolate } from "../shared/i18n.js";
 
 const DEFAULT_USERNAME = "admin";
@@ -15,6 +16,8 @@ const DEFAULT_USERNAME = "admin";
 const LOGINS = new Map();
 // plan_id → camera key → error text
 const ERRORS = new Map();
+// plan_id → {busy, error} while a card turns its cameras to full quality
+const FULL_QUALITY = new Map();
 
 function loginFor(planId, key) {
   if (!LOGINS.has(planId)) LOGINS.set(planId, {});
@@ -71,16 +74,14 @@ function cameraLine(host, camera) {
 }
 
 // A camera with only its substream enabled records in low resolution; the
-// user decides before approving, so the card says so and what to turn on.
+// user decides before approving, so the card says so, and its button turns on
+// the full stream where the camera has one.
 function lowResLine(host, camera) {
   if (!camera.low_resolution) return "";
   const text = camera.turn_on
-    ? interpolate(
-        host._t(
-          "frigate_cameras_low_res_turn_on",
-          "Only its low-resolution stream is on, so it records in low resolution. Turn on its “{stream}” camera in Home Assistant first to record in full quality.",
-        ),
-        { stream: camera.turn_on },
+    ? host._t(
+        "frigate_cameras_low_res_turn_on",
+        "Only its low-resolution stream is on, so it records in low resolution.",
       )
     : host._t(
         "frigate_cameras_low_res",
@@ -136,6 +137,69 @@ function settingsLine(host, action) {
   );
 }
 
+/**
+ * Turn on the full-quality stream of the card's low-resolution cameras. The
+ * server waits for Home Assistant to load it, then answers with the card's
+ * rows, which replace these, here and in the saved conversation.
+ */
+export async function useFullQuality(host, action) {
+  const planId = String(action.plan_id || "");
+  if (FULL_QUALITY.get(planId)?.busy) return;
+  FULL_QUALITY.set(planId, { busy: true });
+  host.requestUpdate?.();
+  const index = (host._messages || []).findIndex((m) =>
+    m.command_approval?.client_actions?.includes(action),
+  );
+  try {
+    const result = await host.hass.callWS({
+      type: "selora_ai/frigate/full_quality",
+      plan_id: planId,
+      ...(host._activeSessionId && index >= 0
+        ? { session_id: host._activeSessionId, message_index: index }
+        : {}),
+    });
+    if (result?.error) throw new Error(result.error);
+    action.cameras = result.cameras;
+    action.label = result.label;
+    FULL_QUALITY.delete(planId);
+  } catch (err) {
+    FULL_QUALITY.set(planId, { error: err?.message || String(err) });
+  }
+  if (host._messages) host._messages = [...host._messages];
+  host.requestUpdate?.();
+}
+
+function fullQualityRow(host, action) {
+  const cameras = action.cameras || [];
+  if (!cameras.some((c) => c.low_resolution && c.turn_on)) return "";
+  const state = FULL_QUALITY.get(String(action.plan_id || "")) || {};
+  if (state.busy) {
+    return html`<div
+      style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+    >
+      <span class="spinner" style="width:14px;height:14px;"></span>
+      <span
+        >${host._t(
+          "frigate_cameras_full_quality_wait",
+          "Turning on the full-quality stream. Home Assistant reloads the camera, about 30 seconds…",
+        )}</span
+      >
+    </div>`;
+  }
+  return html`<div>
+    ${renderActionButton({
+      label: host._t("frigate_cameras_full_quality", "Record in full quality"),
+      mark: "mdi:high-definition",
+      onClick: () => useFullQuality(host, action),
+    })}
+    ${
+      state.error
+        ? html`<div class="frigate-camera-error">${state.error}</div>`
+        : ""
+    }
+  </div>`;
+}
+
 /** The card's rows: each camera, with a login form where one is needed. */
 export function renderFrigateCameraRows(host, action) {
   const planId = String(action.plan_id || "");
@@ -173,6 +237,7 @@ export function renderFrigateCameraRows(host, action) {
           </div>
         `,
       )}
+      ${fullQualityRow(host, action)}
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >

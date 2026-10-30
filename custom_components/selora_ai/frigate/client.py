@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import json
 from typing import TYPE_CHECKING, Any, Final, Literal, NamedTuple
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntryState
@@ -152,13 +152,20 @@ class FrigateClient:
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise FrigateError(f"Frigate could not be reached: {exc}") from exc
 
-    async def _request(self, method: str, path: str, payload: Any = None) -> Any:
+    async def _request(
+        self, method: str, path: str, payload: Any = None, *, form: aiohttp.FormData | None = None
+    ) -> Any:
         if self._username and self._token is None:
             await self._login()
         headers = {"Authorization": f"Bearer {self._token}"} if self._token else {}
         try:
             async with self._session.request(
-                method, f"{self._url}{path}", json=payload, headers=headers, timeout=_TIMEOUT
+                method,
+                f"{self._url}{path}",
+                json=payload,
+                data=form,
+                headers=headers,
+                timeout=_TIMEOUT,
             ) as resp:
                 text = await resp.text()
                 # /api/version answers in plain text, everything else in JSON.
@@ -283,6 +290,13 @@ class FrigateClient:
         """Frigate's Face Library: each folder's name → its image files."""
         faces = await self._request("GET", "/api/faces")
         return faces if isinstance(faces, dict) else {}
+
+    async def register_face(self, name: str, image: bytes, content_type: str) -> None:
+        """Add a photo of ``name`` to the Face Library. Frigate finds the face in
+        it and keeps only that; one without a face is refused."""
+        form = aiohttp.FormData()
+        form.add_field("file", image, filename="face", content_type=content_type)
+        await self._request("POST", f"/api/faces/{quote(name, safe='')}/register", form=form)
 
     async def version(self) -> str:
         """Frigate's version; raises while it is down."""

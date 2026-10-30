@@ -24,6 +24,7 @@ if TYPE_CHECKING:
         AutomationDict,
         ChatMessage,
         DescribeCard,
+        FacesCard,
         FrigateResult,
         RiskAssessment,
         ServiceCallDict,
@@ -215,6 +216,7 @@ class ConversationStore:
         origin_request: str | None = None,
         frigate_result: FrigateResult | None = None,
         describe_card: DescribeCard | None = None,
+        faces_card: FacesCard | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -286,6 +288,8 @@ class ConversationStore:
             message["frigate_result"] = frigate_result
         if describe_card is not None:
             message["describe_card"] = describe_card
+        if faces_card is not None:
+            message["faces_card"] = faces_card
         # What the turn still has to do once the user accepts this proposal.
         # A scene or automation is PROPOSED and accepted later, so the turn
         # that offered it is long over by then and nothing else remembers what
@@ -401,6 +405,34 @@ class ConversationStore:
         if message_index < 0 or message_index >= len(msgs):
             return False
         msgs[message_index]["approval_status"] = status
+        session["updated_at"] = dt_util.now().isoformat()
+        await self._store.async_save(self._data)
+        return True
+
+    async def update_client_action(
+        self, session_id: str, message_index: int, plan_id: str, changes: dict[str, Any]
+    ) -> bool:
+        """Apply *changes* to the client action of a card, found by its plan id.
+
+        A card the server redraws (a Frigate camera turned to full quality)
+        must read the same when the session is reopened.
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        if not session or not 0 <= message_index < len(session["messages"]):
+            return False
+        approval = session["messages"][message_index].get("command_approval") or {}
+        actions = [
+            a
+            for a in approval.get("client_actions") or []
+            if isinstance(a, dict) and a.get("plan_id") == plan_id
+        ]
+        if not actions:
+            return False
+        for action in actions:
+            action.update(changes)
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True

@@ -4734,7 +4734,8 @@ var chatStyles = i`
   /* The settings field style assumes the page behind it; on the card it
      disappears, so the fields get a border drawn from the text colour and
      an accent ring when focused. */
-  .frigate-login input {
+  .frigate-login input,
+  .faces-name input {
     width: 100%;
     box-sizing: border-box;
     background: var(--primary-background-color, #18181b);
@@ -4742,14 +4743,16 @@ var chatStyles = i`
       color-mix(in srgb, var(--secondary-text-color, #a1a1aa) 45%, transparent);
     cursor: text;
   }
-  .frigate-login input:hover {
+  .frigate-login input:hover,
+  .faces-name input:hover {
     border-color: color-mix(
       in srgb,
       var(--secondary-text-color, #a1a1aa) 70%,
       transparent
     );
   }
-  .frigate-login input:focus {
+  .frigate-login input:focus,
+  .faces-name input:focus {
     border-color: var(--selora-accent);
     box-shadow: 0 0 0 3px
       color-mix(in srgb, var(--selora-accent) 25%, transparent);
@@ -5023,18 +5026,16 @@ var chatStyles = i`
      opened by the shared card heading, each with its picture beside its
      words, stacked on a phone. Pictures use the Frigate result
      card's frame. */
-  /* The heading a guided conversation opens with (render-chat.js), as wide
-     as the cards under it. */
-  .chat-guide {
+  /* The heading a guided conversation opens with (render-chat.js) tops
+     Selora's first reply, as wide as the describe card, and runs to the
+     bubble's border the same way. */
+  .bubble--guided {
     width: 760px;
-    max-width: 100%;
-    margin-bottom: 8px;
   }
-  /* On its own it is the card, framed like a reply. */
   .chat-guide .card-heading--banner {
-    border: 1px solid var(--selora-zinc-700);
-    border-radius: 16px;
-    box-shadow: var(--card-box-shadow);
+    margin: -12px -16px 0;
+    padding: 16px;
+    border-radius: 15px 15px 0 0;
   }
   .describe-card {
     display: flex;
@@ -5130,6 +5131,88 @@ var chatStyles = i`
     font-size: 15px;
     font-weight: 600;
     line-height: 1.45;
+  }
+
+  /* Face recognition's people card (render-faces-card.js): who Frigate
+     knows, then a name and the photos to add. */
+  .faces-card--reply {
+    margin-top: 10px;
+  }
+  .faces-status-icon {
+    color: var(--success-color, #22c55e);
+  }
+  .faces-status-quiet {
+    color: var(--secondary-text-color);
+  }
+  .faces-hint,
+  .faces-nobody {
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--secondary-text-color);
+  }
+  .faces-wait {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .faces-people {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .faces-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .faces-person ha-icon {
+    color: var(--selora-accent);
+  }
+  .faces-person:hover,
+  .faces-person.is-picked {
+    border-color: var(--selora-accent);
+  }
+  .faces-person-name {
+    font-weight: 600;
+  }
+  .faces-person-count {
+    color: var(--secondary-text-color);
+  }
+  .faces-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .faces-name {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 200px;
+    max-width: 320px;
+    font-size: 12px;
+    color: var(--primary-text-color);
+  }
+  .faces-result {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .faces-failed {
+    margin-left: 0;
   }
 
   /* Idea chips under a live camera on the Frigate result card
@@ -11563,7 +11646,30 @@ var en_default = {
       "Help me add the people Frigate should recognize: where to add them, and which photos work best.",
     home_suggestion_faces_empty_why:
       "Face recognition is on, but Frigate does not know anyone yet. Add a few photos of each person in its Face Library.",
-    face_library_open: "Open the Face Library in Frigate",
+    frigate_open_failed: "Couldn't open Frigate: {error}",
+    faces_people_title: "People Frigate recognizes",
+    faces_checking: "Checking Frigate\u2026",
+    faces_waiting:
+      "Waiting for Frigate to restart with face recognition on\u2026",
+    faces_not_back:
+      "Frigate isn't running face recognition yet. It starts after Frigate's next restart.",
+    faces_check_again: "Check again",
+    faces_nobody: "Frigate doesn't know anyone yet.",
+    faces_add_more: "Add photos of this person",
+    faces_photo_count_one: "{count} photo",
+    faces_photo_count_few: "{count} photos",
+    faces_photo_count_many: "{count} photos",
+    faces_photo_count_other: "{count} photos",
+    faces_name_label: "Name",
+    faces_name_placeholder: "Who is it?",
+    faces_add_photos: "Add photos",
+    faces_adding: "Adding photo {done} of {total}\u2026",
+    faces_added_one: "{count} photo added for {name}.",
+    faces_added_few: "{count} photos added for {name}.",
+    faces_added_many: "{count} photos added for {name}.",
+    faces_added_other: "{count} photos added for {name}.",
+    faces_photo_unsupported: "Not a JPEG, PNG or WebP photo.",
+    faces_photo_too_large: "The photo is too large.",
     client_action_add_to_frigate: "Add to Frigate",
     frigate_camera_username: "Username",
     frigate_camera_password: "Password",
@@ -11584,7 +11690,10 @@ var en_default = {
     camera_events_package: "Package",
     frigate_cameras_not_added: "Not added: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Only its low-resolution stream is on, so it records in low resolution. Turn on its \u201C{stream}\u201D camera in Home Assistant first to record in full quality.",
+      "Only its low-resolution stream is on, so it records in low resolution.",
+    frigate_cameras_full_quality: "Record in full quality",
+    frigate_cameras_full_quality_wait:
+      "Turning on the full-quality stream. Home Assistant reloads the camera, about 30 seconds\u2026",
     frigate_cameras_low_res:
       "Only its low-resolution stream is available, so it records in low resolution.",
     frigate_result_added: "Added to Frigate",
@@ -13002,7 +13111,30 @@ var fr_default = {
       "Aide-moi \xE0 ajouter les personnes que Frigate doit reconna\xEEtre : o\xF9 les ajouter et quelles photos fonctionnent le mieux.",
     home_suggestion_faces_empty_why:
       "La reconnaissance faciale est activ\xE9e, mais Frigate ne conna\xEEt encore personne. Ajoutez quelques photos de chaque personne dans sa biblioth\xE8que de visages.",
-    face_library_open: "Ouvrir la biblioth\xE8que de visages dans Frigate",
+    frigate_open_failed: "Impossible d'ouvrir Frigate : {error}",
+    faces_people_title: "Personnes que Frigate reconna\xEEt",
+    faces_checking: "V\xE9rification de Frigate\u2026",
+    faces_waiting:
+      "En attente du red\xE9marrage de Frigate avec la reconnaissance faciale\u2026",
+    faces_not_back:
+      "Frigate n'utilise pas encore la reconnaissance faciale. Elle d\xE9marrera \xE0 son prochain red\xE9marrage.",
+    faces_check_again: "V\xE9rifier \xE0 nouveau",
+    faces_nobody: "Frigate ne conna\xEEt encore personne.",
+    faces_add_more: "Ajouter des photos de cette personne",
+    faces_photo_count_one: "{count} photo",
+    faces_photo_count_few: "{count} photos",
+    faces_photo_count_many: "{count} photos",
+    faces_photo_count_other: "{count} photos",
+    faces_name_label: "Nom",
+    faces_name_placeholder: "Qui est-ce ?",
+    faces_add_photos: "Ajouter des photos",
+    faces_adding: "Ajout de la photo {done} sur {total}\u2026",
+    faces_added_one: "{count} photo ajout\xE9e pour {name}.",
+    faces_added_few: "{count} photos ajout\xE9es pour {name}.",
+    faces_added_many: "{count} photos ajout\xE9es pour {name}.",
+    faces_added_other: "{count} photos ajout\xE9es pour {name}.",
+    faces_photo_unsupported: "Ce n'est pas une photo JPEG, PNG ou WebP.",
+    faces_photo_too_large: "La photo est trop grande.",
     client_action_add_to_frigate: "Ajouter \xE0 Frigate",
     frigate_camera_username: "Nom d'utilisateur",
     frigate_camera_password: "Mot de passe",
@@ -13023,7 +13155,10 @@ var fr_default = {
     camera_events_package: "Colis",
     frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
     frigate_cameras_low_res_turn_on:
-      "Seul son flux basse r\xE9solution est activ\xE9 : il enregistrera en basse r\xE9solution. Activez d\u2019abord sa cam\xE9ra \xAB {stream} \xBB dans Home Assistant pour enregistrer en pleine qualit\xE9.",
+      "Seul son flux basse r\xE9solution est activ\xE9 : il enregistrera en basse r\xE9solution.",
+    frigate_cameras_full_quality: "Enregistrer en pleine qualit\xE9",
+    frigate_cameras_full_quality_wait:
+      "Activation du flux pleine qualit\xE9. Home Assistant recharge la cam\xE9ra, environ 30 secondes\u2026",
     frigate_cameras_low_res:
       "Seul son flux basse r\xE9solution est disponible : il enregistrera en basse r\xE9solution.",
     frigate_result_added: "Ajout\xE9e \xE0 Frigate",
@@ -14436,7 +14571,30 @@ var de_default = {
       "Hilf mir, die Personen hinzuzuf\xFCgen, die Frigate erkennen soll: wo ich sie hinzuf\xFCge und welche Fotos am besten funktionieren.",
     home_suggestion_faces_empty_why:
       "Die Gesichtserkennung ist an, aber Frigate kennt noch niemanden. F\xFCge in seiner Gesichterbibliothek ein paar Fotos von jeder Person hinzu.",
-    face_library_open: "Gesichterbibliothek in Frigate \xF6ffnen",
+    frigate_open_failed: "Frigate konnte nicht ge\xF6ffnet werden: {error}",
+    faces_people_title: "Personen, die Frigate erkennt",
+    faces_checking: "Frigate wird gepr\xFCft\u2026",
+    faces_waiting:
+      "Warte auf den Neustart von Frigate mit Gesichtserkennung\u2026",
+    faces_not_back:
+      "Frigate nutzt die Gesichtserkennung noch nicht. Sie startet mit dem n\xE4chsten Neustart von Frigate.",
+    faces_check_again: "Erneut pr\xFCfen",
+    faces_nobody: "Frigate kennt noch niemanden.",
+    faces_add_more: "Fotos dieser Person hinzuf\xFCgen",
+    faces_photo_count_one: "{count} Foto",
+    faces_photo_count_few: "{count} Fotos",
+    faces_photo_count_many: "{count} Fotos",
+    faces_photo_count_other: "{count} Fotos",
+    faces_name_label: "Name",
+    faces_name_placeholder: "Wer ist das?",
+    faces_add_photos: "Fotos hinzuf\xFCgen",
+    faces_adding: "Foto {done} von {total} wird hinzugef\xFCgt\u2026",
+    faces_added_one: "{count} Foto f\xFCr {name} hinzugef\xFCgt.",
+    faces_added_few: "{count} Fotos f\xFCr {name} hinzugef\xFCgt.",
+    faces_added_many: "{count} Fotos f\xFCr {name} hinzugef\xFCgt.",
+    faces_added_other: "{count} Fotos f\xFCr {name} hinzugef\xFCgt.",
+    faces_photo_unsupported: "Kein JPEG-, PNG- oder WebP-Foto.",
+    faces_photo_too_large: "Das Foto ist zu gro\xDF.",
     client_action_add_to_frigate: "Zu Frigate hinzuf\xFCgen",
     frigate_camera_username: "Benutzername",
     frigate_camera_password: "Passwort",
@@ -14457,7 +14615,10 @@ var de_default = {
     camera_events_package: "Paket",
     frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Nur der Stream mit niedriger Aufl\xF6sung ist aktiv, daher wird in niedriger Aufl\xF6sung aufgenommen. Aktiviere zuerst die Kamera \u201E{stream}\u201C in Home Assistant, um in voller Qualit\xE4t aufzunehmen.",
+      "Nur der Stream mit niedriger Aufl\xF6sung ist aktiv, daher wird in niedriger Aufl\xF6sung aufgenommen.",
+    frigate_cameras_full_quality: "In voller Qualit\xE4t aufnehmen",
+    frigate_cameras_full_quality_wait:
+      "Der Stream in voller Qualit\xE4t wird aktiviert. Home Assistant l\xE4dt die Kamera neu, etwa 30 Sekunden\u2026",
     frigate_cameras_low_res:
       "Nur der Stream mit niedriger Aufl\xF6sung ist verf\xFCgbar, daher wird in niedriger Aufl\xF6sung aufgenommen.",
     frigate_result_added: "Zu Frigate hinzugef\xFCgt",
@@ -15849,7 +16010,30 @@ var es_default = {
       "Ay\xFAdame a a\xF1adir las personas que Frigate debe reconocer: d\xF3nde a\xF1adirlas y qu\xE9 fotos funcionan mejor.",
     home_suggestion_faces_empty_why:
       "El reconocimiento facial est\xE1 activado, pero Frigate a\xFAn no conoce a nadie. A\xF1ade algunas fotos de cada persona en su biblioteca de caras.",
-    face_library_open: "Abrir la biblioteca de caras en Frigate",
+    frigate_open_failed: "No se pudo abrir Frigate: {error}",
+    faces_people_title: "Personas que Frigate reconoce",
+    faces_checking: "Comprobando Frigate\u2026",
+    faces_waiting:
+      "Esperando a que Frigate se reinicie con el reconocimiento facial\u2026",
+    faces_not_back:
+      "Frigate a\xFAn no usa el reconocimiento facial. Empezar\xE1 con su pr\xF3ximo reinicio.",
+    faces_check_again: "Comprobar de nuevo",
+    faces_nobody: "Frigate a\xFAn no conoce a nadie.",
+    faces_add_more: "A\xF1adir fotos de esta persona",
+    faces_photo_count_one: "{count} foto",
+    faces_photo_count_few: "{count} fotos",
+    faces_photo_count_many: "{count} fotos",
+    faces_photo_count_other: "{count} fotos",
+    faces_name_label: "Nombre",
+    faces_name_placeholder: "\xBFQui\xE9n es?",
+    faces_add_photos: "A\xF1adir fotos",
+    faces_adding: "A\xF1adiendo la foto {done} de {total}\u2026",
+    faces_added_one: "{count} foto a\xF1adida para {name}.",
+    faces_added_few: "{count} fotos a\xF1adidas para {name}.",
+    faces_added_many: "{count} fotos a\xF1adidas para {name}.",
+    faces_added_other: "{count} fotos a\xF1adidas para {name}.",
+    faces_photo_unsupported: "No es una foto JPEG, PNG o WebP.",
+    faces_photo_too_large: "La foto es demasiado grande.",
     client_action_add_to_frigate: "A\xF1adir a Frigate",
     frigate_camera_username: "Usuario",
     frigate_camera_password: "Contrase\xF1a",
@@ -15870,7 +16054,10 @@ var es_default = {
     camera_events_package: "Paquete",
     frigate_cameras_not_added: "No a\xF1adidas: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Solo est\xE1 activo su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n. Activa primero su c\xE1mara \xAB{stream}\xBB en Home Assistant para grabar con calidad completa.",
+      "Solo est\xE1 activo su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n.",
+    frigate_cameras_full_quality: "Grabar con calidad completa",
+    frigate_cameras_full_quality_wait:
+      "Activando el flujo de calidad completa. Home Assistant recarga la c\xE1mara, unos 30 segundos\u2026",
     frigate_cameras_low_res:
       "Solo est\xE1 disponible su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n.",
     frigate_result_added: "A\xF1adida a Frigate",
@@ -17259,7 +17446,30 @@ var it_default = {
       "Aiutami ad aggiungere le persone che Frigate deve riconoscere: dove aggiungerle e quali foto funzionano meglio.",
     home_suggestion_faces_empty_why:
       "Il riconoscimento facciale \xE8 attivo, ma Frigate non conosce ancora nessuno. Aggiungi alcune foto di ogni persona nella sua libreria dei volti.",
-    face_library_open: "Apri la libreria dei volti in Frigate",
+    frigate_open_failed: "Impossibile aprire Frigate: {error}",
+    faces_people_title: "Persone che Frigate riconosce",
+    faces_checking: "Verifica di Frigate\u2026",
+    faces_waiting:
+      "In attesa del riavvio di Frigate con il riconoscimento facciale\u2026",
+    faces_not_back:
+      "Frigate non usa ancora il riconoscimento facciale. Partir\xE0 al prossimo riavvio di Frigate.",
+    faces_check_again: "Verifica di nuovo",
+    faces_nobody: "Frigate non conosce ancora nessuno.",
+    faces_add_more: "Aggiungi foto di questa persona",
+    faces_photo_count_one: "{count} foto",
+    faces_photo_count_few: "{count} foto",
+    faces_photo_count_many: "{count} foto",
+    faces_photo_count_other: "{count} foto",
+    faces_name_label: "Nome",
+    faces_name_placeholder: "Chi \xE8?",
+    faces_add_photos: "Aggiungi foto",
+    faces_adding: "Aggiunta della foto {done} di {total}\u2026",
+    faces_added_one: "{count} foto aggiunta per {name}.",
+    faces_added_few: "{count} foto aggiunte per {name}.",
+    faces_added_many: "{count} foto aggiunte per {name}.",
+    faces_added_other: "{count} foto aggiunte per {name}.",
+    faces_photo_unsupported: "Non \xE8 una foto JPEG, PNG o WebP.",
+    faces_photo_too_large: "La foto \xE8 troppo grande.",
     client_action_add_to_frigate: "Aggiungi a Frigate",
     frigate_camera_username: "Nome utente",
     frigate_camera_password: "Password",
@@ -17281,7 +17491,10 @@ var it_default = {
     camera_events_package: "Pacco",
     frigate_cameras_not_added: "Non aggiunte: {list}.",
     frigate_cameras_low_res_turn_on:
-      "\xC8 attivo solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione. Attiva prima la telecamera \xAB{stream}\xBB in Home Assistant per registrare in piena qualit\xE0.",
+      "\xC8 attivo solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione.",
+    frigate_cameras_full_quality: "Registra in piena qualit\xE0",
+    frigate_cameras_full_quality_wait:
+      "Attivazione del flusso in piena qualit\xE0. Home Assistant ricarica la telecamera, circa 30 secondi\u2026",
     frigate_cameras_low_res:
       "\xC8 disponibile solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione.",
     frigate_result_added: "Aggiunta a Frigate",
@@ -18686,7 +18899,29 @@ var nl_default = {
       "Help me de mensen toe te voegen die Frigate moet herkennen: waar ik ze toevoeg en welke foto's het best werken.",
     home_suggestion_faces_empty_why:
       "Gezichtsherkenning staat aan, maar Frigate kent nog niemand. Voeg in de gezichtenbibliotheek een paar foto's van elke persoon toe.",
-    face_library_open: "Open de gezichtenbibliotheek in Frigate",
+    frigate_open_failed: "Kan Frigate niet openen: {error}",
+    faces_people_title: "Mensen die Frigate herkent",
+    faces_checking: "Frigate controleren\u2026",
+    faces_waiting: "Wachten tot Frigate herstart met gezichtsherkenning\u2026",
+    faces_not_back:
+      "Frigate gebruikt nog geen gezichtsherkenning. Die start na de volgende herstart van Frigate.",
+    faces_check_again: "Opnieuw controleren",
+    faces_nobody: "Frigate kent nog niemand.",
+    faces_add_more: "Foto's van deze persoon toevoegen",
+    faces_photo_count_one: "{count} foto",
+    faces_photo_count_few: "{count} foto's",
+    faces_photo_count_many: "{count} foto's",
+    faces_photo_count_other: "{count} foto's",
+    faces_name_label: "Naam",
+    faces_name_placeholder: "Wie is het?",
+    faces_add_photos: "Foto's toevoegen",
+    faces_adding: "Foto {done} van {total} toevoegen\u2026",
+    faces_added_one: "{count} foto toegevoegd voor {name}.",
+    faces_added_few: "{count} foto's toegevoegd voor {name}.",
+    faces_added_many: "{count} foto's toegevoegd voor {name}.",
+    faces_added_other: "{count} foto's toegevoegd voor {name}.",
+    faces_photo_unsupported: "Geen JPEG-, PNG- of WebP-foto.",
+    faces_photo_too_large: "De foto is te groot.",
     client_action_add_to_frigate: "Toevoegen aan Frigate",
     frigate_camera_username: "Gebruikersnaam",
     frigate_camera_password: "Wachtwoord",
@@ -18707,7 +18942,10 @@ var nl_default = {
     camera_events_package: "Pakket",
     frigate_cameras_not_added: "Niet toegevoegd: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Alleen de stream met lage resolutie staat aan, dus er wordt in lage resolutie opgenomen. Zet eerst de camera \u2018{stream}\u2019 aan in Home Assistant om in volle kwaliteit op te nemen.",
+      "Alleen de stream met lage resolutie staat aan, dus er wordt in lage resolutie opgenomen.",
+    frigate_cameras_full_quality: "Opnemen in volle kwaliteit",
+    frigate_cameras_full_quality_wait:
+      "De stream in volle kwaliteit wordt aangezet. Home Assistant laadt de camera opnieuw, ongeveer 30 seconden\u2026",
     frigate_cameras_low_res:
       "Alleen de stream met lage resolutie is beschikbaar, dus er wordt in lage resolutie opgenomen.",
     frigate_result_added: "Toegevoegd aan Frigate",
@@ -20166,7 +20404,30 @@ var hu_default = {
       "Seg\xEDts hozz\xE1adni azokat, akiket a Frigate-nek fel kell ismernie: hol adjam hozz\xE1 \u0151ket, \xE9s milyen f\xE9nyk\xE9pek a legjobbak.",
     home_suggestion_faces_empty_why:
       "Az arcfelismer\xE9s be van kapcsolva, de a Frigate m\xE9g senkit sem ismer. Adj hozz\xE1 n\xE9h\xE1ny f\xE9nyk\xE9pet mindenkir\u0151l az arck\xF6nyvt\xE1r\xE1ban.",
-    face_library_open: "Arck\xF6nyvt\xE1r megnyit\xE1sa a Frigate-ben",
+    frigate_open_failed: "Nem siker\xFClt megnyitni a Frigate-et: {error}",
+    faces_people_title: "Akiket a Frigate felismer",
+    faces_checking: "Frigate ellen\u0151rz\xE9se\u2026",
+    faces_waiting:
+      "V\xE1rakoz\xE1s a Frigate \xFAjraindul\xE1s\xE1ra arcfelismer\xE9ssel\u2026",
+    faces_not_back:
+      "A Frigate m\xE9g nem haszn\xE1l arcfelismer\xE9st. A k\xF6vetkez\u0151 \xFAjraind\xEDt\xE1s ut\xE1n indul.",
+    faces_check_again: "\xDAjraellen\u0151rz\xE9s",
+    faces_nobody: "A Frigate m\xE9g senkit sem ismer.",
+    faces_add_more: "Fot\xF3k hozz\xE1ad\xE1sa err\u0151l a szem\xE9lyr\u0151l",
+    faces_photo_count_one: "{count} fot\xF3",
+    faces_photo_count_few: "{count} fot\xF3",
+    faces_photo_count_many: "{count} fot\xF3",
+    faces_photo_count_other: "{count} fot\xF3",
+    faces_name_label: "N\xE9v",
+    faces_name_placeholder: "Ki ez?",
+    faces_add_photos: "Fot\xF3k hozz\xE1ad\xE1sa",
+    faces_adding: "{done}. fot\xF3 hozz\xE1ad\xE1sa, \xF6sszesen {total}\u2026",
+    faces_added_one: "{count} fot\xF3 hozz\xE1adva: {name}.",
+    faces_added_few: "{count} fot\xF3 hozz\xE1adva: {name}.",
+    faces_added_many: "{count} fot\xF3 hozz\xE1adva: {name}.",
+    faces_added_other: "{count} fot\xF3 hozz\xE1adva: {name}.",
+    faces_photo_unsupported: "Nem JPEG, PNG vagy WebP fot\xF3.",
+    faces_photo_too_large: "A fot\xF3 t\xFAl nagy.",
     client_action_add_to_frigate: "Hozz\xE1ad\xE1s a Frigate-hez",
     frigate_camera_username: "Felhaszn\xE1l\xF3n\xE9v",
     frigate_camera_password: "Jelsz\xF3",
@@ -20188,7 +20449,10 @@ var hu_default = {
     camera_events_package: "Csomag",
     frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Csak az alacsony felbont\xE1s\xFA stream van bekapcsolva, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt. Teljes min\u0151s\xE9ghez el\u0151bb kapcsold be a(z) \u201E{stream}\u201D kamer\xE1t a Home Assistantben.",
+      "Csak az alacsony felbont\xE1s\xFA stream van bekapcsolva, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt.",
+    frigate_cameras_full_quality: "R\xF6gz\xEDt\xE9s teljes min\u0151s\xE9gben",
+    frigate_cameras_full_quality_wait:
+      "A teljes min\u0151s\xE9g\u0171 stream bekapcsol\xE1sa. A Home Assistant \xFAjrat\xF6lti a kamer\xE1t, k\xF6r\xFClbel\xFCl 30 m\xE1sodperc\u2026",
     frigate_cameras_low_res:
       "Csak az alacsony felbont\xE1s\xFA stream \xE9rhet\u0151 el, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt.",
     frigate_result_added: "Hozz\xE1adva a Frigate-hez",
@@ -21576,7 +21840,30 @@ var pt_default = {
       "Ajuda-me a adicionar as pessoas que o Frigate deve reconhecer: onde as adicionar e que fotos funcionam melhor.",
     home_suggestion_faces_empty_why:
       "O reconhecimento facial est\xE1 ativado, mas o Frigate ainda n\xE3o conhece ningu\xE9m. Adicione algumas fotos de cada pessoa na biblioteca de rostos.",
-    face_library_open: "Abrir a biblioteca de rostos no Frigate",
+    frigate_open_failed: "N\xE3o foi poss\xEDvel abrir o Frigate: {error}",
+    faces_people_title: "Pessoas que o Frigate reconhece",
+    faces_checking: "A verificar o Frigate\u2026",
+    faces_waiting:
+      "A aguardar que o Frigate reinicie com o reconhecimento facial\u2026",
+    faces_not_back:
+      "O Frigate ainda n\xE3o usa o reconhecimento facial. Come\xE7a no pr\xF3ximo rein\xEDcio do Frigate.",
+    faces_check_again: "Verificar novamente",
+    faces_nobody: "O Frigate ainda n\xE3o conhece ningu\xE9m.",
+    faces_add_more: "Adicionar fotos desta pessoa",
+    faces_photo_count_one: "{count} foto",
+    faces_photo_count_few: "{count} fotos",
+    faces_photo_count_many: "{count} fotos",
+    faces_photo_count_other: "{count} fotos",
+    faces_name_label: "Nome",
+    faces_name_placeholder: "Quem \xE9?",
+    faces_add_photos: "Adicionar fotos",
+    faces_adding: "A adicionar a foto {done} de {total}\u2026",
+    faces_added_one: "{count} foto adicionada para {name}.",
+    faces_added_few: "{count} fotos adicionadas para {name}.",
+    faces_added_many: "{count} fotos adicionadas para {name}.",
+    faces_added_other: "{count} fotos adicionadas para {name}.",
+    faces_photo_unsupported: "N\xE3o \xE9 uma foto JPEG, PNG ou WebP.",
+    faces_photo_too_large: "A foto \xE9 demasiado grande.",
     client_action_add_to_frigate: "Adicionar ao Frigate",
     frigate_camera_username: "Nome de utilizador",
     frigate_camera_password: "Palavra-passe",
@@ -21597,7 +21884,10 @@ var pt_default = {
     camera_events_package: "Encomenda",
     frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
     frigate_cameras_low_res_turn_on:
-      "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 ativo, por isso grava em baixa resolu\xE7\xE3o. Ative primeiro a c\xE2mara \u201C{stream}\u201D no Home Assistant para gravar com qualidade total.",
+      "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 ativo, por isso grava em baixa resolu\xE7\xE3o.",
+    frigate_cameras_full_quality: "Gravar com qualidade total",
+    frigate_cameras_full_quality_wait:
+      "A ativar o fluxo de qualidade total. O Home Assistant recarrega a c\xE2mara, cerca de 30 segundos\u2026",
     frigate_cameras_low_res:
       "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 dispon\xEDvel, por isso grava em baixa resolu\xE7\xE3o.",
     frigate_result_added: "Adicionada ao Frigate",
@@ -23618,8 +23908,44 @@ var ru_default = {
       "\u041F\u043E\u043C\u043E\u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043B\u044E\u0434\u0435\u0439, \u043A\u043E\u0442\u043E\u0440\u044B\u0445 Frigate \u0434\u043E\u043B\u0436\u0435\u043D \u0443\u0437\u043D\u0430\u0432\u0430\u0442\u044C: \u043A\u0443\u0434\u0430 \u0438\u0445 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438 \u043A\u0430\u043A\u0438\u0435 \u0444\u043E\u0442\u043E \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0442 \u043B\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043E.",
     home_suggestion_faces_empty_why:
       "\u0420\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435 \u043B\u0438\u0446 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u043E, \u043D\u043E Frigate \u043F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u043D\u0435 \u0437\u043D\u0430\u0435\u0442. \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430 \u0432 \u0435\u0433\u043E \u0431\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0443 \u043B\u0438\u0446.",
-    face_library_open:
-      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0431\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0443 \u043B\u0438\u0446 \u0432\u043E Frigate",
+    frigate_open_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043A\u0440\u044B\u0442\u044C Frigate: {error}",
+    faces_people_title:
+      "\u041A\u043E\u0433\u043E \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442 Frigate",
+    faces_checking:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 Frigate\u2026",
+    faces_waiting:
+      "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430 Frigate \u0441 \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435\u043C \u043B\u0438\u0446\u2026",
+    faces_not_back:
+      "Frigate \u0435\u0449\u0451 \u043D\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435 \u043B\u0438\u0446. \u041E\u043D\u043E \u043D\u0430\u0447\u043D\u0451\u0442 \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u043F\u043E\u0441\u043B\u0435 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430 Frigate.",
+    faces_check_again:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430",
+    faces_nobody:
+      "Frigate \u043F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u043D\u0435 \u0437\u043D\u0430\u0435\u0442.",
+    faces_add_more:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0444\u043E\u0442\u043E \u044D\u0442\u043E\u0433\u043E \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430",
+    faces_photo_count_one: "{count} \u0444\u043E\u0442\u043E",
+    faces_photo_count_few: "{count} \u0444\u043E\u0442\u043E",
+    faces_photo_count_many: "{count} \u0444\u043E\u0442\u043E",
+    faces_photo_count_other: "{count} \u0444\u043E\u0442\u043E",
+    faces_name_label: "\u0418\u043C\u044F",
+    faces_name_placeholder: "\u041A\u0442\u043E \u044D\u0442\u043E?",
+    faces_add_photos:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0444\u043E\u0442\u043E",
+    faces_adding:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0444\u043E\u0442\u043E {done} \u0438\u0437 {total}\u2026",
+    faces_added_one:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E {count} \u0444\u043E\u0442\u043E \u0434\u043B\u044F {name}.",
+    faces_added_few:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E {count} \u0444\u043E\u0442\u043E \u0434\u043B\u044F {name}.",
+    faces_added_many:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E {count} \u0444\u043E\u0442\u043E \u0434\u043B\u044F {name}.",
+    faces_added_other:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E {count} \u0444\u043E\u0442\u043E \u0434\u043B\u044F {name}.",
+    faces_photo_unsupported:
+      "\u042D\u0442\u043E \u043D\u0435 \u0444\u043E\u0442\u043E JPEG, PNG \u0438\u043B\u0438 WebP.",
+    faces_photo_too_large:
+      "\u0424\u043E\u0442\u043E \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435.",
     client_action_add_to_frigate:
       "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u043E Frigate",
     frigate_camera_username:
@@ -23649,7 +23975,11 @@ var ru_default = {
     frigate_cameras_not_added:
       "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
     frigate_cameras_low_res_turn_on:
-      "\u0412\u043A\u043B\u044E\u0447\u0451\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0442\u043E\u043A \u043D\u0438\u0437\u043A\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0443\u0434\u0435\u0442 \u0432 \u043D\u0438\u0437\u043A\u043E\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0438. \u0414\u043B\u044F \u0437\u0430\u043F\u0438\u0441\u0438 \u0432 \u043F\u043E\u043B\u043D\u043E\u043C \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0435 \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u043A\u0430\u043C\u0435\u0440\u0443 \xAB{stream}\xBB \u0432 Home Assistant.",
+      "\u0412\u043A\u043B\u044E\u0447\u0451\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0442\u043E\u043A \u043D\u0438\u0437\u043A\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0443\u0434\u0435\u0442 \u0432 \u043D\u0438\u0437\u043A\u043E\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0438.",
+    frigate_cameras_full_quality:
+      "\u0417\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0442\u044C \u0432 \u043F\u043E\u043B\u043D\u043E\u043C \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0435",
+    frigate_cameras_full_quality_wait:
+      "\u0412\u043A\u043B\u044E\u0447\u0430\u0435\u0442\u0441\u044F \u043F\u043E\u0442\u043E\u043A \u043F\u043E\u043B\u043D\u043E\u0433\u043E \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430. Home Assistant \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442 \u043A\u0430\u043C\u0435\u0440\u0443, \u043E\u043A\u043E\u043B\u043E 30 \u0441\u0435\u043A\u0443\u043D\u0434\u2026",
     frigate_cameras_low_res:
       "\u0414\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0442\u043E\u043A \u043D\u0438\u0437\u043A\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0443\u0434\u0435\u0442 \u0432 \u043D\u0438\u0437\u043A\u043E\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0438.",
     frigate_result_added:
@@ -25358,8 +25688,39 @@ var ja_default = {
       "Frigate \u306B\u8A8D\u8B58\u3055\u305B\u308B\u4EBA\u306E\u8FFD\u52A0\u3092\u624B\u4F1D\u3063\u3066\u304F\u3060\u3055\u3044\u3002\u3069\u3053\u3067\u8FFD\u52A0\u3059\u308B\u304B\u3001\u3069\u3093\u306A\u5199\u771F\u304C\u9069\u3057\u3066\u3044\u308B\u304B\u3092\u6559\u3048\u3066\u304F\u3060\u3055\u3044\u3002",
     home_suggestion_faces_empty_why:
       "\u9854\u8A8D\u8B58\u306F\u30AA\u30F3\u3067\u3059\u304C\u3001Frigate \u306F\u307E\u3060\u8AB0\u3082\u77E5\u308A\u307E\u305B\u3093\u3002\u9854\u30E9\u30A4\u30D6\u30E9\u30EA\u306B\u5404\u4EBA\u306E\u5199\u771F\u3092\u6570\u679A\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
-    face_library_open:
-      "Frigate \u3067\u9854\u30E9\u30A4\u30D6\u30E9\u30EA\u3092\u958B\u304F",
+    frigate_open_failed:
+      "Frigate \u3092\u958B\u3051\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
+    faces_people_title: "Frigate\u304C\u8A8D\u8B58\u3059\u308B\u4EBA",
+    faces_checking:
+      "Frigate\u3092\u78BA\u8A8D\u3057\u3066\u3044\u307E\u3059\u2026",
+    faces_waiting:
+      "\u9854\u8A8D\u8B58\u3092\u6709\u52B9\u306B\u3057\u3066Frigate\u304C\u518D\u8D77\u52D5\u3059\u308B\u306E\u3092\u5F85\u3063\u3066\u3044\u307E\u3059\u2026",
+    faces_not_back:
+      "Frigate\u306F\u307E\u3060\u9854\u8A8D\u8B58\u3092\u4F7F\u3063\u3066\u3044\u307E\u305B\u3093\u3002\u6B21\u56DE\u306EFrigate\u518D\u8D77\u52D5\u5F8C\u306B\u958B\u59CB\u3057\u307E\u3059\u3002",
+    faces_check_again: "\u518D\u78BA\u8A8D",
+    faces_nobody:
+      "Frigate\u306F\u307E\u3060\u8AB0\u3082\u77E5\u308A\u307E\u305B\u3093\u3002",
+    faces_add_more: "\u3053\u306E\u4EBA\u306E\u5199\u771F\u3092\u8FFD\u52A0",
+    faces_photo_count_one: "{count}\u679A",
+    faces_photo_count_few: "{count}\u679A",
+    faces_photo_count_many: "{count}\u679A",
+    faces_photo_count_other: "{count}\u679A",
+    faces_name_label: "\u540D\u524D",
+    faces_name_placeholder: "\u8AB0\u3067\u3059\u304B\uFF1F",
+    faces_add_photos: "\u5199\u771F\u3092\u8FFD\u52A0",
+    faces_adding: "\u5199\u771F\u3092\u8FFD\u52A0\u4E2D {done}/{total}\u2026",
+    faces_added_one:
+      "{name}\u306B\u5199\u771F\u3092{count}\u679A\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002",
+    faces_added_few:
+      "{name}\u306B\u5199\u771F\u3092{count}\u679A\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002",
+    faces_added_many:
+      "{name}\u306B\u5199\u771F\u3092{count}\u679A\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002",
+    faces_added_other:
+      "{name}\u306B\u5199\u771F\u3092{count}\u679A\u8FFD\u52A0\u3057\u307E\u3057\u305F\u3002",
+    faces_photo_unsupported:
+      "JPEG\u3001PNG\u3001WebP\u306E\u5199\u771F\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    faces_photo_too_large:
+      "\u5199\u771F\u304C\u5927\u304D\u3059\u304E\u307E\u3059\u3002",
     client_action_add_to_frigate: "Frigate \u306B\u8FFD\u52A0",
     frigate_camera_username: "\u30E6\u30FC\u30B6\u30FC\u540D",
     frigate_camera_password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
@@ -25384,7 +25745,10 @@ var ja_default = {
     frigate_cameras_not_added:
       "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
     frigate_cameras_low_res_turn_on:
-      "\u4F4E\u89E3\u50CF\u5EA6\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3057\u304B\u6709\u52B9\u306B\u306A\u3063\u3066\u3044\u306A\u3044\u305F\u3081\u3001\u4F4E\u89E3\u50CF\u5EA6\u3067\u9332\u753B\u3055\u308C\u307E\u3059\u3002\u30D5\u30EB\u753B\u8CEA\u3067\u9332\u753B\u3059\u308B\u306B\u306F\u3001\u5148\u306B Home Assistant \u3067\u300C{stream}\u300D\u30AB\u30E1\u30E9\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "\u4F4E\u89E3\u50CF\u5EA6\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3057\u304B\u6709\u52B9\u306B\u306A\u3063\u3066\u3044\u306A\u3044\u305F\u3081\u3001\u4F4E\u89E3\u50CF\u5EA6\u3067\u9332\u753B\u3055\u308C\u307E\u3059\u3002",
+    frigate_cameras_full_quality: "\u30D5\u30EB\u753B\u8CEA\u3067\u9332\u753B",
+    frigate_cameras_full_quality_wait:
+      "\u30D5\u30EB\u753B\u8CEA\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3092\u6709\u52B9\u306B\u3057\u3066\u3044\u307E\u3059\u3002Home Assistant \u304C\u30AB\u30E1\u30E9\u3092\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u307E\u3059\uFF08\u7D04 30 \u79D2\uFF09\u2026",
     frigate_cameras_low_res:
       "\u4F4E\u89E3\u50CF\u5EA6\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3057\u304B\u5229\u7528\u3067\u304D\u306A\u3044\u305F\u3081\u3001\u4F4E\u89E3\u50CF\u5EA6\u3067\u9332\u753B\u3055\u308C\u307E\u3059\u3002",
     frigate_result_added: "Frigate \u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F",
@@ -26979,8 +27343,38 @@ var ko_default = {
       "Frigate\uAC00 \uC54C\uC544\uBCFC \uC0AC\uB78C\uC744 \uCD94\uAC00\uD558\uB3C4\uB85D \uB3C4\uC640\uC8FC\uC138\uC694. \uC5B4\uB514\uC5D0\uC11C \uCD94\uAC00\uD558\uB294\uC9C0, \uC5B4\uB5A4 \uC0AC\uC9C4\uC774 \uAC00\uC7A5 \uC88B\uC740\uC9C0 \uC54C\uB824 \uC8FC\uC138\uC694.",
     home_suggestion_faces_empty_why:
       "\uC5BC\uAD74 \uC778\uC2DD\uC774 \uCF1C\uC838 \uC788\uC9C0\uB9CC Frigate\uB294 \uC544\uC9C1 \uC544\uBB34\uB3C4 \uBAA8\uB985\uB2C8\uB2E4. \uC5BC\uAD74 \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0 \uC0AC\uB78C\uB9C8\uB2E4 \uC0AC\uC9C4 \uBA87 \uC7A5\uC744 \uCD94\uAC00\uD558\uC138\uC694.",
-    face_library_open:
-      "Frigate\uC5D0\uC11C \uC5BC\uAD74 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uC5F4\uAE30",
+    frigate_open_failed:
+      "Frigate\uB97C \uC5F4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: {error}",
+    faces_people_title: "Frigate\uAC00 \uC54C\uC544\uBCF4\uB294 \uC0AC\uB78C",
+    faces_checking: "Frigate \uD655\uC778 \uC911\u2026",
+    faces_waiting:
+      "\uC5BC\uAD74 \uC778\uC2DD\uC744 \uCF20 \uC0C1\uD0DC\uB85C Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uAE30\uB97C \uAE30\uB2E4\uB9AC\uB294 \uC911\u2026",
+    faces_not_back:
+      "Frigate\uAC00 \uC544\uC9C1 \uC5BC\uAD74 \uC778\uC2DD\uC744 \uC0AC\uC6A9\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uB2E4\uC74C\uC5D0 Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uBA74 \uC2DC\uC791\uB429\uB2C8\uB2E4.",
+    faces_check_again: "\uB2E4\uC2DC \uD655\uC778",
+    faces_nobody:
+      "Frigate\uAC00 \uC544\uC9C1 \uC544\uBB34\uB3C4 \uBAA8\uB985\uB2C8\uB2E4.",
+    faces_add_more: "\uC774 \uC0AC\uB78C\uC758 \uC0AC\uC9C4 \uCD94\uAC00",
+    faces_photo_count_one: "\uC0AC\uC9C4 {count}\uC7A5",
+    faces_photo_count_few: "\uC0AC\uC9C4 {count}\uC7A5",
+    faces_photo_count_many: "\uC0AC\uC9C4 {count}\uC7A5",
+    faces_photo_count_other: "\uC0AC\uC9C4 {count}\uC7A5",
+    faces_name_label: "\uC774\uB984",
+    faces_name_placeholder: "\uB204\uAD6C\uC778\uAC00\uC694?",
+    faces_add_photos: "\uC0AC\uC9C4 \uCD94\uAC00",
+    faces_adding: "\uC0AC\uC9C4 \uCD94\uAC00 \uC911 {done}/{total}\u2026",
+    faces_added_one:
+      "{name}\uC5D0 \uC0AC\uC9C4 {count}\uC7A5\uC744 \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.",
+    faces_added_few:
+      "{name}\uC5D0 \uC0AC\uC9C4 {count}\uC7A5\uC744 \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.",
+    faces_added_many:
+      "{name}\uC5D0 \uC0AC\uC9C4 {count}\uC7A5\uC744 \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.",
+    faces_added_other:
+      "{name}\uC5D0 \uC0AC\uC9C4 {count}\uC7A5\uC744 \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.",
+    faces_photo_unsupported:
+      "JPEG, PNG \uB610\uB294 WebP \uC0AC\uC9C4\uC774 \uC544\uB2D9\uB2C8\uB2E4.",
+    faces_photo_too_large:
+      "\uC0AC\uC9C4\uC774 \uB108\uBB34 \uD07D\uB2C8\uB2E4.",
     client_action_add_to_frigate: "Frigate\uC5D0 \uCD94\uAC00",
     frigate_camera_username: "\uC0AC\uC6A9\uC790 \uC774\uB984",
     frigate_camera_password: "\uBE44\uBC00\uBC88\uD638",
@@ -27002,7 +27396,11 @@ var ko_default = {
     camera_events_package: "\uD0DD\uBC30",
     frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
     frigate_cameras_low_res_turn_on:
-      "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uCF1C\uC838 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4. \uC804\uCCB4 \uD654\uC9C8\uB85C \uB179\uD654\uD558\uB824\uBA74 \uBA3C\uC800 Home Assistant\uC5D0\uC11C '{stream}' \uCE74\uBA54\uB77C\uB97C \uCF1C\uC138\uC694.",
+      "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uCF1C\uC838 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4.",
+    frigate_cameras_full_quality:
+      "\uC804\uCCB4 \uD654\uC9C8\uB85C \uB179\uD654",
+    frigate_cameras_full_quality_wait:
+      "\uC804\uCCB4 \uD654\uC9C8 \uC2A4\uD2B8\uB9BC\uC744 \uCF1C\uB294 \uC911\uC785\uB2C8\uB2E4. Home Assistant\uAC00 \uCE74\uBA54\uB77C\uB97C \uB2E4\uC2DC \uBD88\uB7EC\uC635\uB2C8\uB2E4(\uC57D 30\uCD08)\u2026",
     frigate_cameras_low_res:
       "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4.",
     frigate_result_added: "Frigate\uC5D0 \uCD94\uAC00\uB428",
@@ -28508,7 +28906,36 @@ var zh_Hans_default = {
       "\u5E2E\u6211\u6DFB\u52A0 Frigate \u5E94\u8BE5\u8BA4\u51FA\u7684\u4EBA\uFF1A\u5728\u54EA\u91CC\u6DFB\u52A0\uFF0C\u4EE5\u53CA\u54EA\u4E9B\u7167\u7247\u6548\u679C\u6700\u597D\u3002",
     home_suggestion_faces_empty_why:
       "\u4EBA\u8138\u8BC6\u522B\u5DF2\u5F00\u542F\uFF0C\u4F46 Frigate \u8FD8\u4E0D\u8BA4\u8BC6\u4EFB\u4F55\u4EBA\u3002\u8BF7\u5728\u5B83\u7684\u4EBA\u8138\u5E93\u4E2D\u4E3A\u6BCF\u4E2A\u4EBA\u6DFB\u52A0\u51E0\u5F20\u7167\u7247\u3002",
-    face_library_open: "\u5728 Frigate \u4E2D\u6253\u5F00\u4EBA\u8138\u5E93",
+    frigate_open_failed: "\u65E0\u6CD5\u6253\u5F00 Frigate\uFF1A{error}",
+    faces_people_title: "Frigate \u8BA4\u8BC6\u7684\u4EBA",
+    faces_checking: "\u6B63\u5728\u68C0\u67E5 Frigate\u2026",
+    faces_waiting:
+      "\u6B63\u5728\u7B49\u5F85 Frigate \u5F00\u542F\u4EBA\u8138\u8BC6\u522B\u540E\u91CD\u542F\u2026",
+    faces_not_back:
+      "Frigate \u5C1A\u672A\u8FD0\u884C\u4EBA\u8138\u8BC6\u522B\uFF0C\u5C06\u5728 Frigate \u4E0B\u6B21\u91CD\u542F\u540E\u5F00\u59CB\u3002",
+    faces_check_again: "\u518D\u6B21\u68C0\u67E5",
+    faces_nobody: "Frigate \u8FD8\u4E0D\u8BA4\u8BC6\u4EFB\u4F55\u4EBA\u3002",
+    faces_add_more: "\u6DFB\u52A0\u6B64\u4EBA\u7684\u7167\u7247",
+    faces_photo_count_one: "{count} \u5F20\u7167\u7247",
+    faces_photo_count_few: "{count} \u5F20\u7167\u7247",
+    faces_photo_count_many: "{count} \u5F20\u7167\u7247",
+    faces_photo_count_other: "{count} \u5F20\u7167\u7247",
+    faces_name_label: "\u59D3\u540D",
+    faces_name_placeholder: "\u8FD9\u662F\u8C01\uFF1F",
+    faces_add_photos: "\u6DFB\u52A0\u7167\u7247",
+    faces_adding:
+      "\u6B63\u5728\u6DFB\u52A0\u7B2C {done} \u5F20\uFF0C\u5171 {total} \u5F20\u2026",
+    faces_added_one:
+      "\u5DF2\u4E3A {name} \u6DFB\u52A0 {count} \u5F20\u7167\u7247\u3002",
+    faces_added_few:
+      "\u5DF2\u4E3A {name} \u6DFB\u52A0 {count} \u5F20\u7167\u7247\u3002",
+    faces_added_many:
+      "\u5DF2\u4E3A {name} \u6DFB\u52A0 {count} \u5F20\u7167\u7247\u3002",
+    faces_added_other:
+      "\u5DF2\u4E3A {name} \u6DFB\u52A0 {count} \u5F20\u7167\u7247\u3002",
+    faces_photo_unsupported:
+      "\u4E0D\u662F JPEG\u3001PNG \u6216 WebP \u7167\u7247\u3002",
+    faces_photo_too_large: "\u7167\u7247\u592A\u5927\u3002",
     client_action_add_to_frigate: "\u6DFB\u52A0\u5230 Frigate",
     frigate_camera_username: "\u7528\u6237\u540D",
     frigate_camera_password: "\u5BC6\u7801",
@@ -28530,7 +28957,10 @@ var zh_Hans_default = {
     camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
     frigate_cameras_low_res_turn_on:
-      "\u4EC5\u5F00\u542F\u4E86\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002\u5982\u9700\u5168\u753B\u8D28\u5F55\u5236\uFF0C\u8BF7\u5148\u5728 Home Assistant \u4E2D\u5F00\u542F\u5176\u201C{stream}\u201D\u6444\u50CF\u5934\u3002",
+      "\u4EC5\u5F00\u542F\u4E86\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002",
+    frigate_cameras_full_quality: "\u4EE5\u5168\u753B\u8D28\u5F55\u5236",
+    frigate_cameras_full_quality_wait:
+      "\u6B63\u5728\u5F00\u542F\u5168\u753B\u8D28\u7801\u6D41\u3002Home Assistant \u4F1A\u91CD\u65B0\u52A0\u8F7D\u6444\u50CF\u5934\uFF0C\u5927\u7EA6 30 \u79D2\u2026",
     frigate_cameras_low_res:
       "\u4EC5\u6709\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\u53EF\u7528\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002",
     frigate_result_added: "\u5DF2\u6DFB\u52A0\u5230 Frigate",
@@ -30042,7 +30472,36 @@ var zh_Hant_default = {
       "\u5E6B\u6211\u65B0\u589E Frigate \u61C9\u8A72\u8A8D\u51FA\u7684\u4EBA\uFF1A\u5728\u54EA\u88E1\u65B0\u589E\uFF0C\u4EE5\u53CA\u54EA\u4E9B\u7167\u7247\u6548\u679C\u6700\u597D\u3002",
     home_suggestion_faces_empty_why:
       "\u4EBA\u81C9\u8FA8\u8B58\u5DF2\u958B\u555F\uFF0C\u4F46 Frigate \u9084\u4E0D\u8A8D\u8B58\u4EFB\u4F55\u4EBA\u3002\u8ACB\u5728\u5B83\u7684\u4EBA\u81C9\u5EAB\u4E2D\u70BA\u6BCF\u500B\u4EBA\u65B0\u589E\u5E7E\u5F35\u7167\u7247\u3002",
-    face_library_open: "\u5728 Frigate \u4E2D\u958B\u555F\u4EBA\u81C9\u5EAB",
+    frigate_open_failed: "\u7121\u6CD5\u958B\u555F Frigate\uFF1A{error}",
+    faces_people_title: "Frigate \u8A8D\u5F97\u7684\u4EBA",
+    faces_checking: "\u6B63\u5728\u6AA2\u67E5 Frigate\u2026",
+    faces_waiting:
+      "\u6B63\u5728\u7B49\u5F85 Frigate \u958B\u555F\u4EBA\u81C9\u8FA8\u8B58\u5F8C\u91CD\u65B0\u555F\u52D5\u2026",
+    faces_not_back:
+      "Frigate \u5C1A\u672A\u57F7\u884C\u4EBA\u81C9\u8FA8\u8B58\uFF0C\u5C07\u5728 Frigate \u4E0B\u6B21\u91CD\u65B0\u555F\u52D5\u5F8C\u958B\u59CB\u3002",
+    faces_check_again: "\u518D\u6B21\u6AA2\u67E5",
+    faces_nobody: "Frigate \u9084\u4E0D\u8A8D\u5F97\u4EFB\u4F55\u4EBA\u3002",
+    faces_add_more: "\u65B0\u589E\u6B64\u4EBA\u7684\u7167\u7247",
+    faces_photo_count_one: "{count} \u5F35\u7167\u7247",
+    faces_photo_count_few: "{count} \u5F35\u7167\u7247",
+    faces_photo_count_many: "{count} \u5F35\u7167\u7247",
+    faces_photo_count_other: "{count} \u5F35\u7167\u7247",
+    faces_name_label: "\u59D3\u540D",
+    faces_name_placeholder: "\u9019\u662F\u8AB0\uFF1F",
+    faces_add_photos: "\u65B0\u589E\u7167\u7247",
+    faces_adding:
+      "\u6B63\u5728\u65B0\u589E\u7B2C {done} \u5F35\uFF0C\u5171 {total} \u5F35\u2026",
+    faces_added_one:
+      "\u5DF2\u70BA {name} \u65B0\u589E {count} \u5F35\u7167\u7247\u3002",
+    faces_added_few:
+      "\u5DF2\u70BA {name} \u65B0\u589E {count} \u5F35\u7167\u7247\u3002",
+    faces_added_many:
+      "\u5DF2\u70BA {name} \u65B0\u589E {count} \u5F35\u7167\u7247\u3002",
+    faces_added_other:
+      "\u5DF2\u70BA {name} \u65B0\u589E {count} \u5F35\u7167\u7247\u3002",
+    faces_photo_unsupported:
+      "\u4E0D\u662F JPEG\u3001PNG \u6216 WebP \u7167\u7247\u3002",
+    faces_photo_too_large: "\u7167\u7247\u592A\u5927\u3002",
     client_action_add_to_frigate: "\u52A0\u5165 Frigate",
     frigate_camera_username: "\u4F7F\u7528\u8005\u540D\u7A31",
     frigate_camera_password: "\u5BC6\u78BC",
@@ -30064,7 +30523,10 @@ var zh_Hant_default = {
     camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
     frigate_cameras_low_res_turn_on:
-      "\u50C5\u958B\u555F\u4E86\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002\u5982\u9700\u5168\u756B\u8CEA\u9304\u5F71\uFF0C\u8ACB\u5148\u5728 Home Assistant \u4E2D\u958B\u555F\u5176\u300C{stream}\u300D\u651D\u5F71\u6A5F\u3002",
+      "\u50C5\u958B\u555F\u4E86\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002",
+    frigate_cameras_full_quality: "\u4EE5\u5168\u756B\u8CEA\u9304\u5F71",
+    frigate_cameras_full_quality_wait:
+      "\u6B63\u5728\u958B\u555F\u5168\u756B\u8CEA\u4E32\u6D41\u3002Home Assistant \u6703\u91CD\u65B0\u8F09\u5165\u651D\u5F71\u6A5F\uFF0C\u5927\u7D04 30 \u79D2\u2026",
     frigate_cameras_low_res:
       "\u50C5\u6709\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\u53EF\u7528\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002",
     frigate_result_added: "\u5DF2\u52A0\u5165 Frigate",
@@ -35047,6 +35509,7 @@ function renderRefineSuggestions(host2) {
 var DEFAULT_USERNAME = "admin";
 var LOGINS = /* @__PURE__ */ new Map();
 var ERRORS = /* @__PURE__ */ new Map();
+var FULL_QUALITY = /* @__PURE__ */ new Map();
 function loginFor(planId, key) {
   if (!LOGINS.has(planId)) LOGINS.set(planId, {});
   const logins = LOGINS.get(planId);
@@ -35096,12 +35559,9 @@ function cameraLine(host2, camera) {
 function lowResLine(host2, camera) {
   if (!camera.low_resolution) return "";
   const text = camera.turn_on
-    ? interpolate(
-        host2._t(
-          "frigate_cameras_low_res_turn_on",
-          "Only its low-resolution stream is on, so it records in low resolution. Turn on its \u201C{stream}\u201D camera in Home Assistant first to record in full quality.",
-        ),
-        { stream: camera.turn_on },
+    ? host2._t(
+        "frigate_cameras_low_res_turn_on",
+        "Only its low-resolution stream is on, so it records in low resolution.",
       )
     : host2._t(
         "frigate_cameras_low_res",
@@ -35154,6 +35614,58 @@ function settingsLine(host2, action) {
     { objects, recording },
   );
 }
+async function useFullQuality(host2, action) {
+  const planId = String(action.plan_id || "");
+  if (FULL_QUALITY.get(planId)?.busy) return;
+  FULL_QUALITY.set(planId, { busy: true });
+  host2.requestUpdate?.();
+  const index = (host2._messages || []).findIndex((m3) =>
+    m3.command_approval?.client_actions?.includes(action),
+  );
+  try {
+    const result = await host2.hass.callWS({
+      type: "selora_ai/frigate/full_quality",
+      plan_id: planId,
+      ...(host2._activeSessionId && index >= 0
+        ? { session_id: host2._activeSessionId, message_index: index }
+        : {}),
+    });
+    if (result?.error) throw new Error(result.error);
+    action.cameras = result.cameras;
+    action.label = result.label;
+    FULL_QUALITY.delete(planId);
+  } catch (err) {
+    FULL_QUALITY.set(planId, { error: err?.message || String(err) });
+  }
+  if (host2._messages) host2._messages = [...host2._messages];
+  host2.requestUpdate?.();
+}
+function fullQualityRow(host2, action) {
+  const cameras = action.cameras || [];
+  if (!cameras.some((c6) => c6.low_resolution && c6.turn_on)) return "";
+  const state = FULL_QUALITY.get(String(action.plan_id || "")) || {};
+  if (state.busy) {
+    return b2`<div
+      style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+    >
+      <span class="spinner" style="width:14px;height:14px;"></span>
+      <span
+        >${host2._t(
+          "frigate_cameras_full_quality_wait",
+          "Turning on the full-quality stream. Home Assistant reloads the camera, about 30 seconds\u2026",
+        )}</span
+      >
+    </div>`;
+  }
+  return b2`<div>
+    ${renderActionButton({
+      label: host2._t("frigate_cameras_full_quality", "Record in full quality"),
+      mark: "mdi:high-definition",
+      onClick: () => useFullQuality(host2, action),
+    })}
+    ${state.error ? b2`<div class="frigate-camera-error">${state.error}</div>` : ""}
+  </div>`;
+}
 function renderFrigateCameraRows(host2, action) {
   const planId = String(action.plan_id || "");
   const errors = ERRORS.get(planId) || {};
@@ -35190,6 +35702,7 @@ function renderFrigateCameraRows(host2, action) {
           </div>
         `,
       )}
+      ${fullQualityRow(host2, action)}
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
@@ -37584,7 +38097,7 @@ function toggleFullDiff(host2, key) {
 function renderProposalDiffToggle(host2, key, diff) {
   if (!diff) return "";
   const open = !!(host2._proposalDiffOpen || {})[key];
-  const changed = diff.added > 0 || diff.removed > 0;
+  const changed2 = diff.added > 0 || diff.removed > 0;
   return b2`
     <button
       type="button"
@@ -37594,7 +38107,7 @@ function renderProposalDiffToggle(host2, key, diff) {
       <ha-icon icon="mdi:file-compare"></ha-icon>
       ${open ? host2._t("automations_diff_toggle_hide", "Hide changes") : host2._t("automations_diff_toggle_view", "View changes")}
       ${
-        changed
+        changed2
           ? b2`<span class="diff-stat-inline">
               <span class="diff-stat add">+${diff.added}</span>
               <span class="diff-stat del">−${diff.removed}</span>
@@ -42541,12 +43054,23 @@ function renderRestoreCard(host2, msg) {
 
 // src/panel/frigate-ui.js
 var FRIGATE = /frigate/i;
-function frigateApp(hass) {
-  for (const panel of Object.values(hass?.panels || {})) {
+function frigatePanel(hass) {
+  for (const [key, panel] of Object.entries(hass?.panels || {})) {
     const slug = panel?.config?.addon || panel?.config?.ingress;
-    if (typeof slug === "string" && FRIGATE.test(slug)) return slug;
+    if (typeof slug === "string" && FRIGATE.test(slug)) {
+      return { slug, path: panel.url_path || key };
+    }
   }
   return null;
+}
+function frigateApp(hass) {
+  return frigatePanel(hass)?.slug ?? null;
+}
+function openFrigateInHA(host2) {
+  const panel = frigatePanel(host2.hass);
+  if (!panel) return;
+  window.history.pushState(null, "", `/${panel.path}`);
+  window.dispatchEvent(new Event("location-changed"));
 }
 function eventPage(eventId) {
   return `explore?event_id=${encodeURIComponent(eventId)}`;
@@ -42575,10 +43099,20 @@ async function openFrigatePage(host2, page) {
       method: "post",
     });
     setIngressCookie(session);
-    if (tab) tab.location.href = `${entry.replace(/\/+$/, "")}/${page}`;
+    const url = `${entry.replace(/\/+$/, "")}/${page}`;
+    if (tab) tab.location.href = url;
+    else openFrigateInHA(host2);
   } catch (err) {
     console.error("Selora AI: could not open Frigate", err);
     tab?.close();
+    host2._showToast?.(
+      interpolate(
+        host2._t?.("frigate_open_failed", "Couldn't open Frigate: {error}") ??
+          "Couldn't open Frigate: {error}",
+        { error: err?.message || String(err) },
+      ),
+      "error",
+    );
   }
 }
 
@@ -42818,24 +43352,666 @@ function renderCameraEventsCard(host2, msg) {
 }
 
 // src/panel/face-library-link.js
-var FACES_PAGE = "faces";
-function renderFaceLibraryLink(host2, msg) {
-  const shown = (msg.tool_calls || []).some(
+function faceLibraryShown(msg) {
+  return (msg.tool_calls || []).some(
     (call) =>
       call?.tool === "get_face_recognition" && call.result?.face_library,
   );
-  if (!shown || !frigateApp(host2.hass)) return "";
+}
+function renderFaceLibraryButton(host2) {
+  if (!frigateApp(host2.hass)) return "";
   return b2`<div class="face-library camera-event-links">
-    <button
-      class="camera-event-link"
-      @click=${() => openFrigatePage(host2, FACES_PAGE)}
-    >
+    <button class="camera-event-link" @click=${() => openFrigateInHA(host2)}>
       <ha-icon icon="mdi:face-recognition"></ha-icon>
       <span
-        >${host2._t("face_library_open", "Open the Face Library in Frigate")}</span
+        >${host2._t("camera_events_open_in_frigate", "Open in Frigate")}</span
       >
     </button>
   </div>`;
+}
+
+// src/panel/chat-attachments.js
+var MAX_CHAT_ATTACHMENTS = 4;
+var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
+var MAX_B64_TOTAL = 3 * 1024 * 1024;
+var MAX_EDGE_PX = 1568;
+var JPEG_QUALITY = 0.85;
+var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
+var ACCEPTED_MIME = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+function supportsImageAttachments(host2) {
+  return !!host2._config?.supports_vision;
+}
+function unsupportedNotice(host2) {
+  return host2._t(
+    "chat_attachment_unsupported",
+    "Your current AI model can't analyze images.",
+  );
+}
+function clearUnsupportedNotice(host2) {
+  if (
+    supportsImageAttachments(host2) &&
+    host2._attachmentNotice === unsupportedNotice(host2)
+  ) {
+    host2._attachmentNotice = "";
+  }
+}
+function _b64Length(attachment) {
+  return Math.max(
+    0,
+    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
+  );
+}
+function _readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+function _loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("decode failed"));
+    img.src = dataUrl;
+  });
+}
+async function _processImageFile(file) {
+  const originalDataUrl = await _readAsDataUrl(file);
+  const img = await _loadImage(originalDataUrl);
+  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const fitsAsIs =
+    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
+  if (file.type === "image/gif" && fitsAsIs) {
+    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
+  }
+  const lossless = file.type === "image/png" || file.type === "image/gif";
+  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  if (outMime === "image/jpeg") {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return {
+    name: file.name,
+    mimeType: outMime,
+    dataUrl:
+      outMime === "image/png"
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+  };
+}
+async function addImageAttachments(host2, files) {
+  const images = Array.from(files || []).filter((f4) =>
+    ACCEPTED_MIME.has(f4.type),
+  );
+  if (!images.length) return;
+  if (!supportsImageAttachments(host2)) await host2._loadConfig?.();
+  if (!supportsImageAttachments(host2)) {
+    host2._attachmentNotice = unsupportedNotice(host2);
+    return;
+  }
+  const reserved = host2._attachmentSlotsReserved || 0;
+  const room =
+    MAX_CHAT_ATTACHMENTS - (host2._chatAttachments || []).length - reserved;
+  if (room <= 0) {
+    host2._attachmentNotice = host2._t(
+      "chat_attachment_limit",
+      "You can attach up to 4 images per message.",
+    );
+    return;
+  }
+  const accepted = images.slice(0, room);
+  const results = [];
+  host2._attachmentsBusy = (host2._attachmentsBusy || 0) + 1;
+  host2._attachmentSlotsReserved = reserved + accepted.length;
+  let totalB64 = (host2._chatAttachments || []).reduce(
+    (sum, a3) => sum + _b64Length(a3),
+    0,
+  );
+  try {
+    for (const file of accepted) {
+      try {
+        const processed = await _processImageFile(file);
+        const size = _b64Length(processed);
+        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
+          host2._attachmentNotice = host2._t(
+            "chat_attachment_too_large",
+            "That image is too large to send.",
+          );
+          continue;
+        }
+        totalB64 += size;
+        results.push(processed);
+      } catch (_2) {
+        host2._attachmentNotice = host2._t(
+          "chat_attachment_read_error",
+          "Couldn't read that image.",
+        );
+      }
+    }
+  } finally {
+    host2._attachmentsBusy = Math.max(0, (host2._attachmentsBusy || 1) - 1);
+    host2._attachmentSlotsReserved = Math.max(
+      0,
+      (host2._attachmentSlotsReserved || accepted.length) - accepted.length,
+    );
+  }
+  if (!results.length) return;
+  host2._chatAttachments = [
+    ...(host2._chatAttachments || []),
+    ...results,
+  ].slice(0, MAX_CHAT_ATTACHMENTS);
+  host2._attachmentNotice =
+    images.length > room
+      ? host2._t(
+          "chat_attachment_limit",
+          "You can attach up to 4 images per message.",
+        )
+      : "";
+}
+function removeChatAttachment(host2, idx) {
+  host2._chatAttachments = (host2._chatAttachments || []).filter(
+    (_2, i8) => i8 !== idx,
+  );
+  host2._attachmentNotice = "";
+}
+function attachmentsForSend(host2) {
+  return (host2._chatAttachments || [])
+    .map((a3) => {
+      const comma = a3.dataUrl.indexOf(",");
+      if (comma < 0) return null;
+      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
+    })
+    .filter(Boolean);
+}
+function createGlobalDropGuard(host2) {
+  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
+  let depth = 0;
+  const setDropActive = (value) => {
+    if (host2._chatDropActive !== value) host2._chatDropActive = value;
+  };
+  const onDragEnter = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth += 1;
+    if (host2._activeTab === "chat" && supportsImageAttachments(host2)) {
+      setDropActive(true);
+    }
+  };
+  const onDragLeave = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) setDropActive(false);
+  };
+  const onDragOver = (e6) => {
+    if (isFileDrag(e6)) e6.preventDefault();
+  };
+  const onDrop = (e6) => {
+    depth = 0;
+    setDropActive(false);
+    if (!isFileDrag(e6) || e6.defaultPrevented) return;
+    e6.preventDefault();
+    if (host2._activeTab === "chat" && e6.dataTransfer.files?.length) {
+      addImageAttachments(host2, e6.dataTransfer.files);
+    }
+  };
+  window.addEventListener("dragenter", onDragEnter);
+  window.addEventListener("dragleave", onDragLeave);
+  window.addEventListener("dragover", onDragOver);
+  window.addEventListener("drop", onDrop);
+  return () => {
+    window.removeEventListener("dragenter", onDragEnter);
+    window.removeEventListener("dragleave", onDragLeave);
+    window.removeEventListener("dragover", onDragOver);
+    window.removeEventListener("drop", onDrop);
+  };
+}
+function renderDropOverlay(host2) {
+  if (!host2._chatDropActive) return b2``;
+  return b2`
+    <div class="chat-drop-overlay">
+      <div class="chat-drop-overlay-inner">
+        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+        <span
+          >${host2._t("chat_attachment_drop_here", "Drop images to attach")}</span
+        >
+      </div>
+    </div>
+  `;
+}
+function renderAttachmentStrip(host2) {
+  const attachments = host2._chatAttachments || [];
+  if (!attachments.length && !host2._attachmentNotice) return b2``;
+  return b2`
+    <div class="composer-attachments">
+      ${attachments.map(
+        (a3, idx) => b2`
+          <span class="composer-attachment">
+            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
+            <button
+              type="button"
+              class="composer-attachment-remove"
+              title=${host2._t("chat_attachment_remove", "Remove image")}
+              @click=${() => removeChatAttachment(host2, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+      ${
+        host2._attachmentNotice
+          ? b2`<span class="composer-attachment-notice"
+              >${host2._attachmentNotice}</span
+            >`
+          : b2``
+      }
+    </div>
+  `;
+}
+
+// src/panel/faces-actions.js
+var POLL_MS = 5e3;
+var WAIT_MS = 5 * 60 * 1e3;
+var MAX_PHOTO_B64 = 3 * 1024 * 1024;
+var PHOTO_TYPES = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+async function answerFaces(host2, msg, action) {
+  const sessionId = host2._activeSessionId;
+  if (!sessionId || !msg || msg._qa_used) return;
+  msg._qa_used = true;
+  msg._qa_picked = action.value;
+  host2._messages = [...host2._messages];
+  try {
+    const result = await host2.hass.callWS({
+      type: "selora_ai/frigate/faces_answer",
+      session_id: sessionId,
+      enable: action.face_answer.enable,
+      ...(host2.hass?.language ? { language: host2.hass.language } : {}),
+    });
+    if (host2._activeSessionId === sessionId) {
+      host2._messages = [...host2._messages, ...(result.messages || [])];
+    }
+  } catch (err) {
+    msg._qa_used = false;
+    msg._qa_picked = void 0;
+    host2._messages = [...host2._messages];
+    host2._showToast?.(err.message || String(err), "error");
+  }
+}
+var STATES = /* @__PURE__ */ new WeakMap();
+function peopleState(host2) {
+  let state = STATES.get(host2);
+  if (!state) {
+    state = {
+      loaded: false,
+      loading: false,
+      running: false,
+      people: [],
+      waitingSince: 0,
+      timer: null,
+      name: "",
+      busy: false,
+      progress: null,
+      result: null,
+    };
+    STATES.set(host2, state);
+  }
+  return state;
+}
+function changed(host2) {
+  host2.requestUpdate?.();
+}
+async function loadPeople(host2) {
+  const state = peopleState(host2);
+  clearTimeout(state.timer);
+  state.timer = null;
+  state.loading = true;
+  try {
+    const result = await host2.hass.callWS({
+      type: "selora_ai/frigate/faces_people",
+    });
+    state.running = !!result.running;
+    state.people = result.people || [];
+  } catch (err) {
+    state.running = false;
+    console.error("Selora AI: could not read the Face Library", err);
+  }
+  state.loaded = true;
+  state.loading = false;
+  if (state.running) {
+    state.waitingSince = 0;
+  } else {
+    state.waitingSince ||= Date.now();
+    if (Date.now() - state.waitingSince < WAIT_MS) {
+      state.timer = setTimeout(() => loadPeople(host2), POLL_MS);
+    }
+  }
+  changed(host2);
+}
+function waitAgain(host2) {
+  const state = peopleState(host2);
+  state.waitingSince = 0;
+  state.loaded = false;
+  changed(host2);
+  loadPeople(host2);
+}
+function stoppedWaiting(state) {
+  return (
+    state.loaded &&
+    !state.running &&
+    !state.loading &&
+    !state.timer &&
+    state.waitingSince > 0
+  );
+}
+async function sendPhoto(host2, name, file) {
+  if (!PHOTO_TYPES.has(file.type)) {
+    throw new Error(
+      host2._t("faces_photo_unsupported", "Not a JPEG, PNG or WebP photo."),
+    );
+  }
+  const photo = await _processImageFile(file);
+  const image = photo.dataUrl.slice(photo.dataUrl.indexOf(",") + 1);
+  if (image.length > MAX_PHOTO_B64) {
+    throw new Error(
+      host2._t("faces_photo_too_large", "The photo is too large."),
+    );
+  }
+  await host2.hass.callWS({
+    type: "selora_ai/frigate/faces_add_photo",
+    name,
+    content_type: photo.mimeType,
+    image,
+  });
+}
+async function addPhotos(host2, files) {
+  const state = peopleState(host2);
+  const name = state.name.trim();
+  const photos = Array.from(files || []);
+  if (!name || !photos.length || state.busy) return;
+  state.busy = true;
+  state.result = null;
+  state.progress = { done: 0, total: photos.length };
+  changed(host2);
+  const failed = [];
+  for (const file of photos) {
+    try {
+      await sendPhoto(host2, name, file);
+    } catch (err) {
+      failed.push({ file: file.name, error: err?.message || String(err) });
+    }
+    state.progress = { ...state.progress, done: state.progress.done + 1 };
+    changed(host2);
+  }
+  state.result = { name, added: photos.length - failed.length, failed };
+  if (!failed.length) state.name = "";
+  state.busy = false;
+  state.progress = null;
+  await loadPeople(host2);
+}
+
+// src/panel/render-faces-card.js
+var ACCEPT = "image/jpeg,image/png,image/webp";
+function renderIntro2(card) {
+  const intro = card.intro;
+  return b2`
+    <section class="describe-section">
+      ${renderCardHeading({
+        icon: "mdi:face-recognition",
+        title: intro.title,
+        subtitle: intro.tagline,
+        banner: CARD_BANNERS.frigate,
+      })}
+      <ul class="describe-points">
+        ${(intro.points || []).map(
+          (point) => b2`<li>
+              <ha-icon icon=${point.icon}></ha-icon><span>${point.text}</span>
+            </li>`,
+        )}
+      </ul>
+      <div class="describe-question">${card.question}</div>
+    </section>
+  `;
+}
+var STATUS_ICONS = {
+  restarting: ["faces-status-icon", "mdi:check-circle-outline"],
+  not_restarted: ["describe-done-warn", "mdi:alert-outline"],
+  declined: ["faces-status-quiet", "mdi:close-circle-outline"],
+};
+function renderStatus(card) {
+  const [cls, icon] = STATUS_ICONS[card.done] || STATUS_ICONS.declined;
+  return b2`
+    <div class="describe-done">
+      <ha-icon class=${cls} icon=${icon}></ha-icon>
+      <span>${card.status}</span>
+    </div>
+  `;
+}
+function renderWaiting2(host2, state) {
+  if (stoppedWaiting(state)) {
+    return b2`
+      <div class="faces-wait">
+        <ha-icon icon="mdi:timer-sand-complete"></ha-icon>
+        <span
+          >${host2._t(
+            "faces_not_back",
+            "Frigate isn't running face recognition yet. It starts after Frigate's next restart.",
+          )}</span
+        >
+        ${renderActionButton({
+          label: host2._t("faces_check_again", "Check again"),
+          mark: "mdi:refresh",
+          onClick: () => waitAgain(host2),
+        })}
+      </div>
+    `;
+  }
+  return b2`
+    <div class="faces-wait">
+      <span class="spinner" style="width:14px;height:14px;"></span>
+      <span
+        >${
+          state.loaded
+            ? host2._t(
+                "faces_waiting",
+                "Waiting for Frigate to restart with face recognition on\u2026",
+              )
+            : host2._t("faces_checking", "Checking Frigate\u2026")
+        }</span
+      >
+    </div>
+  `;
+}
+function renderPeople(host2, state) {
+  if (!state.people.length) {
+    return b2`<div class="faces-nobody">
+      ${host2._t("faces_nobody", "Frigate doesn't know anyone yet.")}
+    </div>`;
+  }
+  return b2`
+    <div class="faces-people">
+      ${state.people.map(
+        (person) => b2`
+          <button
+            class="faces-person${state.name === person.name ? " is-picked" : ""}"
+            title=${host2._t("faces_add_more", "Add photos of this person")}
+            @click=${() => {
+              state.name = person.name;
+              state.result = null;
+              host2.requestUpdate?.();
+            }}
+          >
+            <ha-icon icon="mdi:account-circle-outline"></ha-icon>
+            <span class="faces-person-name">${person.name}</span>
+            <span class="faces-person-count"
+              >${host2._tn("faces_photo_count", person.photos, "{count} photos")}</span
+            >
+          </button>
+        `,
+      )}
+    </div>
+  `;
+}
+function renderResult(host2, state) {
+  const result = state.result;
+  if (!result) return "";
+  return b2`
+    <div class="faces-result">
+      ${
+        result.added
+          ? b2`<div class="describe-done">
+              <ha-icon
+                class="faces-status-icon"
+                icon="mdi:check-circle-outline"
+              ></ha-icon>
+              <span
+                >${interpolate(
+                  host2._tn(
+                    "faces_added",
+                    result.added,
+                    "{count} photos added for {name}.",
+                  ),
+                  { name: result.name },
+                )}</span
+              >
+            </div>`
+          : ""
+      }
+      ${result.failed.map(
+        (f4) => b2`<div class="frigate-camera-error faces-failed">
+            ${f4.file}: ${f4.error}
+          </div>`,
+      )}
+    </div>
+  `;
+}
+function renderForm(host2, state) {
+  const pick = (e6) => {
+    const input = e6.currentTarget
+      .closest(".faces-form")
+      ?.querySelector("input[type=file]");
+    input?.click();
+  };
+  return b2`
+    <div class="faces-form">
+      <label class="faces-name">
+        ${host2._t("faces_name_label", "Name")}
+        <input
+          class="form-select"
+          type="text"
+          maxlength="40"
+          autocomplete="off"
+          placeholder=${host2._t("faces_name_placeholder", "Who is it?")}
+          .value=${state.name}
+          ?disabled=${state.busy}
+          @input=${(e6) => {
+            state.name = e6.target.value;
+            state.result = null;
+            host2.requestUpdate?.();
+          }}
+        />
+      </label>
+      <input
+        type="file"
+        accept=${ACCEPT}
+        multiple
+        hidden
+        @change=${(e6) => {
+          const files = [...e6.target.files];
+          e6.target.value = "";
+          addPhotos(host2, files);
+        }}
+      />
+      ${
+        state.progress
+          ? b2`<div class="faces-wait">
+              <span class="spinner" style="width:14px;height:14px;"></span>
+              <span
+                >${interpolate(
+                  host2._t(
+                    "faces_adding",
+                    "Adding photo {done} of {total}\u2026",
+                  ),
+                  {
+                    done: Math.min(
+                      state.progress.done + 1,
+                      state.progress.total,
+                    ),
+                    total: state.progress.total,
+                  },
+                )}</span
+              >
+            </div>`
+          : renderActionButton({
+              label: host2._t("faces_add_photos", "Add photos"),
+              mark: "mdi:image-plus",
+              tone: "primary",
+              disabled: !state.name.trim() || state.busy,
+              onClick: pick,
+            })
+      }
+    </div>
+  `;
+}
+function renderPeopleSection(host2, card, opening) {
+  const state = peopleState(host2);
+  if (!state.loaded && !state.loading) loadPeople(host2);
+  return b2`
+    <section class="describe-section">
+      ${renderCardHeading({
+        icon: "mdi:account-multiple-plus-outline",
+        title: card.title,
+        banner: opening ? CARD_BANNERS.frigate : "",
+      })}
+      ${card.hint ? b2`<div class="faces-hint">${card.hint}</div>` : ""}
+      ${
+        state.running
+          ? b2`${renderPeople(host2, state)} ${renderForm(host2, state)}
+            ${renderResult(host2, state)}`
+          : renderWaiting2(host2, state)
+      }
+    </section>
+  `;
+}
+function renderFacesCard(host2, msg) {
+  const card = msg.faces_card;
+  if (!card) return "";
+  if (card.question && card.intro) {
+    return b2`<div class="describe-card">${renderIntro2(card)}</div>`;
+  }
+  if (!card.people) return card.status ? renderStatus(card) : "";
+  return b2`
+    <div class="describe-card faces-card">
+      ${card.status ? renderStatus(card) : ""}
+      ${renderPeopleSection(host2, card, !card.done)}
+      ${renderFaceLibraryButton(host2)}
+    </div>
+  `;
+}
+function renderFaceRecognitionReply(host2, msg) {
+  if (!faceLibraryShown(msg)) return "";
+  const title = host2._t("faces_people_title", "People Frigate recognizes");
+  return b2`
+    <div class="describe-card faces-card faces-card--reply">
+      ${renderPeopleSection(host2, { title, people: true }, false)}
+    </div>
+    ${renderFaceLibraryButton(host2)}
+  `;
 }
 
 // src/panel/home-suggestions.js
@@ -42871,8 +44047,9 @@ function toggle(host2, suggestion) {
 async function act(host2, suggestion, d3) {
   const said = d3.ask || d3.title;
   const message = said + buildDetailsMarker(d3.prompt);
-  if (suggestion.type === "describe_cameras") {
-    if (await openDescribeChat(host2, said)) return;
+  const guide = SERVER_GUIDES[suggestion.type];
+  if (guide) {
+    if (await openServerGuide(host2, guide, said)) return;
   }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
@@ -42910,10 +44087,14 @@ function guideFor(suggestion, d3) {
     banner: "frigate",
   };
 }
-async function openDescribeChat(host2, title) {
+var SERVER_GUIDES = {
+  describe_cameras: "selora_ai/frigate/describe_start",
+  recognize_faces: "selora_ai/frigate/faces_start",
+};
+async function openServerGuide(host2, type, title) {
   try {
     const { session_id } = await host2.hass.callWS({
-      type: "selora_ai/frigate/describe_start",
+      type,
       title,
       ...(host2.hass?.language ? { language: host2.hass.language } : {}),
     });
@@ -43192,257 +44373,6 @@ function renderHomeSuggestions(host2) {
   `;
 }
 
-// src/panel/chat-attachments.js
-var MAX_CHAT_ATTACHMENTS = 4;
-var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
-var MAX_B64_TOTAL = 3 * 1024 * 1024;
-var MAX_EDGE_PX = 1568;
-var JPEG_QUALITY = 0.85;
-var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
-var ACCEPTED_MIME = /* @__PURE__ */ new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-function supportsImageAttachments(host2) {
-  return !!host2._config?.supports_vision;
-}
-function unsupportedNotice(host2) {
-  return host2._t(
-    "chat_attachment_unsupported",
-    "Your current AI model can't analyze images.",
-  );
-}
-function clearUnsupportedNotice(host2) {
-  if (
-    supportsImageAttachments(host2) &&
-    host2._attachmentNotice === unsupportedNotice(host2)
-  ) {
-    host2._attachmentNotice = "";
-  }
-}
-function _b64Length(attachment) {
-  return Math.max(
-    0,
-    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
-  );
-}
-function _readAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-function _loadImage(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("decode failed"));
-    img.src = dataUrl;
-  });
-}
-async function _processImageFile(file) {
-  const originalDataUrl = await _readAsDataUrl(file);
-  const img = await _loadImage(originalDataUrl);
-  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
-  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
-  const fitsAsIs =
-    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
-  if (file.type === "image/gif" && fitsAsIs) {
-    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
-  }
-  const lossless = file.type === "image/png" || file.type === "image/gif";
-  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-  const ctx = canvas.getContext("2d");
-  if (outMime === "image/jpeg") {
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return {
-    name: file.name,
-    mimeType: outMime,
-    dataUrl:
-      outMime === "image/png"
-        ? canvas.toDataURL("image/png")
-        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
-  };
-}
-async function addImageAttachments(host2, files) {
-  const images = Array.from(files || []).filter((f4) =>
-    ACCEPTED_MIME.has(f4.type),
-  );
-  if (!images.length) return;
-  if (!supportsImageAttachments(host2)) await host2._loadConfig?.();
-  if (!supportsImageAttachments(host2)) {
-    host2._attachmentNotice = unsupportedNotice(host2);
-    return;
-  }
-  const reserved = host2._attachmentSlotsReserved || 0;
-  const room =
-    MAX_CHAT_ATTACHMENTS - (host2._chatAttachments || []).length - reserved;
-  if (room <= 0) {
-    host2._attachmentNotice = host2._t(
-      "chat_attachment_limit",
-      "You can attach up to 4 images per message.",
-    );
-    return;
-  }
-  const accepted = images.slice(0, room);
-  const results = [];
-  host2._attachmentsBusy = (host2._attachmentsBusy || 0) + 1;
-  host2._attachmentSlotsReserved = reserved + accepted.length;
-  let totalB64 = (host2._chatAttachments || []).reduce(
-    (sum, a3) => sum + _b64Length(a3),
-    0,
-  );
-  try {
-    for (const file of accepted) {
-      try {
-        const processed = await _processImageFile(file);
-        const size = _b64Length(processed);
-        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
-          host2._attachmentNotice = host2._t(
-            "chat_attachment_too_large",
-            "That image is too large to send.",
-          );
-          continue;
-        }
-        totalB64 += size;
-        results.push(processed);
-      } catch (_2) {
-        host2._attachmentNotice = host2._t(
-          "chat_attachment_read_error",
-          "Couldn't read that image.",
-        );
-      }
-    }
-  } finally {
-    host2._attachmentsBusy = Math.max(0, (host2._attachmentsBusy || 1) - 1);
-    host2._attachmentSlotsReserved = Math.max(
-      0,
-      (host2._attachmentSlotsReserved || accepted.length) - accepted.length,
-    );
-  }
-  if (!results.length) return;
-  host2._chatAttachments = [
-    ...(host2._chatAttachments || []),
-    ...results,
-  ].slice(0, MAX_CHAT_ATTACHMENTS);
-  host2._attachmentNotice =
-    images.length > room
-      ? host2._t(
-          "chat_attachment_limit",
-          "You can attach up to 4 images per message.",
-        )
-      : "";
-}
-function removeChatAttachment(host2, idx) {
-  host2._chatAttachments = (host2._chatAttachments || []).filter(
-    (_2, i8) => i8 !== idx,
-  );
-  host2._attachmentNotice = "";
-}
-function attachmentsForSend(host2) {
-  return (host2._chatAttachments || [])
-    .map((a3) => {
-      const comma = a3.dataUrl.indexOf(",");
-      if (comma < 0) return null;
-      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
-    })
-    .filter(Boolean);
-}
-function createGlobalDropGuard(host2) {
-  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
-  let depth = 0;
-  const setDropActive = (value) => {
-    if (host2._chatDropActive !== value) host2._chatDropActive = value;
-  };
-  const onDragEnter = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth += 1;
-    if (host2._activeTab === "chat" && supportsImageAttachments(host2)) {
-      setDropActive(true);
-    }
-  };
-  const onDragLeave = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth = Math.max(0, depth - 1);
-    if (depth === 0) setDropActive(false);
-  };
-  const onDragOver = (e6) => {
-    if (isFileDrag(e6)) e6.preventDefault();
-  };
-  const onDrop = (e6) => {
-    depth = 0;
-    setDropActive(false);
-    if (!isFileDrag(e6) || e6.defaultPrevented) return;
-    e6.preventDefault();
-    if (host2._activeTab === "chat" && e6.dataTransfer.files?.length) {
-      addImageAttachments(host2, e6.dataTransfer.files);
-    }
-  };
-  window.addEventListener("dragenter", onDragEnter);
-  window.addEventListener("dragleave", onDragLeave);
-  window.addEventListener("dragover", onDragOver);
-  window.addEventListener("drop", onDrop);
-  return () => {
-    window.removeEventListener("dragenter", onDragEnter);
-    window.removeEventListener("dragleave", onDragLeave);
-    window.removeEventListener("dragover", onDragOver);
-    window.removeEventListener("drop", onDrop);
-  };
-}
-function renderDropOverlay(host2) {
-  if (!host2._chatDropActive) return b2``;
-  return b2`
-    <div class="chat-drop-overlay">
-      <div class="chat-drop-overlay-inner">
-        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
-        <span
-          >${host2._t("chat_attachment_drop_here", "Drop images to attach")}</span
-        >
-      </div>
-    </div>
-  `;
-}
-function renderAttachmentStrip(host2) {
-  const attachments = host2._chatAttachments || [];
-  if (!attachments.length && !host2._attachmentNotice) return b2``;
-  return b2`
-    <div class="composer-attachments">
-      ${attachments.map(
-        (a3, idx) => b2`
-          <span class="composer-attachment">
-            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
-            <button
-              type="button"
-              class="composer-attachment-remove"
-              title=${host2._t("chat_attachment_remove", "Remove image")}
-              @click=${() => removeChatAttachment(host2, idx)}
-            >
-              ×
-            </button>
-          </span>
-        `,
-      )}
-      ${
-        host2._attachmentNotice
-          ? b2`<span class="composer-attachment-notice"
-              >${host2._attachmentNotice}</span
-            >`
-          : b2``
-      }
-    </div>
-  `;
-}
-
 // src/panel/render-chat.js
 var AUTOMATION_LABEL_KEYS = [
   ["chat_automation_label_building", "Building automation..."],
@@ -43518,9 +44448,13 @@ function renderAutomationSuggestButton(host2) {
     </button>
   `;
 }
-function renderGuide(host2) {
+function renderGuide(host2, idx) {
   const guide = host2._guide;
   if (!guide || guide.sessionId !== host2._activeSessionId) return "";
+  if (
+    (host2._messages || []).findIndex((m3) => m3.role === "assistant") !== idx
+  )
+    return "";
   return b2`<div class="chat-guide">
     ${renderCardHeading({
       icon: guide.icon,
@@ -43688,7 +44622,6 @@ function renderChat(host2) {
         id="chat-messages"
         @scroll=${host2._onChatScroll}
       >
-        ${renderGuide(host2)}
         ${host2._messages.map((msg, idx) => renderMessage(host2, msg, idx))}
         ${host2._deviceDetail ? renderDeviceDetail(host2) : ""}
         ${
@@ -44483,6 +45416,7 @@ function renderMessage(host2, msg, idx) {
         msg.approval_status !== "resolving"));
   const sceneIsSingleTile =
     !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
+  const guide = isUser ? "" : renderGuide(host2, idx);
   return b2`
     ${isLoadedAutomation ? renderRefineHeading(host2, idx) : ""}
     <div class="message-row">
@@ -44520,9 +45454,10 @@ function renderMessage(host2, msg, idx) {
               >
                 ${renderAgentSteps(host2, msg.steps)}
                 <div
-                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
+                  class="bubble assistant${guide ? " bubble--guided" : msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
                   style="max-width:100%;align-self:auto;"
                 >
+                  ${guide}
                   ${
                     // A loaded automation's stored prose ("Describe the
                     // changes") is context for the model; the composer's
@@ -44530,7 +45465,8 @@ function renderMessage(host2, msg, idx) {
                     msg.command_approval ||
                     isLoadedAutomation ||
                     msg.frigate_result ||
-                    msg.describe_card
+                    msg.describe_card ||
+                    msg.faces_card
                       ? ""
                       : b2`<span
                           class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
@@ -44607,7 +45543,7 @@ function renderMessage(host2, msg, idx) {
                   ${msg.automation ? host2._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host2._renderSceneCard(msg, idx) : ""}
                   ${renderFrigateResult(host2, msg)}
-                  ${renderDescribeCard(host2, msg)}
+                  ${renderDescribeCard(host2, msg)} ${renderFacesCard(host2, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
@@ -44620,7 +45556,7 @@ function renderMessage(host2, msg, idx) {
                   }
                   ${renderRestoreCard(host2, msg)}
                   ${renderCameraEventsCard(host2, msg)}
-                  ${renderFaceLibraryLink(host2, msg)}
+                  ${renderFaceRecognitionReply(host2, msg)}
                   ${
                     msg._interrupted
                       ? b2`
@@ -45066,7 +46002,7 @@ async function saveFrigateSettings(host2, { disconnect = false } = {}) {
     host2.requestUpdate();
   }
 }
-function renderStatus(host2) {
+function renderStatus2(host2) {
   const status = host2._frigateStatus;
   if (!status) return "";
   return b2`<div class="save-feedback save-feedback--${status.type}">
@@ -45202,7 +46138,7 @@ function renderFrigateSettings(host2) {
         )}
       </p>
       ${config.frigate_source ? renderConnected(host2, config.frigate_source) : renderFields(host2)}
-      ${renderStatus(host2)}
+      ${renderStatus2(host2)}
     </div>
   `;
 }
@@ -57339,7 +58275,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "51fc913489bb" : "";
+var PANEL_BUILD = true ? "ecb3b37f069e" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -57955,6 +58891,11 @@ function _selectQuickAction(action) {
   if (action.camera_answer) {
     const msg = this._messages.find((m3) => m3.quick_actions?.includes(action));
     answerCamera(this, msg, action);
+    return;
+  }
+  if (action.face_answer) {
+    const msg = this._messages.find((m3) => m3.quick_actions?.includes(action));
+    answerFaces(this, msg, action);
     return;
   }
   for (const msg of this._messages) {
@@ -58734,7 +59675,7 @@ function _discardSceneEdits(sceneId) {
 }
 
 // src/panel/scene-tile-context.js
-var STATES = "states";
+var STATES2 = "states";
 var API = "hassApi";
 function _apiFrom(hass) {
   return {
@@ -58768,7 +59709,7 @@ function provideSceneTileContext(grid, gridHass) {
     ctx = {
       values: {},
       subscribers: {
-        [STATES]: /* @__PURE__ */ new Map(),
+        [STATES2]: /* @__PURE__ */ new Map(),
         [API]: /* @__PURE__ */ new Map(),
       },
     };
@@ -58776,7 +59717,7 @@ function provideSceneTileContext(grid, gridHass) {
     grid.addEventListener("context-request", _onContextRequest);
   }
   ctx.values = {
-    [STATES]: gridHass.states,
+    [STATES2]: gridHass.states,
     [API]: _apiFrom(gridHass),
   };
   for (const [key, subs] of Object.entries(ctx.subscribers)) {

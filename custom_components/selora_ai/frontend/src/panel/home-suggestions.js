@@ -56,9 +56,10 @@ async function act(host, suggestion, d) {
   // What the user says in the chat it opens, when the title is not a request.
   const said = d.ask || d.title;
   const message = said + buildDetailsMarker(d.prompt);
-  if (suggestion.type === "describe_cameras") {
+  const guide = SERVER_GUIDES[suggestion.type];
+  if (guide) {
     // Every question in it is known, so the server writes the chat: no model.
-    if (await openDescribeChat(host, said)) return;
+    if (await openServerGuide(host, guide, said)) return;
   }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
@@ -83,8 +84,9 @@ async function act(host, suggestion, d) {
   }
 }
 
-// A Frigate setup guide opens under the Frigate banner. The describe chat the
-// server writes carries it on its own first card; this is its model fallback.
+// A Frigate setup guide opens under the Frigate banner. The describe and faces
+// chats the server writes carry it on their own first card; this is their
+// model fallback.
 const FRIGATE_GUIDES = new Set([
   "add_to_frigate",
   "recognize_faces",
@@ -103,10 +105,16 @@ function guideFor(suggestion, d) {
   };
 }
 
-async function openDescribeChat(host, title) {
+// The guides the server writes, by suggestion type: the command that opens one.
+const SERVER_GUIDES = {
+  describe_cameras: "selora_ai/frigate/describe_start",
+  recognize_faces: "selora_ai/frigate/faces_start",
+};
+
+async function openServerGuide(host, type, title) {
   try {
     const { session_id } = await host.hass.callWS({
-      type: "selora_ai/frigate/describe_start",
+      type,
       title,
       ...(host.hass?.language ? { language: host.hass.language } : {}),
     });

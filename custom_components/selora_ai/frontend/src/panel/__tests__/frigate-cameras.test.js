@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveClientActions } from "../client-actions.js";
-import { renderFrigateCameraRows } from "../frigate-cameras.js";
+import { renderFrigateCameraRows, useFullQuality } from "../frigate-cameras.js";
 import { renderApprovalCard } from "../render-approval-card.js";
 
 function flatten(node) {
@@ -76,7 +76,46 @@ describe("the Frigate cameras card", () => {
     const out = flatten(renderFrigateCameraRows(host(), low));
 
     expect(out).toContain("records in low resolution");
-    expect(out).toContain("“Clear”");
+    expect(out).toContain("Record in full quality");
+  });
+
+  it("turns on full quality and redraws its rows, here and saved", async () => {
+    const low = action("plan-full");
+    low.cameras = [
+      { ...low.cameras[0], low_resolution: true, turn_on: "Clear" },
+    ];
+    const full = [{ ...low.cameras[0], low_resolution: undefined }];
+    const h = host(async () => ({ cameras: full, label: "Add Porch" }));
+    h._messages = [
+      { role: "user", content: "add" },
+      { role: "assistant", command_approval: { client_actions: [low] } },
+    ];
+
+    await useFullQuality(h, low);
+
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/frigate/full_quality",
+      plan_id: "plan-full",
+      session_id: "sess-1",
+      message_index: 1,
+    });
+    expect(low.cameras).toBe(full);
+    const out = flatten(renderFrigateCameraRows(h, low));
+    expect(out).not.toContain("Record in full quality");
+  });
+
+  it("says why full quality could not be turned on", async () => {
+    const low = action("plan-slow");
+    low.cameras = [
+      { ...low.cameras[0], low_resolution: true, turn_on: "Clear" },
+    ];
+    const h = host(async () => ({ error: "Try again in a minute." }));
+
+    await useFullQuality(h, low);
+
+    const out = flatten(renderFrigateCameraRows(h, low));
+    expect(out).toContain("Try again in a minute.");
+    expect(out).toContain("Record in full quality");
   });
 
   it("asks for a login only for cameras found on the network", () => {
