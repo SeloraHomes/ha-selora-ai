@@ -163,6 +163,7 @@ class ToolExecutor:
             "install_update": self._install_update,
             "add_cameras_to_frigate": self._add_cameras_to_frigate,
             "set_camera_objects": self._set_camera_objects,
+            "set_camera_snapshots": self._set_camera_snapshots,
             "get_camera_descriptions": self._get_camera_descriptions,
             "set_camera_descriptions": self._set_camera_descriptions,
             "get_face_recognition": self._get_face_recognition,
@@ -682,6 +683,11 @@ class ToolExecutor:
         from .frigate.objects import async_preview_set_objects
 
         return await async_preview_set_objects(self._hass, arguments)
+
+    async def _set_camera_snapshots(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.snapshots import async_preview_set_snapshots
+
+        return await async_preview_set_snapshots(self._hass, arguments)
 
     async def _get_camera_descriptions(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         from .frigate.descriptions import async_camera_descriptions

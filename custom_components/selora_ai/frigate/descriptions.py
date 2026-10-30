@@ -91,6 +91,11 @@ _NO_NUMBERS: Final = (
     "Selora Connect does not report this home's camera budget, so give the rules "
     "only and no numbers."
 )
+# Who asks: Selora AI's chat, whose reply carries the answer buttons, or an MCP
+# client, which records each answer with selora_set_camera_descriptions.
+IN_CHAT: Final = "in_chat"
+OVER_MCP: Final = "over_mcp"
+
 _HOW_TO_ASK: Final = (
     "Ask about the ask_next camera only, by its name in words: never list the "
     "others or ask which to start with. End with a yes/no question; the reply "
@@ -108,6 +113,21 @@ _HOW_TO_ASK: Final = (
     "turned on, explain the budget (budget.rules) in the user's terms. A camera "
     "the user does not answer stays off: don't ask about it again unless they "
     "bring it up or it is new."
+)
+_HOW_TO_ASK_OVER_MCP: Final = (
+    "Ask about the ask_next camera only, by its name: never list the others or "
+    "ask which to start with, and end with a yes/no question. Record the answer "
+    "with selora_set_camera_descriptions, then call this again for the next. You "
+    "may suggest an answer from its name, area or a look at it "
+    "(selora_get_frigate_snapshot; an outdoor camera facing a street or driveway "
+    "is where descriptions help most), but only the user's yes turns a camera "
+    "on, never your guess. For an indoor camera, say plainly that images of "
+    "people inside the home are sent to Selora AI to be described, and suggest "
+    "leaving it off unless they want to search it. When a camera has zones, ask "
+    "whether to describe only what enters one of them, and which: never pick "
+    "one. Before the first camera is turned on, explain the budget "
+    "(budget.rules) in the user's terms. A camera the user does not answer stays "
+    "off: don't ask about it again unless they bring it up or it is new."
 )
 
 # The answers under the question about a camera: (label, the user's words).
@@ -479,7 +499,7 @@ async def _event_shares(client: FrigateClient) -> dict[str, int]:
     return {camera: round(100 * n / total) for camera, n in counts.items() if total}
 
 
-async def async_camera_descriptions(hass: HomeAssistant) -> dict[str, Any]:
+async def async_camera_descriptions(hass: HomeAssistant, asking: str = IN_CHAT) -> dict[str, Any]:
     """Which cameras are described, which were never asked about, and the budget."""
     client = FrigateClient.from_hass(hass)
     if client is None:
@@ -522,7 +542,7 @@ async def async_camera_descriptions(hass: HomeAssistant) -> dict[str, Any]:
         "descriptions": "on",
         "cameras": cameras,
         "budget": budget,
-        "how_to_ask": _HOW_TO_ASK,
+        "how_to_ask": _HOW_TO_ASK_OVER_MCP if asking == OVER_MCP else _HOW_TO_ASK,
     }
     if unasked := [c for c in cameras if c["describes"] == "not asked"]:
         result["ask_next"] = unasked[0]["camera"]

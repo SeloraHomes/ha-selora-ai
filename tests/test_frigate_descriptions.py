@@ -34,7 +34,13 @@ from custom_components.selora_ai.llm_client.command_policy import (
     _pending_destructive_from_log,
     synthesize_approval_from_tool_log,
 )
+from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
+from custom_components.selora_ai.mcp_server.names import (
+    TOOL_GET_CAMERA_DESCRIPTIONS,
+    TOOL_SET_CAMERA_DESCRIPTIONS,
+)
 from custom_components.selora_ai.providers.selora_cloud import SeloraCloudProvider
+from custom_components.selora_ai.selora_auth import SeloraAuthContext
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import COMMAND_TOOL_NAMES, CONFIG_TOOL_NAMES
 
@@ -790,3 +796,72 @@ async def test_nothing_to_open_once_every_camera_has_an_answer(
     _api(aioclient_mock, _running(), every)
 
     assert "already has an answer" in (await async_start(hass, "en"))["error"]
+
+
+# ── Over MCP ─────────────────────────────────────────────────────────────────
+
+
+async def _mcp(hass: HomeAssistant, tool: str, **arguments: Any) -> dict[str, Any]:
+    result = await mcp_dispatch._jsonrpc_dispatch(
+        hass,
+        "tools/call",
+        {"name": tool, "arguments": arguments},
+        SeloraAuthContext("admin", None, True, "ha_token"),
+    )
+    return json.loads(result["content"][0]["text"])
+
+
+async def test_over_mcp_the_cameras_are_asked_about_without_buttons(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, _running())
+
+    result = await _mcp(hass, TOOL_GET_CAMERA_DESCRIPTIONS)
+
+    assert result["ask_next"] == "driveway"
+    assert "selora_set_camera_descriptions" in result["how_to_ask"]
+    assert "buttons" not in result["how_to_ask"]
+    assert "sk-secret" not in json.dumps(result)
+
+
+async def test_over_mcp_a_yes_is_confirmed_in_two_calls(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, _running())
+
+    asked = await _mcp(hass, TOOL_SET_CAMERA_DESCRIPTIONS, camera="Front Driveway", describe=True)
+
+    assert asked["requires_confirmation"] is True
+    assert asked["camera"] == "driveway"
+    assert "allowance" in asked["change"]
+    assert _written(aioclient_mock) == []
+    assert "error" in await _mcp(
+        hass, TOOL_SET_CAMERA_DESCRIPTIONS, camera="driveway", describe=True, confirmed=True
+    )
+
+    done = await _mcp(
+        hass,
+        TOOL_SET_CAMERA_DESCRIPTIONS,
+        camera="driveway",
+        describe=True,
+        confirmed=True,
+        confirm_token=asked["confirm_token"],
+    )
+
+    assert done["done"].startswith("Selora AI describes what Front Driveway sees")
+    (body,) = _written(aioclient_mock)
+    assert body["config_data"] == {
+        "cameras": {"driveway": {"objects": {"genai": {"enabled": True}}}}
+    }
+    assert _restarted(aioclient_mock)
+
+
+async def test_over_mcp_a_no_to_a_camera_never_on_needs_no_confirmation(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, _running())
+
+    result = await _mcp(hass, TOOL_SET_CAMERA_DESCRIPTIONS, camera="living_room", describe=False)
+
+    assert result["recorded"] is True
+    assert not _restarted(aioclient_mock)

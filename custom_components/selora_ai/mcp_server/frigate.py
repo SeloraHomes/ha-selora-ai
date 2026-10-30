@@ -1,5 +1,5 @@
-"""MCP tools that change Frigate's cameras and face recognition, and read its
-setup and snapshots.
+"""MCP tools that change Frigate's cameras, their descriptions and face
+recognition, and read its setup and snapshots.
 
 Chat proposes each change on a card the user confirms. MCP has no card, so the
 first call returns what would change with ``requires_confirmation`` and a token
@@ -85,6 +85,25 @@ async def _tool_set_camera_objects(
     if not (token := _token(arguments)):
         return {"error": _NO_TOKEN}
     return await async_set_objects_confirmed(hass, card["target_id"], token, arguments)
+
+
+async def _tool_set_camera_snapshots(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.snapshots import (  # noqa: PLC0415
+        async_preview_set_snapshots,
+        async_set_snapshots_confirmed,
+    )
+
+    preview = await async_preview_set_snapshots(hass, arguments)
+    card = preview.get("destructive")
+    if card is None:
+        return preview
+    if not _confirmed(arguments):
+        return _ask(card)
+    if not (token := _token(arguments)):
+        return {"error": _NO_TOKEN}
+    return await async_set_snapshots_confirmed(hass, card["target_id"], token, arguments)
 
 
 async def _tool_move_frigate_camera(
@@ -218,6 +237,35 @@ async def _tool_get_frigate_snapshot(
         mime_type=mime_type,
         fields={**fields, "content_type": mime_type, "bytes": len(data)},
     )
+
+
+async def _tool_get_camera_descriptions(
+    hass: HomeAssistant, _arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.descriptions import OVER_MCP, async_camera_descriptions  # noqa: PLC0415
+
+    return await async_camera_descriptions(hass, OVER_MCP)
+
+
+async def _tool_set_camera_descriptions(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.descriptions import (  # noqa: PLC0415
+        async_preview_set_descriptions,
+        async_set_descriptions_confirmed,
+    )
+
+    # A no to a camera never turned on is recorded by the preview itself: it
+    # changes nothing Frigate runs, so there is nothing to confirm.
+    preview = await async_preview_set_descriptions(hass, arguments)
+    card = preview.get("destructive")
+    if card is None:
+        return preview
+    if not _confirmed(arguments):
+        return _ask(card)
+    if not (token := _token(arguments)):
+        return {"error": _NO_TOKEN}
+    return await async_set_descriptions_confirmed(hass, card["target_id"], token, arguments)
 
 
 async def _tool_get_face_recognition(

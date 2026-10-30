@@ -64,6 +64,7 @@ from .names import (
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
     TOOL_GET_BLUEPRINT,
+    TOOL_GET_CAMERA_DESCRIPTIONS,
     TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
     TOOL_GET_DASHBOARD,
@@ -139,7 +140,9 @@ from .names import (
     TOOL_SET_APP_OPTIONS,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
+    TOOL_SET_CAMERA_DESCRIPTIONS,
     TOOL_SET_CAMERA_OBJECTS,
+    TOOL_SET_CAMERA_SNAPSHOTS,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
@@ -1114,6 +1117,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_GET_LOGS: "get_logs",
     TOOL_FIND_CAMERA_EVENTS: "find_camera_events",
     TOOL_GET_FRIGATE_STATUS: "get_frigate_status",
+    TOOL_GET_CAMERA_DESCRIPTIONS: "get_camera_descriptions",
     TOOL_GET_FACE_RECOGNITION: "get_face_recognition",
     TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
     TOOL_FIND_REFERENCES: "find_references",
@@ -1156,6 +1160,17 @@ _MCP_DESCRIPTIONS: dict[str, str] = {
         "id. An empty events list means nothing was tracked, not that nobody was "
         "there; watching says what each camera looks for, and not_recorded what it "
         "could not have seen: say so rather than 'nothing found'."
+    ),
+    # The chat text's how_to_ask is the panel's: answer buttons under the reply.
+    "get_camera_descriptions": (
+        "Which Frigate cameras Selora AI describes (written descriptions of the "
+        "people and vehicles they see, searchable later with "
+        "selora_find_camera_events), which were never asked about, each camera's "
+        "zones, area and share of events, and the budget: the rules, and when "
+        "known how many objects are left today and why descriptions are paused. "
+        "Call it before asking which cameras to describe, and for 'how much of my "
+        "camera budget is left?' or 'why wasn't that car described?'. Follow its "
+        "how_to_ask. Requires admin access."
     ),
     # The chat text points at the panel's card for adding people.
     "get_face_recognition": (
@@ -1848,11 +1863,29 @@ _FRIGATE_CHANGES: dict[str, tuple[str, str]] = {
         "objects replaces the whole list, only when the user gives it. Only labels "
         "the model can detect (model_labels in selora_get_frigate_status).",
     ),
+    TOOL_SET_CAMERA_SNAPSHOTS: (
+        "set_camera_snapshots",
+        "Turn on or off a camera's snapshots in Frigate (the still it keeps of each "
+        "person, car or animal it tracks, which selora_find_camera_events links "
+        "and selora_add_face_photo learns a face from), and how long they are "
+        "kept. Its Snapshots switch cannot turn them on while they are off in its "
+        "configuration; this can.",
+    ),
     TOOL_MOVE_FRIGATE_CAMERA: (
         "move_frigate_camera",
         "Point a camera already in Frigate at its new network address, when the "
         "router gave it another IP. It keeps the camera's name, history, entities "
         "and login: never add it again instead, and never pass a password.",
+    ),
+    TOOL_SET_CAMERA_DESCRIPTIONS: (
+        "set_camera_descriptions",
+        "Record the user's answer for one Frigate camera: whether Selora AI "
+        "describes what it sees, optionally only what enters the zones the user "
+        "chose. describe true only when they said yes, never from your own guess. "
+        "Its pictures then go to Selora AI to be described, from the homeowner's "
+        "allowance. A no to a camera that was never on is recorded at once, with "
+        "no restart and nothing to confirm; it is then not asked about again. "
+        "Turning one on or off changes what Frigate runs:",
     ),
     TOOL_SET_FACE_RECOGNITION: (
         "set_face_recognition",

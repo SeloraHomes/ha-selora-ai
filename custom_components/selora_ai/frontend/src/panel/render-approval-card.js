@@ -66,6 +66,7 @@ const _DELETE_KIND_LABELS = {
   frigate_camera: "Frigate camera",
   frigate_objects: "Frigate camera",
   frigate_move: "Frigate camera",
+  frigate_snapshots: "Frigate camera",
   frigate_descriptions: "Frigate camera",
   frigate_faces: "Frigate",
 };
@@ -74,6 +75,7 @@ const _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
   frigate_objects: "mdi:cctv",
   frigate_move: "mdi:cctv",
+  frigate_snapshots: "mdi:camera-burst",
   frigate_descriptions: "mdi:text-box-search-outline",
   frigate_faces: "mdi:face-recognition",
   scene: "mdi:palette-outline",

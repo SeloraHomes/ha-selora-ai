@@ -2574,6 +2574,37 @@ TOOL_SET_CAMERA_OBJECTS = ToolDef(
     large_context_only=True,
 )
 
+TOOL_SET_CAMERA_SNAPSHOTS = ToolDef(
+    name="set_camera_snapshots",
+    description=(
+        "Turn on or off a Frigate camera's snapshots (the still it keeps of each "
+        "person, car or animal it tracks), and how long they are kept. Its "
+        "Snapshots switch cannot turn them on when they are off in its "
+        "configuration; this can. The user gets a card, and Frigate restarts."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="The Frigate camera: its name, its friendly name, or its camera entity.",
+            required=True,
+        ),
+        ToolParam(
+            name="enabled",
+            type="boolean",
+            description="The user's answer.",
+            required=True,
+        ),
+        ToolParam(
+            name="retain_days",
+            type="integer",
+            description="Days to keep them, only when the user gave a number.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_CAMERA_DESCRIPTIONS = ToolDef(
     name="get_camera_descriptions",
     description=(
@@ -3413,6 +3444,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_FIND_CAMERA_EVENTS,
     TOOL_SET_CAMERA_OBJECTS,
+    TOOL_SET_CAMERA_SNAPSHOTS,
     TOOL_MOVE_FRIGATE_CAMERA,
     TOOL_GET_CAMERA_DESCRIPTIONS,
     TOOL_SET_CAMERA_DESCRIPTIONS,
@@ -3429,6 +3461,7 @@ FRIGATE_TOOL_NAMES: frozenset[str] = frozenset(
         TOOL_ADD_CAMERAS_TO_FRIGATE.name,
         TOOL_FIND_CAMERA_EVENTS.name,
         TOOL_SET_CAMERA_OBJECTS.name,
+        TOOL_SET_CAMERA_SNAPSHOTS.name,
         TOOL_MOVE_FRIGATE_CAMERA.name,
         TOOL_GET_CAMERA_DESCRIPTIONS.name,
         TOOL_SET_CAMERA_DESCRIPTIONS.name,
@@ -3502,6 +3535,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "install_update",
         "add_cameras_to_frigate",
         "set_camera_objects",
+        "set_camera_snapshots",
         "move_frigate_camera",
         "get_camera_descriptions",
         "set_camera_descriptions",
@@ -3599,6 +3633,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "install_update",
         "add_cameras_to_frigate",
         "set_camera_objects",
+        "set_camera_snapshots",
         "move_frigate_camera",
         "get_camera_descriptions",
         "set_camera_descriptions",
