@@ -40,9 +40,10 @@ Frigate feature is off.
 ## Who owns which part of Frigate's config
 
 Selora AI writes only **per-camera** sections: `cameras.<name>` and the
-`go2rtc.streams` it restreams them from. Detectors, hardware acceleration,
-models, MQTT and every other global section belong to Selora OS, which knows the
-hardware. A camera config that needs a global change (a different detector, a
+`go2rtc.streams` it restreams them from. The one global exception is
+`face_recognition.enabled` (see "Face recognition"): it needs the user's yes
+and no hardware choice. Detectors, hardware acceleration, models, MQTT and
+every other global section belong to Selora OS, which knows the hardware. A camera config that needs a global change (a different detector, a
 hwaccel preset) is a request to the OS, not something to write from here.
 
 Writes go through Frigate's own `PUT /api/config/set` (`config_data`, merged and
@@ -343,6 +344,23 @@ Cameras Frigate could add, from HA and from the last network scan, show as one
 reads suggestions on every visit; the cache is dropped after cameras are added.
 The id lists the cameras, so a dismissal holds until a new one appears.
 
+**Setting Frigate up takes one row.** The chat home shows only a few
+suggestions, so the set-up steps show one at a time, in order: describe
+cameras, recognize faces, add cameras. The first one not dismissed shows
+(`async_home_suggestions`). Each opens a chat whose tool results carry the
+script (`how_to_ask`, `how_to_offer`), so the conversation stays on the step.
+Adding cameras comes last: describe and faces only exist once Frigate has
+cameras, and an HA camera nobody wants in Frigate would otherwise hold the row.
+
+**Every Frigate guide opens under the Frigate banner**
+(`frontend/images/frigate-banner.webp`). The describe chat draws it on its
+first card's heading. A guide the model runs (add cameras, faces, and the
+describe fallback) has no card of its own, so the conversation carries the
+heading: the panel passes `guide` (`icon`, `title`, `subtitle`, `banner`) to
+`selora_ai/new_session`, the session stores it, and the panel draws it above
+the messages, from `get_session` on a reopen. `banner` is a name
+(`SESSION_GUIDE_BANNERS`), never a URL: the panel puts it in a CSS `url()`.
+
 ## Links into Frigate's UI
 
 An opened event on the events card links to Frigate's own pages: the event
@@ -380,6 +398,13 @@ entities only say what is there now.
   events, GenAI descriptions being a separate, outward option). Refusing the
   whole search left the model asking instead of answering. Turning it on is
   the user's: it is a global section, which this integration does not write.
+- **A ranked search keeps the matches that stand out.** Semantic search is
+  nearest-neighbour: it always fills the limit, so "any FedEx truck today?"
+  came back with the van and two dozen pickups, and the card drew them all.
+  `search_distance` is a z-score (lower is nearer); the events before the
+  widest break of at least one standard deviation (`_STANDOUT_GAP`) are kept,
+  and `weaker_matches_left_out` counts the rest. A query many events match
+  equally well has no such break and keeps them all.
 - **Counts cover the range, the list is a page.** Up to `_COUNT_CAP` events are
   read without thumbnails so `total`, `by_object` and `by_camera` answer "how
   many…" while at most 25 are listed.
@@ -464,3 +489,145 @@ the card does.
     that is the MCP resource, which takes only Connect's token, so a browser
     gets Pangolin's 401. Nor the external URL alone: on a hub it is often the
     LAN address, and nobody types the proxy's hostname into it.
+## Camera descriptions
+
+Selora AI can have Frigate write a description of each person and vehicle a
+camera tracks, through Connect's gateway (`frigate/descriptions.py`). The
+homeowner turns it on in Connect; Selora OS then writes the `genai.selora`
+provider, a global `objects.genai` with `enabled: false`, and semantic search.
+Selora AI writes only each camera's `objects.genai`, and only with the
+homeowner's answer.
+
+- **The signal is the provider, not Connect.** Descriptions are on when
+  Frigate's config has `genai.selora` with `descriptions` in its `roles`
+  (`selora_describes`): that is what the hub runs. With the provider gone
+  nothing is offered, and the answers stay in the file, so turning it back on
+  keeps them.
+- **Answers are read from the saved file** (`/api/config/raw`). The running
+  config merges the global `false` into every camera, so "never asked" and "no"
+  look the same there. The file holds the camera logins and the provider key:
+  parsed in memory, never logged or returned, as in `moving.py`.
+- **A no is written at once, with no restart** (`requires_restart: 0`): it
+  changes nothing Frigate does, and only records the answer so the camera is
+  not asked again. A yes, or turning a described camera off, goes on a card
+  (`kind: "frigate_descriptions"`) and restarts Frigate. Confirming re-checks
+  the camera's answer and zones (`_fingerprint`).
+- **Never turned on from a guess.** `set_camera_descriptions` takes the user's
+  answer. Its description and `get_camera_descriptions`' `how_to_ask` let the
+  model suggest an answer (an outdoor camera facing a street), but only a yes
+  turns a camera on, and an indoor camera comes with the warning that pictures
+  of people inside the home are sent to be described. Zones
+  (`required_zones`) are the user's choice, checked against the camera's own.
+- **Asking starts from a home suggestion** (`describe_cameras`), named by the
+  cameras never asked about, so a dismissal holds until a new camera arrives
+  and a skipped question is not asked again on every turn. It sells the
+  result, not the setting: what Frigate labels ("a car") next to what Selora
+  AI describes, the question it lets you ask, then which cameras and that no
+  picture leaves the home before a yes. Its button says "Choose cameras", and
+  the chat it opens starts from a request (`home_suggestion_describe_ask`),
+  not from the card's title.
+- **The tool picks the camera; the user answers with buttons.** Given the
+  list, the model asked "which one should I ask about first?" over camera
+  tiles, and a tile click opened the device instead of answering.
+  `ask_next` names the next camera never asked about, and `how_to_ask` asks
+  for a yes/no question with no entity markers. The answer buttons are added
+  in code (`answer_buttons`, from `synthesize_approval_from_tool_log`):
+  asked twice in the prompt, the model left them out both times. They are
+  `inline`, so the panel draws them under the question; above the composer
+  they were a screen away from it. They are the panel's action button with
+  the answer's mark (✓, ✕) in the badge, not the send arrow: an answer sends
+  nothing to the model. Only the first answer is gold.
+- **The suggestion opens a chat the model never wrote.** Its click calls
+  `selora_ai/frigate/describe_start` (`async_start`), which writes the
+  conversation: the suggestion's title as the user's message, then what
+  descriptions do and cost (the share and, from Connect, the daily number),
+  that pictures leave the house so an indoor camera is best left off, and the
+  first unanswered camera's question with its buttons. A model turn there
+  took seconds to say what the code already knew. If the server cannot open
+  it (an older one: `unknown_command`), the panel asks the model as before;
+  asking "describe my cameras" in chat still goes through
+  `get_camera_descriptions`. Any other refusal is shown as is and the rows
+  are read again: the row was loaded earlier, and once every camera has an
+  answer a model chat only asked the same questions again.
+- **Each question is a card, not prose** (`describe_card`,
+  `render-describe-card.js`): the camera's name and live snapshot above the
+  question, since whether a camera looks inside the home is the answer to
+  give, and a name alone does not show it. The first one opens with an
+  example: a picture (`frontend/images/describe-example.jpg`, served at
+  `/api/selora_ai/images/`) with what Frigate labels it ("Car") next to what
+  Selora AI describes, then search, privacy, budget and "off until you say
+  yes" as points. Every word is the backend's, in the reply's language; the
+  message text holds the same in plain words for the model's later turns.
+  Each section opens with the shared card heading (`renderCardHeading`:
+  "Camera descriptions" and a one-line tagline, since a heading is not a
+  paragraph (the longer lead stays in the message text, for the model), then the camera's name and "Camera 1 of
+  3"), with the picture beside its words; stacked, the card was taller than
+  the screen. It reuses the Frigate result card's picture frame; the example
+  and the points share one icon column and one text edge.
+- **A click is answered without the model.** Each button carries its answer
+  (`camera_answer`); the panel sends it to `selora_ai/frigate/describe_answer`,
+  which saves it (`async_answer`), asks about the next camera with the same
+  buttons, and stores both sides in the conversation. A round trip through
+  the model per camera was slow and added nothing: the question and its
+  answers are fixed. The click is the user's own yes, so it needs no card.
+  Answers are saved with `requires_restart: 0`, and Frigate restarts once,
+  after the last camera, only when a saved answer differs from what it runs
+  (`_not_running`). A flow left before its last camera is applied anyway:
+  an answer that changes what runs arms a timer (`_apply_later`, five
+  minutes, pushed back by each answer, dropped by the last one and on
+  unload) that restarts Frigate. A camera that already has an answer is
+  refused: buttons on an older question, reopened later, would overwrite it.
+  The panel keeps an answered question's buttons in view but disabled, the
+  one picked lit (the user message after it, or the click still on its way):
+  a reopened conversation shows what was answered, and nothing in it can be
+  pressed mid-flow. The last reply
+  carries `done`, which the panel shows with the drawn tick, or a warning
+  when Frigate could not restart. An answer typed instead goes through the
+  model and the card, as before.
+- **The budget is Connect's to enforce; no counter is kept here.** The
+  gateway's capabilities carry `camera_descriptions`
+  (`SeloraCloudProvider.camera_descriptions`), read no older than a minute
+  for a budget question. It is told in people and vehicles a day, never
+  tokens, with why descriptions are paused (today's budget, or the month's
+  share reached and kept for the assistant). Without it (another provider, a
+  plan without Frigate, an older Connect) only the rules are given, never a
+  number.
+- **The first camera's card says what it costs.** The card replaces the
+  model's prose, so the allowance line is on the card while no camera is
+  described yet.
+- **When today's budget ran out**, the status names the described camera with
+  the largest share of the week's events and offers once to limit it to a zone
+  or turn it off.
+- **A search says what it could not see.** `find_camera_events` also lists the
+  range when it ranks one, and reports ended events a described camera should
+  have described and did not (`undescribed`: count, cameras, the first, and
+  why, which is the budget's status when Connect reports one). Without one,
+  "may still be coming" only when every one ended in the last ten minutes;
+  older, the reason is unknown (the camera may not have been described then),
+  and the model is told not to guess. An object the
+  camera does not describe (a dog, one outside its required zones) is not
+  counted. A description search also names the cameras that describe nothing.
+
+## Face recognition
+
+Frigate looks for a face on each person it detects and matches it against its
+Face Library (`frigate/faces.py`). It cannot be on by default: it recognizes
+nobody until someone adds photos of each person, and that happens in Frigate's
+own UI.
+
+- **Selora AI switches it** (`set_face_recognition`, a card with
+  `kind: "frigate_faces"`, then a restart): only `face_recognition.enabled`,
+  read from the saved file. The model is left at Frigate's default, the small
+  one, which runs on the hub's CPU (AVX2 needed), so there is no hardware
+  choice to make here. The Face Library is kept when it is turned off.
+- **People are added in Frigate, never here.** `get_face_recognition` returns
+  who is in the library and with how many photos (`GET /api/faces`, minus its
+  `train` folder of unmatched faces), and a `guide`: it runs on the hub, 5 to
+  10 clear front-facing photos per person to begin with, then assign Recent
+  Recognitions. With it on, the panel draws a button under the reply that opens
+  Frigate's `faces` page (`face-library-link.js`, through `frigate-ui.js`).
+- **A face needs a person.** Cameras that do not look for people are listed
+  (`cameras_not_looking_for_people`), since they recognize no one.
+- **The suggestion has two states with their own ids**: `faces:off` (offer to
+  turn it on) and `faces:empty` (on, nobody in the library). Dismissing the
+  first does not hide the second.

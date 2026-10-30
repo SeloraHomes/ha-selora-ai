@@ -34,6 +34,7 @@ import {
   prefillComposer,
   stepPrefill,
 } from "./refine-guide.js";
+import { renderActionButton } from "../shared/action-button.js";
 
 // Click target for entities mentioned in a trigger/condition/action. Opens
 // HA's built-in more-info dialog via the standard `hass-more-info` event
@@ -921,7 +922,7 @@ function _savedIsEnabled(host, msg) {
 //
 //   - pending: a single "Accept & Save" button with the exit
 //     animation hook
-//   - saved + enabled: the Run / Trace / Edit qa-suggestion chips
+//   - saved + enabled: the Run / Trace / Edit action buttons
 //   - saved + unavailable: Home Assistant could not set the automation
 //     up, so it says so and offers the editor. NOT an Enable button —
 //     `_automationIsEnabled` reports unavailable as disabled, which is
@@ -959,65 +960,42 @@ export function renderProposalActions(host, msg, msgIndex) {
           justCreated ? " pop-in-children" : ""
         }"
       >
-        <button
-          class="qa-suggestion"
-          ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
-          title=${host._t(
+        ${renderActionButton({
+          label: (host._runningAutomation || {})[savedAutomationId]
+            ? host._t("automations_action_running", "Running…")
+            : host._t("automations_action_run_now", "Run now"),
+          title: host._t(
             "automations_action_run_tooltip",
             "Trigger the actions now to verify they work",
-          )}
-          @click=${() =>
-            host._runAutomation(created.entity_id, savedAutomationId)}
-        >
-          <span class="qa-glow-track" aria-hidden="true">
-            <span class="qa-glow-spot"></span>
-          </span>
-          <ha-icon class="qa-suggestion-lead" icon="mdi:play"></ha-icon>
-          <span class="qa-suggestion-label"
-            >${
-              (host._runningAutomation || {})[savedAutomationId]
-                ? host._t("automations_action_running", "Running…")
-                : host._t("automations_action_run_now", "Run now")
-            }</span
-          >
-        </button>
-        <button
-          class="qa-suggestion"
-          title=${host._t(
+          ),
+          mark: "mdi:play",
+          disabled: !!(host._runningAutomation || {})[savedAutomationId],
+          onClick: () =>
+            host._runAutomation(created.entity_id, savedAutomationId),
+        })}
+        ${renderActionButton({
+          label: host._t("automations_action_view_in_ha", "View in HA"),
+          title: host._t(
             "automations_action_open_in_ha_tooltip",
             "Open this automation in Home Assistant",
-          )}
-          @click=${() => host._openAutomationInHA(savedAutomationId)}
-        >
-          <span class="qa-glow-track" aria-hidden="true">
-            <span class="qa-glow-spot"></span>
-          </span>
-          <ha-icon class="qa-suggestion-lead" icon="mdi:open-in-new"></ha-icon>
-          <span class="qa-suggestion-label"
-            >${host._t("automations_action_view_in_ha", "View in HA")}</span
-          >
-        </button>
+          ),
+          mark: "mdi:open-in-new",
+          onClick: () => host._openAutomationInHA(savedAutomationId),
+        })}
       </div>`;
     }
     if (created.state === "unavailable") {
       return html`
         <div class="qa-group automation-card-actions">
-          <button
-            class="qa-suggestion"
-            title=${host._t(
+          ${renderActionButton({
+            label: host._t("automations_action_fix_in_ha", "Fix in HA"),
+            title: host._t(
               "automations_action_open_in_ha_tooltip",
               "Open this automation in Home Assistant",
-            )}
-            @click=${() => host._openAutomationInHA(savedAutomationId)}
-          >
-            <span class="qa-glow-track" aria-hidden="true">
-              <span class="qa-glow-spot"></span>
-            </span>
-            <ha-icon class="qa-suggestion-lead" icon="mdi:wrench"></ha-icon>
-            <span class="qa-suggestion-label"
-              >${host._t("automations_action_fix_in_ha", "Fix in HA")}</span
-            >
-          </button>
+            ),
+            mark: "mdi:wrench",
+            onClick: () => host._openAutomationInHA(savedAutomationId),
+          })}
         </div>
         <p class="automation-workflow-note elevated">
           <ha-icon

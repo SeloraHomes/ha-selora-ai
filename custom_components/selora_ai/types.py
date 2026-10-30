@@ -396,8 +396,10 @@ class HomeSuggestion(TypedDict):
 
     See home_suggestions.py. ``type`` is "add_to_collection" (one entity to
     add), "group_entities" (the automation's trigger entities to group),
-    "add_to_frigate" (cameras Frigate does not have yet) or "camera_idea" (an
-    automation or scene a camera's detection could drive).
+    "add_to_frigate" (cameras Frigate does not have yet), "camera_idea" (an
+    automation or scene a camera's detection could drive), "describe_cameras"
+    (cameras nobody was asked about describing yet) or "recognize_faces" (face
+    recognition off, or on with nobody to recognize).
     """
 
     suggestion_id: str
@@ -406,6 +408,8 @@ class HomeSuggestion(TypedDict):
     collection: HomeSuggestionCollection
     # camera_idea only: the idea, which the panel words from its kind.
     idea: NotRequired[CameraIdea]
+    # recognize_faces only: "off" or "empty" (on, nobody in the Face Library).
+    state: NotRequired[str]
     # add_to_collection only: the members of the entity's kind the collection
     # already holds, and the area they all cover (None: the whole home).
     members: NotRequired[list[HomeSuggestionEntity]]
@@ -584,6 +588,48 @@ class CleanupResult(TypedDict):
 # ── Chat / LLM response structures ───────────────────────────────────
 
 
+class CameraAnswer(TypedDict):
+    """A camera-descriptions answer a button carries: sent by the panel, not the model."""
+
+    camera: str  # Frigate's camera name
+    describe: bool
+    zones: list[str]  # Frigate zone names; empty for the whole frame
+
+
+class DescribeIntroPoint(TypedDict):
+    icon: str  # mdi icon
+    text: str
+
+
+class DescribeIntro(TypedDict):
+    """What camera descriptions add, shown before the first camera's question:
+    an example picture, its object as Frigate labels it and as Selora AI
+    describes it, then what it means for search, privacy and the allowance."""
+
+    title: str
+    tagline: str  # the heading's line: short, the lead is for the model
+    lead: str
+    image: str  # served by the integration
+    seen: str
+    label: str
+    described: str
+    example: str
+    points: list[DescribeIntroPoint]
+
+
+class DescribeCard(TypedDict, total=False):
+    """A camera-descriptions message, shown as a card in place of its text
+    (frigate/descriptions.py): the question about one camera, or once every
+    camera has an answer, how it ended."""
+
+    camera: str  # Frigate's camera name
+    camera_name: str
+    step: str  # "Camera 1 of 3"
+    question: str
+    intro: DescribeIntro
+    done: str  # "saved" | "restarting" | "not_restarted"
+
+
 class QuickAction(TypedDict, total=False):
     """A clickable action offered to the user after an AI message.
 
@@ -599,6 +645,9 @@ class QuickAction(TypedDict, total=False):
     description: str  # subtitle for choice cards
     icon: str  # mdi icon name
     primary: bool  # highlight as primary action (confirmation mode)
+    tone: str  # "approve" | "deny": colours a confirmation chip
+    inline: bool  # answers the question in its own bubble: drawn there, not above the composer
+    camera_answer: CameraAnswer  # answered by selora_ai/frigate/describe_answer, not the model
 
 
 class CommandApprovalProposal(TypedDict, total=False):
@@ -998,6 +1047,18 @@ class ChatMessage(TypedDict, total=False):
     # The outcome of adding or removing Frigate cameras, which the panel shows
     # as a card in place of the message text (frigate/setup.py result_for).
     frigate_result: FrigateResult
+    # The question about a camera's descriptions, and on the first one what
+    # they add, which the panel shows in place of the message text.
+    describe_card: DescribeCard
+
+
+class SessionGuide(TypedDict):
+    """The heading a guided conversation opens with, above its messages."""
+
+    icon: str
+    title: str
+    subtitle: str
+    banner: str  # a name in SESSION_GUIDE_BANNERS
 
 
 class SessionData(TypedDict):
@@ -1008,6 +1069,7 @@ class SessionData(TypedDict):
     created_at: str
     updated_at: str
     messages: list[ChatMessage]
+    guide: NotRequired[SessionGuide]
 
 
 # ── Insights: Layer 1 (health signals) ────────────────────────────────

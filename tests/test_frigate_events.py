@@ -219,6 +219,38 @@ async def test_a_description_search_is_ranked_by_frigate(
     assert result["events"][0]["description"] == "A man in a blue coat."
 
 
+async def test_a_search_keeps_only_the_matches_that_stand_out(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    config = {**_CONFIG, "semantic_search": {"enabled": True}}
+    ranked = [
+        _event(f"{NOW - n:.6f}-van{n:03d}", "drive", "car", NOW - n, NOW, search_distance=d)
+        for n, d in enumerate([-5.9, -3.05, -1.75, -1.65, -1.5], start=1)
+    ]
+    _api(aioclient_mock, ranked, config)
+
+    result = await async_find_events(hass, {"query": "fedex truck", "limit": 25})
+
+    assert [e["id"] for e in result["events"]] == [ranked[0]["id"]]
+    assert result["weaker_matches_left_out"] == 4
+
+
+async def test_a_search_many_events_match_keeps_them_all(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    config = {**_CONFIG, "semantic_search": {"enabled": True}}
+    ranked = [
+        _event(f"{NOW - n:.6f}-pick{n:03d}", "drive", "car", NOW - n, NOW, search_distance=d)
+        for n, d in enumerate([-2.1, -1.9, -1.6, -1.5], start=1)
+    ]
+    _api(aioclient_mock, ranked, config)
+
+    result = await async_find_events(hass, {"query": "pickup truck"})
+
+    assert len(result["events"]) == 4
+    assert "weaker_matches_left_out" not in result
+
+
 async def test_a_range_too_long_is_refused(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:
@@ -390,7 +422,9 @@ async def test_a_search_reads_descriptions_when_frigate_writes_them(
 
     await async_find_events(hass, {"query": "white car"})
 
-    assert _asked(aioclient_mock)["search_type"] == "thumbnail,description"
+    # The range is listed as well, for what the search could not match.
+    (search,) = [c[1] for c in aioclient_mock.mock_calls if "/api/events/search" in str(c[1])]
+    assert dict(search.query)["search_type"] == "thumbnail,description"
 
 
 async def test_a_search_without_descriptions_leaves_frigates_default(

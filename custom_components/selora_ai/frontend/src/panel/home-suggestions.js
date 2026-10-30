@@ -12,6 +12,9 @@
 // does: a fresh chat only edits what it was given, so without the automation
 // loaded the model can make the group but never propose the edited rule.
 import { html } from "lit";
+
+import { renderActionButton } from "../shared/action-button.js";
+import { renderCardIcon } from "../shared/card-heading.js";
 import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
 import { describeIdea } from "./camera-ideas.js";
@@ -50,10 +53,16 @@ function toggle(host, suggestion) {
 }
 
 async function act(host, suggestion, d) {
-  const message = d.title + buildDetailsMarker(d.prompt);
+  // What the user says in the chat it opens, when the title is not a request.
+  const said = d.ask || d.title;
+  const message = said + buildDetailsMarker(d.prompt);
+  if (suggestion.type === "describe_cameras") {
+    // Every question in it is known, so the server writes the chat: no model.
+    if (await openDescribeChat(host, said)) return;
+  }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
-    await host._askInNewChat(message);
+    await host._askInNewChat(message, { guide: guideFor(suggestion, d) });
     return;
   }
   try {
@@ -71,6 +80,48 @@ async function act(host, suggestion, d) {
   } catch (err) {
     console.error("Failed to open the automation in chat", err);
     await host._askInNewChat(message);
+  }
+}
+
+// A Frigate setup guide opens under the Frigate banner. The describe chat the
+// server writes carries it on its own first card; this is its model fallback.
+const FRIGATE_GUIDES = new Set([
+  "add_to_frigate",
+  "recognize_faces",
+  "describe_cameras",
+]);
+
+function guideFor(suggestion, d) {
+  if (!FRIGATE_GUIDES.has(suggestion.type)) return undefined;
+  return {
+    icon: d.icon,
+    // A heading, not a paragraph: the row's reasons stay in the row. The
+    // server's limit cuts a long list of camera names rather than refusing it.
+    title: d.title.slice(0, 200),
+    subtitle: "",
+    banner: "frigate",
+  };
+}
+
+async function openDescribeChat(host, title) {
+  try {
+    const { session_id } = await host.hass.callWS({
+      type: "selora_ai/frigate/describe_start",
+      title,
+      ...(host.hass?.language ? { language: host.hass.language } : {}),
+    });
+    host._setActiveTab("chat");
+    await host._openSession(session_id);
+    return true;
+  } catch (err) {
+    // Only a server without the command hands the request to the model. A
+    // refusal is the server's answer (every camera already has one, Frigate
+    // is down): a model chat would ask the same questions again. The row was
+    // loaded earlier, so the list is read again.
+    if (err?.code === "unknown_command") return false;
+    host._showToast?.(err?.message || String(err), "error");
+    await loadHomeSuggestions(host);
+    return true;
   }
 }
 
@@ -110,7 +161,8 @@ function nameList(host, entities) {
 // type this bundle does not know (a newer backend).
 function describe(host, s) {
   const grouping = s.type === "group_entities";
-  const listsEntities = grouping || s.type === "add_to_frigate";
+  const listsEntities =
+    grouping || s.type === "add_to_frigate" || s.type === "describe_cameras";
   const values = {
     entity: names(s.entities),
     entity_id: ids(s.entities),
@@ -168,6 +220,77 @@ function describe(host, s) {
         ),
       ],
     };
+  }
+  if (s.type === "describe_cameras") {
+    return {
+      icon: "mdi:text-box-search-outline",
+      title:
+        s.entities.length === 1
+          ? t(
+              "home_suggestion_describe_one",
+              "Search what {entity} saw, in plain words",
+            )
+          : t(
+              "home_suggestion_describe",
+              "Search what your cameras saw, in plain words",
+            ),
+      prompt: t(
+        "home_suggestion_describe_prompt",
+        "Ask me, one camera at a time, whether Selora AI should describe what these cameras see: {entity}.",
+      ),
+      why: [
+        t(
+          "home_suggestion_describe_why",
+          "Frigate only knows it saw “a car” or “a person”. Selora AI can describe each one, like “a white FedEx van in the driveway” or “someone leaving a parcel at the door”, so you can simply ask “Did a delivery come today?”",
+        ),
+        t(
+          "home_suggestion_describe_how",
+          "Pick which cameras to describe: {members}. It takes a minute, and no picture leaves your home until you say yes.",
+        ),
+      ],
+      act: t("home_suggestion_describe_act", "Choose cameras"),
+      ask: t(
+        "home_suggestion_describe_ask",
+        "Help me choose which cameras Selora AI describes",
+      ),
+    };
+  }
+  if (s.type === "recognize_faces") {
+    return s.state === "empty"
+      ? {
+          icon: "mdi:face-recognition",
+          title: t(
+            "home_suggestion_faces_empty",
+            "Add the people Frigate should recognize",
+          ),
+          prompt: t(
+            "home_suggestion_faces_empty_prompt",
+            "Help me add the people Frigate should recognize: where to add them, and which photos work best.",
+          ),
+          why: [
+            t(
+              "home_suggestion_faces_empty_why",
+              "Face recognition is on, but Frigate does not know anyone yet. Add a few photos of each person in its Face Library.",
+            ),
+          ],
+        }
+      : {
+          icon: "mdi:face-recognition",
+          title: t(
+            "home_suggestion_faces",
+            "Recognize the people you know on your cameras",
+          ),
+          prompt: t(
+            "home_suggestion_faces_prompt",
+            "Help me set up face recognition in Frigate: tell me what it does and what it needs, then ask me before turning it on.",
+          ),
+          why: [
+            t(
+              "home_suggestion_faces_why",
+              "Frigate can tell who is at the door once it knows their faces. It runs on your hub, and needs a few photos of each person.",
+            ),
+          ],
+        };
   }
   if (s.type !== "add_to_collection") return null;
   const why = [
@@ -234,9 +357,7 @@ export function renderHomeSuggestions(host) {
                 aria-expanded=${open ? "true" : "false"}
                 @click=${() => toggle(host, s)}
               >
-                <span class="home-suggestion-icon"
-                  ><ha-icon icon=${d.icon}></ha-icon
-                ></span>
+                ${renderCardIcon(d.icon)}
                 <span class="home-suggestion-title">${d.title}</span>
                 <ha-icon
                   class="home-suggestion-chevron"
@@ -257,20 +378,16 @@ export function renderHomeSuggestions(host) {
                 ? html`<div class="home-suggestion-detail">
                     ${d.why.map((line) => html`<p>${line}</p>`)}
                     <div class="home-suggestion-footer">
-                      <button
-                        class="home-suggestion-act"
-                        @click=${() => act(host, s, d)}
-                      >
-                        <span
-                          >${host._t(
+                      ${renderActionButton({
+                        label:
+                          d.act ||
+                          host._t(
                             "home_suggestion_do_it",
                             "Ask Selora to do it",
-                          )}</span
-                        >
-                        <span class="composer-send" aria-hidden="true"
-                          ><ha-icon icon="mdi:arrow-up"></ha-icon
-                        ></span>
-                      </button>
+                          ),
+                        tone: "primary",
+                        onClick: () => act(host, s, d),
+                      })}
                     </div>
                   </div>`
                 : ""

@@ -210,6 +210,22 @@ class TestSeloraCloudCapabilities:
         assert session.get_calls == 2
         assert provider.supports_vision is False
 
+    async def test_a_short_max_age_still_waits_before_asking_again(
+        self, hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import time as _time
+
+        clock = [10_000.0]
+        monkeypatch.setattr(_time, "monotonic", lambda: clock[0])
+        provider, session = _cloud_provider(hass, _FakeCapabilitiesResponse(503))
+
+        await provider.async_refresh_capabilities(max_age=60)
+        clock[0] += 30
+        await provider.async_refresh_capabilities(max_age=60)
+
+        # A failed budget read is not retried on every later one.
+        assert session.get_calls == 1
+
     async def test_base_providers_have_noop_refresh(self, hass: HomeAssistant) -> None:
         provider = AnthropicProvider(hass, api_key="k")
         await provider.async_refresh_capabilities()

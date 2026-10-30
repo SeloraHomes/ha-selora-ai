@@ -1,6 +1,107 @@
 import { css } from "lit";
 
 export const cardElementStyles = css`
+  /* ---- Card heading (shared/card-heading.js) ---- */
+  .card-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+    --mdc-icon-size: 18px;
+  }
+  /* ha-icon is inline: on the text baseline it sits low in the square. */
+  .card-heading-icon ha-icon {
+    display: flex;
+  }
+  :host(:not([dark])) .card-heading-icon {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+  }
+  .card-heading-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .card-heading-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--primary-text-color);
+  }
+  .card-heading-subtitle {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--secondary-text-color);
+  }
+  /* The picture fades in under the words on an eased curve: a straight ramp
+     leaves a visible seam where it starts. Its bottom melts into the card.
+     The words sit in the bottom corner, as far from both edges. */
+  .card-heading--banner {
+    --_bg: var(--card-background-color);
+    align-items: flex-end;
+    min-height: 132px;
+    padding: 20px;
+    border-radius: 12px;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--_bg) 100%, transparent) 0%,
+        color-mix(in srgb, var(--_bg) 100%, transparent) 30%,
+        color-mix(in srgb, var(--_bg) 96%, transparent) 38%,
+        color-mix(in srgb, var(--_bg) 88%, transparent) 46%,
+        color-mix(in srgb, var(--_bg) 74%, transparent) 54%,
+        color-mix(in srgb, var(--_bg) 56%, transparent) 62%,
+        color-mix(in srgb, var(--_bg) 38%, transparent) 70%,
+        color-mix(in srgb, var(--_bg) 22%, transparent) 78%,
+        color-mix(in srgb, var(--_bg) 10%, transparent) 86%,
+        color-mix(in srgb, var(--_bg) 3%, transparent) 93%,
+        color-mix(in srgb, var(--_bg) 0%, transparent) 100%
+      ),
+      linear-gradient(
+        0deg,
+        var(--_bg) 0%,
+        color-mix(in srgb, var(--_bg) 40%, transparent) 14%,
+        transparent 32%
+      ),
+      var(--card-heading-banner) right center / cover no-repeat;
+  }
+  .card-heading--banner .card-heading-text {
+    max-width: 55%;
+  }
+  .card-heading--banner .card-heading-title {
+    font-size: 17px;
+  }
+  /* On a phone the picture would sit under the words: it fades out further. */
+  @media (max-width: 700px) {
+    .card-heading--banner {
+      background:
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--_bg) 100%, transparent) 0%,
+          color-mix(in srgb, var(--_bg) 100%, transparent) 40%,
+          color-mix(in srgb, var(--_bg) 94%, transparent) 55%,
+          color-mix(in srgb, var(--_bg) 84%, transparent) 70%,
+          color-mix(in srgb, var(--_bg) 74%, transparent) 85%,
+          color-mix(in srgb, var(--_bg) 70%, transparent) 100%
+        ),
+        var(--card-heading-banner) right center / cover no-repeat;
+    }
+    .card-heading--banner .card-heading-text {
+      max-width: none;
+    }
+  }
+
   /* ---- Card action buttons ---- */
   .card-actions {
     display: flex;

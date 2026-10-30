@@ -26,6 +26,7 @@ from ..const import (
     APPROVAL_RISK_MEDIUM,
     DOMAIN,
 )
+from ..frigate.descriptions import answer_buttons
 from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot, ToolWriteResult
 
@@ -2966,12 +2967,25 @@ _DESTRUCTIVE_TOOLS = frozenset(
         "install_update",
         "set_camera_objects",
         "move_frigate_camera",
+        "set_camera_descriptions",
+        "set_face_recognition",
     }
 )
 
 # Verbs the confirm handler knows how to replay.
 _DESTRUCTIVE_VERBS = frozenset(
-    {"disable", "rename_id", "replace", "remove_view", "fix", "install", "set_objects", "move"}
+    {
+        "disable",
+        "rename_id",
+        "replace",
+        "remove_view",
+        "fix",
+        "install",
+        "set_objects",
+        "move",
+        "set_descriptions",
+        "set_faces",
+    }
 )
 
 # The ones among them that remove something, so their card is styled as a
@@ -3747,6 +3761,10 @@ def synthesize_approval_from_tool_log(
         tool_log,
         language,
     )
+    if not result.get("quick_actions") and (
+        buttons := answer_buttons(tool_log, _normalize_lang(language))
+    ):
+        result = {**result, "quick_actions": buttons}
     if result.get("intent") in ("command", "delayed_command"):
         return _note_deferred(result)
     # A single turn can emit both a delete tool and a review-level

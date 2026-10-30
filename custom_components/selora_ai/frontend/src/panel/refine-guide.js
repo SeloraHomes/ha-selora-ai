@@ -5,6 +5,7 @@ import { html } from "lit";
 import { interpolate } from "../shared/i18n.js";
 import { asArray, normalizeCondition } from "../shared/flow-description.js";
 import { fmtDuration, fmtTime } from "../shared/formatting.js";
+import { renderActionButton } from "../shared/action-button.js";
 
 // Statuses that end a refinement when met walking back from the newest
 // message. Same terminators as `_find_refining_automation_id` in the backend,
@@ -256,19 +257,12 @@ export function renderRefineSuggestions(host) {
   return html`
     <div class="chat-quick-actions refine-suggestions">
       <div class="qa-group">
-        ${suggestions.map(
-          (s) => html`
-            <button
-              class="qa-suggestion"
-              @click=${() => prefillComposer(host, s.prefill)}
-            >
-              <span class="qa-glow-track" aria-hidden="true">
-                <span class="qa-glow-spot"></span>
-              </span>
-              <ha-icon class="qa-suggestion-lead" icon=${s.icon}></ha-icon>
-              <span class="qa-suggestion-label">${s.label}</span>
-            </button>
-          `,
+        ${suggestions.map((s) =>
+          renderActionButton({
+            label: s.label,
+            mark: s.icon,
+            onClick: () => prefillComposer(host, s.prefill),
+          }),
         )}
       </div>
     </div>

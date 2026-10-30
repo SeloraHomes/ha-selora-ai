@@ -66,12 +66,16 @@ const _DELETE_KIND_LABELS = {
   frigate_camera: "Frigate camera",
   frigate_objects: "Frigate camera",
   frigate_move: "Frigate camera",
+  frigate_descriptions: "Frigate camera",
+  frigate_faces: "Frigate",
 };
 
 const _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
   frigate_objects: "mdi:cctv",
   frigate_move: "mdi:cctv",
+  frigate_descriptions: "mdi:text-box-search-outline",
+  frigate_faces: "mdi:face-recognition",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
@@ -334,7 +338,7 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
       }
       ${
         copy.confirm
-          ? html`<div class="qa-group qa-group--confirmations">
+          ? html`<div class="qa-group qa-group--answers">
               ${(() => {
                 // Every row, not just the first. One tool round can propose a
                 // creation AND a deletion, and they share this single button:

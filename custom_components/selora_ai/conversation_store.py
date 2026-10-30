@@ -23,10 +23,12 @@ if TYPE_CHECKING:
     from .types import (
         AutomationDict,
         ChatMessage,
+        DescribeCard,
         FrigateResult,
         RiskAssessment,
         ServiceCallDict,
         SessionData,
+        SessionGuide,
         SessionSummary,
         ToolCallLog,
     )
@@ -162,7 +164,7 @@ class ConversationStore:
         ]:
             del sessions[sid]
 
-    async def create_session(self) -> SessionData:
+    async def create_session(self, guide: SessionGuide | None = None) -> SessionData:
         """Create a new empty session and persist it."""
         await self._ensure_loaded()
         if self._data is None:
@@ -175,6 +177,8 @@ class ConversationStore:
             "updated_at": now,
             "messages": [],
         }
+        if guide:
+            session["guide"] = guide
         self._prune_empty_sessions()
         self._data["sessions"][session["id"]] = session
         self._evict_oldest_sessions()
@@ -210,6 +214,7 @@ class ConversationStore:
         resume_depth: int = 0,
         origin_request: str | None = None,
         frigate_result: FrigateResult | None = None,
+        describe_card: DescribeCard | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -279,6 +284,8 @@ class ConversationStore:
             message["steps"] = steps
         if frigate_result is not None:
             message["frigate_result"] = frigate_result
+        if describe_card is not None:
+            message["describe_card"] = describe_card
         # What the turn still has to do once the user accepts this proposal.
         # A scene or automation is PROPOSED and accepted later, so the turn
         # that offered it is long over by then and nothing else remembers what

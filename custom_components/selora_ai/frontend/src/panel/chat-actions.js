@@ -6,6 +6,7 @@ import {
 } from "./chat-autocomplete.js";
 import { attachmentsForSend } from "./chat-attachments.js";
 import { requestNextPrompt } from "./next-prompt.js";
+import { answerCamera } from "./describe-actions.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -16,12 +17,12 @@ export function _quickStart(message) {
 // FRESH conversation for the question rather than appending it to whatever
 // session was last active. _newSession creates the session server-side, clears
 // the message list, and switches to the chat tab.
-export async function _askInNewChat(message) {
+export async function _askInNewChat(message, { guide } = {}) {
   // Only send once the fresh session actually exists. If session creation
   // failed, bail out — appending the prompt to the previously-active session
   // (a different conversation) would be worse than doing nothing. _newSession
   // already surfaced the error toast.
-  const ok = await this._newSession();
+  const ok = await this._newSession({ guide });
   if (!ok) return;
   this._input = message;
   this._sendMessage();
@@ -60,6 +61,11 @@ export function _selectQuickAction(action) {
   }
   // Non-approval actions: action objects are not normalised, so the
   // identity check still works for marking the originating message.
+  if (action.camera_answer) {
+    const msg = this._messages.find((m) => m.quick_actions?.includes(action));
+    answerCamera(this, msg, action);
+    return;
+  }
   for (const msg of this._messages) {
     if (msg.quick_actions && msg.quick_actions.includes(action)) {
       msg._qa_used = true;

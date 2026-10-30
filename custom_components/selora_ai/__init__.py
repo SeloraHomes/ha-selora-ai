@@ -5132,6 +5132,25 @@ async def _apply_destructive_actions(
                 res = await async_set_objects_confirmed(
                     hass, target_id, str(action.get("fingerprint") or ""), payload
                 )
+            elif kind == "frigate_descriptions":
+                # target_id is the Frigate camera; the fingerprint is its answer
+                # and zones when the card was shown.
+                from .frigate.descriptions import (  # noqa: PLC0415
+                    async_set_descriptions_confirmed,
+                )
+
+                res = await async_set_descriptions_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or ""), payload
+                )
+            elif kind == "frigate_faces":
+                # Global, so no target; the fingerprint is the toggle as shown.
+                from .frigate.faces import (  # noqa: PLC0415
+                    async_set_face_recognition_confirmed,
+                )
+
+                res = await async_set_face_recognition_confirmed(
+                    hass, str(action.get("fingerprint") or ""), payload
+                )
             elif kind == "frigate_move":
                 # target_id is the Frigate camera; the fingerprint is the camera
                 # as shown and the address the card named.
@@ -5987,6 +6006,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                     True,
                 ),
                 StaticPathConfig(FONTS_URL_BASE, str(FONTS_DIR), True),
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/images",
+                    hass.config.path(f"custom_components/{DOMAIN}/frontend/images"),
+                    True,
+                ),
             ]
         )
     except (
@@ -6010,6 +6034,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             True,
         )
         hass.http.register_static_path(FONTS_URL_BASE, str(FONTS_DIR), True)
+        hass.http.register_static_path(
+            f"/api/{DOMAIN}/images",
+            hass.config.path(f"custom_components/{DOMAIN}/frontend/images"),
+            True,
+        )
 
     # Register custom side panel in the sidebar
     # Cache-bust the panel module: the static path is served without a
@@ -6921,6 +6950,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         unsub_startup = data.get(_unsub_key)
         if unsub_startup:
             unsub_startup()
+
+    # A camera-descriptions answer still waiting for Frigate to restart.
+    from .frigate.descriptions import cancel_apply as _cancel_frigate_apply  # noqa: PLC0415
+
+    _cancel_frigate_apply(hass)
 
     # Flows held open between tool calls, and their expiry timers.
     from .flow_sessions import async_close_all as _close_open_flows  # noqa: PLC0415

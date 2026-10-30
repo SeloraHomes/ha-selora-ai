@@ -256,6 +256,10 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # "fetched recently" and suppress the first fetch entirely.
         self._vision_capable: bool | None = None
         self._capabilities_fetched_at: float | None = None
+        # Connect's camera-descriptions budget, as the gateway reports it
+        # (frigate/descriptions.py reads it). None: not reported, which is
+        # a plan without Frigate or a Connect that predates it.
+        self._camera_descriptions: dict[str, Any] | None = None
 
     # -- Identity ----------------------------------------------------------
 
@@ -277,10 +281,20 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # is worse than hiding it.
         return self._vision_capable is True
 
-    async def async_refresh_capabilities(self) -> None:
-        """Ask the gateway whether its active chat model supports vision.
+    @property
+    def camera_descriptions(self) -> dict[str, Any] | None:
+        """Connect's camera-descriptions budget from the last capabilities
+        fetch, unchecked: the reader validates each field."""
+        return self._camera_descriptions
 
-        TTL-cached. Only a missing endpoint (an older gateway) is an answer;
+    async def async_refresh_capabilities(
+        self, max_age: float = AIGATEWAY_CAPABILITIES_TTL_S
+    ) -> None:
+        """Ask the gateway whether its active chat model supports vision,
+        and what is left of the camera-descriptions budget.
+
+        Cached for ``max_age`` (the TTL by default; a budget question asks for
+        a fresher answer). Only a missing endpoint (an older gateway) is an answer;
         any other failure (auth trouble, a gateway still starting, network)
         leaves the cached value in place and asks again after a minute, not
         the full TTL, so a fetch that fails while Home Assistant restarts
@@ -289,7 +303,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         now = time.monotonic()
         if (
             self._capabilities_fetched_at is not None
-            and now - self._capabilities_fetched_at < AIGATEWAY_CAPABILITIES_TTL_S
+            and now - self._capabilities_fetched_at < max_age
         ):
             return
         self._capabilities_fetched_at = now
@@ -305,21 +319,27 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                     # A gateway that predates the endpoint 404s — that's a
                     # definitive "can't do vision", not an error.
                     self._vision_capable = False
+                    self._camera_descriptions = None
                     return
                 if resp.status != 200:
-                    self._retry_capabilities_soon(now)
+                    self._retry_capabilities_soon(now, max_age)
                     return
                 data = await resp.json()
             self._vision_capable = bool(data.get("supports_vision"))
+            budget = data.get("camera_descriptions")
+            self._camera_descriptions = budget if isinstance(budget, dict) else None
         except (aiohttp.ClientError, TimeoutError, ValueError, ConnectionError):
             _LOGGER.debug("AI Gateway capabilities fetch failed; keeping cached value")
-            self._retry_capabilities_soon(now)
+            self._retry_capabilities_soon(now, max_age)
 
-    def _retry_capabilities_soon(self, now: float) -> None:
-        """Ask again after AIGATEWAY_CAPABILITIES_RETRY_S instead of the TTL."""
-        self._capabilities_fetched_at = (
-            now - AIGATEWAY_CAPABILITIES_TTL_S + AIGATEWAY_CAPABILITIES_RETRY_S
-        )
+    def _retry_capabilities_soon(self, now: float, max_age: float) -> None:
+        """Ask again after AIGATEWAY_CAPABILITIES_RETRY_S instead of *max_age*.
+
+        Backdated by the caller's age, not the TTL: a budget read asks with a
+        minute, and a TTL-old stamp would send every later read to a gateway
+        that is down.
+        """
+        self._capabilities_fetched_at = now - max_age + min(AIGATEWAY_CAPABILITIES_RETRY_S, max_age)
 
     @property
     def requires_api_key(self) -> bool:

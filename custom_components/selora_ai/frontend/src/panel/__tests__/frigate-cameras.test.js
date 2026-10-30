@@ -168,7 +168,7 @@ describe("the Frigate cameras card", () => {
       ),
     );
 
-    expect(out).toContain("qa-confirm--primary");
+    expect(out).toContain("action-btn--primary");
     expect(out).toContain("Add to Frigate");
   });
 });
