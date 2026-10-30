@@ -5132,6 +5132,14 @@ async def _apply_destructive_actions(
                 res = await async_set_objects_confirmed(
                     hass, target_id, str(action.get("fingerprint") or ""), payload
                 )
+            elif kind == "frigate_snapshots":
+                # target_id is the Frigate camera; the fingerprint is its
+                # snapshots when the card was shown.
+                from .frigate.snapshots import async_set_snapshots_confirmed  # noqa: PLC0415
+
+                res = await async_set_snapshots_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or ""), payload
+                )
             elif kind == "frigate_descriptions":
                 # target_id is the Frigate camera; the fingerprint is its answer
                 # and zones when the card was shown.
@@ -5190,7 +5198,11 @@ async def _apply_destructive_actions(
             # promises the change, and a restart that failed breaks the promise.
             done = res.get("done") if isinstance(res, dict) else None
             applied.append(str(done) if done else label)
-            if frigate is not None and kind in ("frigate_objects", "frigate_move"):
+            if frigate is not None and kind in (
+                "frigate_objects",
+                "frigate_move",
+                "frigate_snapshots",
+            ):
                 frigate.append(res)
     return applied, errors
 

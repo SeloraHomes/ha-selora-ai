@@ -104,6 +104,9 @@ def _camera(
         row["detect_resolution"] = f"{detect['width']}x{detect['height']}"
     if row["record"] and (days := _retain_days(record)):
         row["record_days"] = days
+    snapshot_days = ((camera.get("snapshots") or {}).get("retain") or {}).get("default")
+    if row["snapshots"] and isinstance(snapshot_days, int | float):
+        row["snapshot_days"] = snapshot_days
     if _enabled(camera.get("audio")) is True:
         row["audio"] = True
     if zones := list(camera.get("zones") or {})[:_MAX_ZONES]:

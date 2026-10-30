@@ -36153,6 +36153,7 @@ var _DELETE_KIND_LABELS = {
   frigate_camera: "Frigate camera",
   frigate_objects: "Frigate camera",
   frigate_move: "Frigate camera",
+  frigate_snapshots: "Frigate camera",
   frigate_descriptions: "Frigate camera",
   frigate_faces: "Frigate",
 };
@@ -36160,6 +36161,7 @@ var _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
   frigate_objects: "mdi:cctv",
   frigate_move: "mdi:cctv",
+  frigate_snapshots: "mdi:camera-burst",
   frigate_descriptions: "mdi:text-box-search-outline",
   frigate_faces: "mdi:face-recognition",
   scene: "mdi:palette-outline",
@@ -58275,7 +58277,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ecb3b37f069e" : "";
+var PANEL_BUILD = true ? "9e1f79870351" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

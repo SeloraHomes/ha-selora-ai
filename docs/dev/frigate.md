@@ -266,6 +266,25 @@ A new camera has no usage history for the pattern-based suggestions, so
   (`selora_ai/frigate/ideas`, asked at most once a minute) and as `camera_idea`
   home suggestions; a dismissal (`idea:<kind>:<camera>`) holds in both.
 
+## Snapshots
+
+`set_camera_snapshots` (`frigate/snapshots.py`) writes
+`cameras.<name>.snapshots` (`enabled`, and `retain.default` when the user gave
+days) behind the destructive card (`kind: "frigate_snapshots"`), then restarts
+Frigate. Over MCP it is `selora_set_camera_snapshots`, two calls with a
+`confirm_token`.
+
+- **Not the Snapshots switch.** `switch.<cam>_snapshots` changes the running
+  value only, and only while the configuration enables snapshots
+  (`controls.py`). So the state is read from `enabled_in_config`, never the
+  running `enabled`: a camera switched on at runtime but off in its
+  configuration still gets the card, since a restart would turn it off again.
+- **Snapshots feed other features.** An event card's still and adding a person
+  from an event (`selora_add_face_photo`) need them; without, only the event's
+  thumbnail exists, too small to learn a face from.
+- Turning them off keeps what was saved until its retention ends; the card
+  says so. Asking for what the camera already does answers `unchanged`.
+
 ## What a camera looks for
 
 `set_camera_objects` (`frigate/objects.py`) changes `cameras.<name>.objects.track`
@@ -594,6 +613,13 @@ homeowner's answer.
   carries `done`, which the panel shows with the drawn tick, or a warning
   when Frigate could not restart. An answer typed instead goes through the
   model and the card, as before.
+- **Over MCP, each answer is its own call** (`selora_get_camera_descriptions`,
+  `selora_set_camera_descriptions`). There are no buttons to answer with, so
+  the status's `how_to_ask` is `OVER_MCP`'s: record each answer with the set
+  tool, then read the status again for the next camera. Turning one on or off
+  is two calls with a `confirm_token`, like the other camera changes, and
+  Frigate restarts at once. A no to a camera never turned on is recorded by
+  the first call, since it changes nothing Frigate runs.
 - **The budget is Connect's to enforce; no counter is kept here.** The
   gateway's capabilities carry `camera_descriptions`
   (`SeloraCloudProvider.camera_descriptions`), read no older than a minute
