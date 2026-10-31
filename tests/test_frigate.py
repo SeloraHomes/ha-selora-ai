@@ -16,6 +16,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.selora_ai.frigate import setup as frigate_setup
 from custom_components.selora_ai.frigate.cameras import (
+    FIXES,
     async_camera_candidates,
     build_config,
     clean_objects,
@@ -138,6 +139,172 @@ async def test_cameras_frigate_cannot_use_are_skipped_with_a_reason(
         "Blink": "it has no stream Frigate can read",
         "Shed": "it is already in Frigate",
     }
+
+
+async def test_a_camera_without_a_stream_says_what_to_turn_on(
+    hass: HomeAssistant, home: _Home
+) -> None:
+    home.camera("Garage", "high", None, platform="unifiprotect")
+    home.camera("Drive", "main", None, platform="reolink")
+    home.camera("Nursery", "live_view", None, platform="tplink")
+    home.camera("Hall", "main", None, platform="generic")
+    home.camera("Porch", "main", "rtsps://stream.googleapis.com:443/x", platform="nest")
+    home.camera("Shed", "main", "rtsp://192.168.1.30/live", platform="reolink")
+    frigate_config = {
+        "cameras": {"shed": {"ffmpeg": {"inputs": [{"path": "rtsp://192.168.1.30/live"}]}}},
+        "go2rtc": {"streams": {}},
+    }
+
+    _, skipped = await async_camera_candidates(hass, frigate_config)
+
+    assert {s.name: s.fix for s in skipped} == {
+        "Garage": "unifiprotect_rtsp",
+        "Drive": "reolink_rtsp",
+        "Nursery": "tapo_camera_account",
+        "Hall": None,
+        "Porch": "cloud_only",
+        "Shed": None,
+    }
+
+
+def _device(hass: HomeAssistant, entry: MockConfigEntry, name: str) -> str:
+    return (
+        dr.async_get(hass)
+        .async_get_or_create(config_entry_id=entry.entry_id, identifiers={("x", name)}, name=name)
+        .id
+    )
+
+
+def _lens(
+    hass: HomeAssistant, entry: MockConfigEntry, identifier: str, name: str, camera: str
+) -> str:
+    """A sub-device of a camera. The parent is set by update: creating takes
+    ``via_device_id`` only on newer cores, and ``via_device`` only on older."""
+    registry = dr.async_get(hass)
+    lens = registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("reolink", identifier)}, name=name
+    )
+    return registry.async_update_device(lens.id, via_device_id=camera).id
+
+
+async def test_cameras_with_no_stream_entity_say_what_to_turn_on(
+    hass: HomeAssistant, home: _Home
+) -> None:
+    ent_reg = er.async_get(hass)
+    reolink = MockConfigEntry(domain="reolink")
+    reolink.add_to_hass(hass)
+    # RTSP off: only the motion sensor (and disabled snapshot entities).
+    drive = _device(hass, reolink, "Drive")
+    motion = ent_reg.async_get_or_create(
+        "binary_sensor", "reolink", "uid_0_motion", device_id=drive, config_entry=reolink
+    ).entity_id
+    hass.states.async_set(motion, "off")
+    ent_reg.async_get_or_create(
+        "camera",
+        "reolink",
+        "uid_0_snapshots_main",
+        device_id=drive,
+        translation_key="snapshots_main",
+        disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+    )
+    # Dual-lens cameras that stream, with a sub-device per lens: the sensors
+    # are on the lenses, and the streams on the camera or on the lenses.
+    duo = home.camera("Duo", "clear", "rtsp://192.168.1.50/main")
+    duo_device = er.async_get(hass).async_get(duo).device_id
+    trio_device = _device(hass, reolink, "Trio")
+    for lens in (0, 1):
+        trio_lens = _lens(hass, reolink, f"trio_lens{lens}", f"Trio lens {lens}", trio_device)
+        for kind, unique_id in (("binary_sensor", "motion"), ("camera", "clear")):
+            entity = ent_reg.async_get_or_create(
+                kind, "reolink", f"trio_lens{lens}_{unique_id}", device_id=trio_lens
+            ).entity_id
+            hass.states.async_set(entity, "off")
+            home.sources[entity] = f"rtsp://192.168.1.51/lens{lens}"
+    for lens in (0, 1):
+        lens_device = _lens(hass, reolink, f"uid_lens{lens}", f"Duo lens {lens}", duo_device)
+        motion = ent_reg.async_get_or_create(
+            "binary_sensor", "reolink", f"uid_lens{lens}_motion", device_id=lens_device
+        ).entity_id
+        hass.states.async_set(motion, "off")
+    # Off by the integration, not the user: RTSP was turned off after setup.
+    stale = _device(hass, reolink, "Stale")
+    motion = ent_reg.async_get_or_create(
+        "binary_sensor", "reolink", "uid_3_motion", device_id=stale
+    ).entity_id
+    hass.states.async_set(motion, "off")
+    ent_reg.async_get_or_create(
+        "camera",
+        "reolink",
+        "uid_3_clear",
+        device_id=stale,
+        translation_key="clear",
+        disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+    )
+    # A camera whose stream the user turned off, and a chime: neither is hinted.
+    yard = _device(hass, reolink, "Yard")
+    motion = ent_reg.async_get_or_create(
+        "binary_sensor", "reolink", "uid_1_motion", device_id=yard
+    ).entity_id
+    hass.states.async_set(motion, "off")
+    # A camera from a Reolink setup that is no longer running: no motion state.
+    gone = _device(hass, reolink, "Gone")
+    ent_reg.async_get_or_create("binary_sensor", "reolink", "uid_2_motion", device_id=gone)
+    ent_reg.async_get_or_create(
+        "camera",
+        "reolink",
+        "uid_1_clear",
+        device_id=yard,
+        translation_key="clear",
+        disabled_by=er.RegistryEntryDisabler.USER,
+    )
+    chime = _device(hass, reolink, "Chime")
+    ent_reg.async_get_or_create("sensor", "reolink", "uid_chime_volume", device_id=chime)
+    # A Tapo camera without its camera account, and a Tapo plug.
+    tapo = MockConfigEntry(
+        domain="tplink", data={"connection_parameters": {"device_family": "SMART.IPCAMERA"}}
+    )
+    tapo.add_to_hass(hass)
+    tapo.mock_state(hass, ConfigEntryState.LOADED)
+    _device(hass, tapo, "Nursery")
+    failed = MockConfigEntry(
+        domain="tplink", data={"connection_parameters": {"device_family": "SMART.IPCAMERA"}}
+    )
+    failed.add_to_hass(hass)
+    failed.mock_state(hass, ConfigEntryState.SETUP_RETRY)
+    _device(hass, failed, "Attic")
+    plug = MockConfigEntry(
+        domain="tplink", data={"connection_parameters": {"device_family": "SMART.TAPOPLUG"}}
+    )
+    plug.add_to_hass(hass)
+    plug.mock_state(hass, ConfigEntryState.LOADED)
+    _device(hass, plug, "Kettle")
+
+    _, skipped = await async_camera_candidates(hass, _EMPTY_CONFIG)
+
+    assert {s.name: s.fix for s in skipped} == {
+        "Drive": "reolink_rtsp",
+        "Stale": "reolink_rtsp",
+        "Nursery": "tapo_camera_account",
+    }
+    assert {s.reason for s in skipped} == {"it has no stream Frigate can read"}
+    # Teardown would unload them through the real TP-Link integration.
+    for entry in (tapo, plug):
+        entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+
+
+async def test_the_model_is_told_how_to_fix_a_skipped_camera(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Garage", "high", None, platform="unifiprotect")
+    _frigate_api(aioclient_mock)
+
+    result = await ToolExecutor(hass, MagicMock(), is_admin=True).execute(
+        "add_cameras_to_frigate", {}
+    )
+
+    assert result["error"] == "No camera can be added to Frigate."
+    (row,) = result["skipped"]
+    assert row["how_to_fix"] == FIXES["unifiprotect_rtsp"]
 
 
 async def test_a_source_go2rtc_already_wraps_counts_as_in_frigate(
@@ -342,7 +509,11 @@ async def test_ha_cameras_are_carded_without_credentials_then_written(
     assert (row["name"], row["area"], row["source"]) == ("Porch", "Front", "home_assistant")
     assert "needs_login" not in row
     assert action["skipped"] == [
-        {"name": "Doorbell", "reason": "it streams from the internet, not your network"}
+        {
+            "name": "Doorbell",
+            "reason": "it streams from the internet, not your network",
+            "fix": "cloud_only",
+        }
     ]
     assert _sent_config(aioclient_mock) is None
 

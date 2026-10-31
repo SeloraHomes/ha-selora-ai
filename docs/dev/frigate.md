@@ -160,6 +160,15 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   not verify the camera's self-signed certificate, and the AAC audio plays in
   Safari. go2rtc's `rtspx` passed a Wyze camera's audio through and Safari's
   live view stalled on it. UniFi's `enableSrtp` is dropped.
+- **A skipped camera says what to change** when that is a setting, not the
+  camera (`FIXES` in `cameras.py`, by the integration that has it). UniFi
+  Protect keeps a camera entity with no stream while RTSPS is off. Reolink
+  (RTSP port off) and TP-Link (no Tapo camera account) make no stream entity at
+  all, so their cameras are found by device: a Reolink motion sensor, a TP-Link
+  entry whose device family is a camera. A stream entity the user disabled or
+  excluded means the camera is left out on purpose, so it is never hinted. The
+  card shows the hint localized; the model gets it in English as `how_to_fix`.
+  Nest, Ring and Blink only stream through their cloud.
 - Every camera is restreamed by go2rtc (`rtsp://127.0.0.1:8554/<name>`), so the
   camera sees one connection whatever reads it.
 

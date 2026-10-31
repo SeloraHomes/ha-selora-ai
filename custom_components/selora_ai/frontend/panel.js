@@ -4765,6 +4765,19 @@ var chatStyles = i`
     font-size: 12px;
     color: var(--error-color, #ef4444);
   }
+  .frigate-camera-fix {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--secondary-text-color);
+  }
+  .frigate-camera-fix ha-icon {
+    --mdc-icon-size: 16px;
+    flex: none;
+    color: var(--warning-color, #f59e0b);
+  }
   @media (max-width: 600px) {
     .frigate-login {
       grid-template-columns: 1fr;
@@ -11737,6 +11750,14 @@ var en_default = {
     camera_events_cat: "Cat",
     camera_events_bird: "Bird",
     camera_events_package: "Package",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant can turn on its RTSPS stream: confirm the camera's repair in Settings > System > Repairs, then ask again.",
+    frigate_fix_reolink_rtsp:
+      "Turn on RTSP in the Reolink app (the camera's Settings > Network > Advanced > Port Settings), then ask again.",
+    frigate_fix_tapo_camera_account:
+      "Create a camera account in the Tapo app (the camera's Settings > Advanced Settings > Camera Account), reconfigure the TP-Link integration in Home Assistant with it and live view on, then ask again.",
+    frigate_fix_cloud_only:
+      "This camera streams only through its maker's cloud, which Frigate cannot read.",
     frigate_cameras_not_added: "Not added: {list}.",
     frigate_cameras_low_res_turn_on:
       "Only its low-resolution stream is on, so it records in low resolution.",
@@ -13202,6 +13223,14 @@ var fr_default = {
     camera_events_cat: "Chat",
     camera_events_bird: "Oiseau",
     camera_events_package: "Colis",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant peut activer son flux RTSPS : confirmez la r\xE9paration de la cam\xE9ra dans Param\xE8tres > Syst\xE8me > R\xE9parations, puis redemandez.",
+    frigate_fix_reolink_rtsp:
+      "Activez RTSP dans l'application Reolink (Param\xE8tres de la cam\xE9ra > R\xE9seau > Avanc\xE9 > Param\xE8tres des ports), puis redemandez.",
+    frigate_fix_tapo_camera_account:
+      "Cr\xE9ez un compte cam\xE9ra dans l'application Tapo (Param\xE8tres de la cam\xE9ra > Param\xE8tres avanc\xE9s > Compte de la cam\xE9ra), reconfigurez l'int\xE9gration TP-Link dans Home Assistant avec ce compte et la vue en direct activ\xE9e, puis redemandez.",
+    frigate_fix_cloud_only:
+      "Cette cam\xE9ra ne diffuse que via le cloud de son fabricant, que Frigate ne peut pas lire.",
     frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
     frigate_cameras_low_res_turn_on:
       "Seul son flux basse r\xE9solution est activ\xE9 : il enregistrera en basse r\xE9solution.",
@@ -14662,6 +14691,14 @@ var de_default = {
     camera_events_cat: "Katze",
     camera_events_bird: "Vogel",
     camera_events_package: "Paket",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant kann den RTSPS-Stream einschalten: Best\xE4tige die Reparatur der Kamera unter Einstellungen > System > Reparaturen und frag dann erneut.",
+    frigate_fix_reolink_rtsp:
+      "Schalte RTSP in der Reolink-App ein (Einstellungen der Kamera > Netzwerk > Erweitert > Porteinstellungen) und frag dann erneut.",
+    frigate_fix_tapo_camera_account:
+      "Lege in der Tapo-App ein Kamerakonto an (Einstellungen der Kamera > Erweiterte Einstellungen > Kamerakonto), konfiguriere die TP-Link-Integration in Home Assistant damit und mit eingeschalteter Live-Ansicht neu und frag dann erneut.",
+    frigate_fix_cloud_only:
+      "Diese Kamera streamt nur \xFCber die Cloud ihres Herstellers, die Frigate nicht lesen kann.",
     frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
     frigate_cameras_low_res_turn_on:
       "Nur der Stream mit niedriger Aufl\xF6sung ist aktiv, daher wird in niedriger Aufl\xF6sung aufgenommen.",
@@ -16101,6 +16138,14 @@ var es_default = {
     camera_events_cat: "Gato",
     camera_events_bird: "P\xE1jaro",
     camera_events_package: "Paquete",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant puede activar su transmisi\xF3n RTSPS: confirma la reparaci\xF3n de la c\xE1mara en Ajustes > Sistema > Reparaciones y vuelve a pedirlo.",
+    frigate_fix_reolink_rtsp:
+      "Activa RTSP en la app de Reolink (Ajustes de la c\xE1mara > Red > Avanzado > Configuraci\xF3n de puertos) y vuelve a pedirlo.",
+    frigate_fix_tapo_camera_account:
+      "Crea una cuenta de c\xE1mara en la app Tapo (Ajustes de la c\xE1mara > Ajustes avanzados > Cuenta de c\xE1mara), vuelve a configurar la integraci\xF3n TP-Link en Home Assistant con ella y la vista en directo activada, y vuelve a pedirlo.",
+    frigate_fix_cloud_only:
+      "Esta c\xE1mara solo transmite a trav\xE9s de la nube de su fabricante, que Frigate no puede leer.",
     frigate_cameras_not_added: "No a\xF1adidas: {list}.",
     frigate_cameras_low_res_turn_on:
       "Solo est\xE1 activo su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n.",
@@ -17538,6 +17583,14 @@ var it_default = {
     camera_events_cat: "Gatto",
     camera_events_bird: "Uccello",
     camera_events_package: "Pacco",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant pu\xF2 attivare il suo flusso RTSPS: conferma la riparazione della telecamera in Impostazioni > Sistema > Riparazioni, poi chiedi di nuovo.",
+    frigate_fix_reolink_rtsp:
+      "Attiva RTSP nell'app Reolink (Impostazioni della telecamera > Rete > Avanzate > Impostazioni porte), poi chiedi di nuovo.",
+    frigate_fix_tapo_camera_account:
+      "Crea un account telecamera nell'app Tapo (Impostazioni della telecamera > Impostazioni avanzate > Account telecamera), riconfigura l'integrazione TP-Link in Home Assistant con questo account e la visualizzazione dal vivo attiva, poi chiedi di nuovo.",
+    frigate_fix_cloud_only:
+      "Questa telecamera trasmette solo tramite il cloud del produttore, che Frigate non pu\xF2 leggere.",
     frigate_cameras_not_added: "Non aggiunte: {list}.",
     frigate_cameras_low_res_turn_on:
       "\xC8 attivo solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione.",
@@ -18989,6 +19042,14 @@ var nl_default = {
     camera_events_cat: "Kat",
     camera_events_bird: "Vogel",
     camera_events_package: "Pakket",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant kan de RTSPS-stream aanzetten: bevestig de reparatie van de camera in Instellingen > Systeem > Reparaties en vraag het daarna opnieuw.",
+    frigate_fix_reolink_rtsp:
+      "Zet RTSP aan in de Reolink-app (Instellingen van de camera > Netwerk > Geavanceerd > Poortinstellingen) en vraag het daarna opnieuw.",
+    frigate_fix_tapo_camera_account:
+      "Maak een camera-account aan in de Tapo-app (Instellingen van de camera > Geavanceerde instellingen > Camera-account), configureer de TP-Link-integratie in Home Assistant opnieuw met dat account en live weergave aan, en vraag het daarna opnieuw.",
+    frigate_fix_cloud_only:
+      "Deze camera streamt alleen via de cloud van de fabrikant, die Frigate niet kan lezen.",
     frigate_cameras_not_added: "Niet toegevoegd: {list}.",
     frigate_cameras_low_res_turn_on:
       "Alleen de stream met lage resolutie staat aan, dus er wordt in lage resolutie opgenomen.",
@@ -20496,6 +20557,14 @@ var hu_default = {
     camera_events_cat: "Macska",
     camera_events_bird: "Mad\xE1r",
     camera_events_package: "Csomag",
+    frigate_fix_unifiprotect_rtsp:
+      "A Home Assistant be tudja kapcsolni az RTSPS-adatfolyamot: hagyd j\xF3v\xE1 a kamera jav\xEDt\xE1s\xE1t a Be\xE1ll\xEDt\xE1sok > Rendszer > Jav\xEDt\xE1sok men\xFCben, majd k\xE9rd \xFAjra.",
+    frigate_fix_reolink_rtsp:
+      "Kapcsold be az RTSP-t a Reolink alkalmaz\xE1sban (a kamera Be\xE1ll\xEDt\xE1sok > H\xE1l\xF3zat > Speci\xE1lis > Portbe\xE1ll\xEDt\xE1sok), majd k\xE9rd \xFAjra.",
+    frigate_fix_tapo_camera_account:
+      "Hozz l\xE9tre kamerafi\xF3kot a Tapo alkalmaz\xE1sban (a kamera Be\xE1ll\xEDt\xE1sok > Speci\xE1lis be\xE1ll\xEDt\xE1sok > Kamerafi\xF3k), konfigur\xE1ld \xFAjra vele a TP-Link integr\xE1ci\xF3t a Home Assistantban bekapcsolt \xE9l\u0151 n\xE9zettel, majd k\xE9rd \xFAjra.",
+    frigate_fix_cloud_only:
+      "Ez a kamera csak a gy\xE1rt\xF3 felh\u0151j\xE9n kereszt\xFCl streamel, amit a Frigate nem tud olvasni.",
     frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
     frigate_cameras_low_res_turn_on:
       "Csak az alacsony felbont\xE1s\xFA stream van bekapcsolva, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt.",
@@ -21931,6 +22000,14 @@ var pt_default = {
     camera_events_cat: "Gato",
     camera_events_bird: "P\xE1ssaro",
     camera_events_package: "Encomenda",
+    frigate_fix_unifiprotect_rtsp:
+      "O Home Assistant pode ativar o fluxo RTSPS: confirme a repara\xE7\xE3o da c\xE2mara em Defini\xE7\xF5es > Sistema > Repara\xE7\xF5es e pe\xE7a novamente.",
+    frigate_fix_reolink_rtsp:
+      "Ative o RTSP na app Reolink (Defini\xE7\xF5es da c\xE2mara > Rede > Avan\xE7adas > Defini\xE7\xF5es de portas) e pe\xE7a novamente.",
+    frigate_fix_tapo_camera_account:
+      "Crie uma conta de c\xE2mara na app Tapo (Defini\xE7\xF5es da c\xE2mara > Defini\xE7\xF5es avan\xE7adas > Conta da c\xE2mara), reconfigure a integra\xE7\xE3o TP-Link no Home Assistant com ela e a visualiza\xE7\xE3o em direto ativada, e pe\xE7a novamente.",
+    frigate_fix_cloud_only:
+      "Esta c\xE2mara s\xF3 transmite atrav\xE9s da cloud do fabricante, que o Frigate n\xE3o consegue ler.",
     frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
     frigate_cameras_low_res_turn_on:
       "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 ativo, por isso grava em baixa resolu\xE7\xE3o.",
@@ -24021,6 +24098,14 @@ var ru_default = {
     camera_events_cat: "\u041A\u043E\u0448\u043A\u0430",
     camera_events_bird: "\u041F\u0442\u0438\u0446\u0430",
     camera_events_package: "\u041F\u043E\u0441\u044B\u043B\u043A\u0430",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant \u043C\u043E\u0436\u0435\u0442 \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u043F\u043E\u0442\u043E\u043A RTSPS: \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u043B\u044F \u043A\u0430\u043C\u0435\u0440\u044B \u0432 \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 > \u0421\u0438\u0441\u0442\u0435\u043C\u0430 > \u0418\u0441\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u0438 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.",
+    frigate_fix_reolink_rtsp:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u0435 RTSP \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438 Reolink (\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A\u0430\u043C\u0435\u0440\u044B > \u0421\u0435\u0442\u044C > \u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u043E > \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043F\u043E\u0440\u0442\u043E\u0432) \u0438 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.",
+    frigate_fix_tapo_camera_account:
+      "\u0421\u043E\u0437\u0434\u0430\u0439\u0442\u0435 \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C \u043A\u0430\u043C\u0435\u0440\u044B \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438 Tapo (\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A\u0430\u043C\u0435\u0440\u044B > \u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 > \u0423\u0447\u0451\u0442\u043D\u0430\u044F \u0437\u0430\u043F\u0438\u0441\u044C \u043A\u0430\u043C\u0435\u0440\u044B), \u043F\u0435\u0440\u0435\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u0441 \u043D\u0435\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044E TP-Link \u0432 Home Assistant \u0441 \u0432\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u043C \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u043E\u043C \u0432 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u0438 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u0441\u043D\u043E\u0432\u0430.",
+    frigate_fix_cloud_only:
+      "\u042D\u0442\u0430 \u043A\u0430\u043C\u0435\u0440\u0430 \u043F\u0435\u0440\u0435\u0434\u0430\u0451\u0442 \u0432\u0438\u0434\u0435\u043E \u0442\u043E\u043B\u044C\u043A\u043E \u0447\u0435\u0440\u0435\u0437 \u043E\u0431\u043B\u0430\u043A\u043E \u043F\u0440\u043E\u0438\u0437\u0432\u043E\u0434\u0438\u0442\u0435\u043B\u044F, \u043A\u043E\u0442\u043E\u0440\u043E\u0435 Frigate \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0447\u0438\u0442\u0430\u0442\u044C.",
     frigate_cameras_not_added:
       "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
     frigate_cameras_low_res_turn_on:
@@ -25791,6 +25876,14 @@ var ja_default = {
     camera_events_cat: "\u732B",
     camera_events_bird: "\u9CE5",
     camera_events_package: "\u8377\u7269",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant \u3067 RTSPS \u30B9\u30C8\u30EA\u30FC\u30E0\u3092\u6709\u52B9\u306B\u3067\u304D\u307E\u3059\u3002\u8A2D\u5B9A > \u30B7\u30B9\u30C6\u30E0 > \u4FEE\u5FA9 \u3067\u30AB\u30E1\u30E9\u306E\u4FEE\u5FA9\u3092\u627F\u8A8D\u3057\u3066\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u4F9D\u983C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    frigate_fix_reolink_rtsp:
+      "Reolink \u30A2\u30D7\u30EA\u3067 RTSP \u3092\u30AA\u30F3\u306B\u3057\u3066\u304B\u3089\uFF08\u30AB\u30E1\u30E9\u306E\u8A2D\u5B9A > \u30CD\u30C3\u30C8\u30EF\u30FC\u30AF > \u8A73\u7D30 > \u30DD\u30FC\u30C8\u8A2D\u5B9A\uFF09\u3001\u3082\u3046\u4E00\u5EA6\u4F9D\u983C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    frigate_fix_tapo_camera_account:
+      "Tapo \u30A2\u30D7\u30EA\u3067\u30AB\u30E1\u30E9\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F5C\u6210\u3057\uFF08\u30AB\u30E1\u30E9\u306E\u8A2D\u5B9A > \u9AD8\u5EA6\u306A\u8A2D\u5B9A > \u30AB\u30E1\u30E9\u30A2\u30AB\u30A6\u30F3\u30C8\uFF09\u3001\u305D\u306E\u30A2\u30AB\u30A6\u30F3\u30C8\u3068\u30E9\u30A4\u30D6\u30D3\u30E5\u30FC\u3092\u30AA\u30F3\u306B\u3057\u3066 Home Assistant \u306E TP-Link \u7D71\u5408\u3092\u518D\u8A2D\u5B9A\u3057\u3066\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u4F9D\u983C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    frigate_fix_cloud_only:
+      "\u3053\u306E\u30AB\u30E1\u30E9\u306F\u30E1\u30FC\u30AB\u30FC\u306E\u30AF\u30E9\u30A6\u30C9\u7D4C\u7531\u3067\u3057\u304B\u914D\u4FE1\u3057\u306A\u3044\u305F\u3081\u3001Frigate \u3067\u306F\u8AAD\u307F\u53D6\u308C\u307E\u305B\u3093\u3002",
     frigate_cameras_not_added:
       "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
     frigate_cameras_low_res_turn_on:
@@ -27443,6 +27536,14 @@ var ko_default = {
     camera_events_cat: "\uACE0\uC591\uC774",
     camera_events_bird: "\uC0C8",
     camera_events_package: "\uD0DD\uBC30",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant\uC5D0\uC11C RTSPS \uC2A4\uD2B8\uB9BC\uC744 \uCF24 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC124\uC815 > \uC2DC\uC2A4\uD15C > \uC218\uB9AC\uC5D0\uC11C \uCE74\uBA54\uB77C\uC758 \uC218\uB9AC\uB97C \uD655\uC778\uD55C \uB2E4\uC74C \uB2E4\uC2DC \uC694\uCCAD\uD558\uC138\uC694.",
+    frigate_fix_reolink_rtsp:
+      "Reolink \uC571\uC5D0\uC11C RTSP\uB97C \uCF20 \uB2E4\uC74C(\uCE74\uBA54\uB77C \uC124\uC815 > \uB124\uD2B8\uC6CC\uD06C > \uACE0\uAE09 > \uD3EC\uD2B8 \uC124\uC815) \uB2E4\uC2DC \uC694\uCCAD\uD558\uC138\uC694.",
+    frigate_fix_tapo_camera_account:
+      "Tapo \uC571\uC5D0\uC11C \uCE74\uBA54\uB77C \uACC4\uC815\uC744 \uB9CC\uB4E4\uACE0(\uCE74\uBA54\uB77C \uC124\uC815 > \uACE0\uAE09 \uC124\uC815 > \uCE74\uBA54\uB77C \uACC4\uC815), \uADF8 \uACC4\uC815\uACFC \uB77C\uC774\uBE0C \uBDF0\uB97C \uCF20 \uC0C1\uD0DC\uB85C Home Assistant\uC758 TP-Link \uD1B5\uD569\uC744 \uB2E4\uC2DC \uAD6C\uC131\uD55C \uB2E4\uC74C \uB2E4\uC2DC \uC694\uCCAD\uD558\uC138\uC694.",
+    frigate_fix_cloud_only:
+      "\uC774 \uCE74\uBA54\uB77C\uB294 \uC81C\uC870\uC0AC \uD074\uB77C\uC6B0\uB4DC\uB97C \uD1B5\uD574\uC11C\uB9CC \uC2A4\uD2B8\uB9AC\uBC0D\uD558\uBBC0\uB85C Frigate\uAC00 \uC77D\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
     frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
     frigate_cameras_low_res_turn_on:
       "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uCF1C\uC838 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4.",
@@ -29004,6 +29105,14 @@ var zh_Hans_default = {
     camera_events_cat: "\u732B",
     camera_events_bird: "\u9E1F",
     camera_events_package: "\u5305\u88F9",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant \u53EF\u4EE5\u5F00\u542F\u5176 RTSPS \u6D41\uFF1A\u5728 \u8BBE\u7F6E > \u7CFB\u7EDF > \u4FEE\u590D \u4E2D\u786E\u8BA4\u8BE5\u6444\u50CF\u5934\u7684\u4FEE\u590D\uFF0C\u7136\u540E\u518D\u6B21\u8BF7\u6C42\u3002",
+    frigate_fix_reolink_rtsp:
+      "\u5728 Reolink \u5E94\u7528\u4E2D\u5F00\u542F RTSP\uFF08\u6444\u50CF\u5934\u7684 \u8BBE\u7F6E > \u7F51\u7EDC > \u9AD8\u7EA7 > \u7AEF\u53E3\u8BBE\u7F6E\uFF09\uFF0C\u7136\u540E\u518D\u6B21\u8BF7\u6C42\u3002",
+    frigate_fix_tapo_camera_account:
+      "\u5728 Tapo \u5E94\u7528\u4E2D\u521B\u5EFA\u6444\u50CF\u5934\u8D26\u6237\uFF08\u6444\u50CF\u5934\u7684 \u8BBE\u7F6E > \u9AD8\u7EA7\u8BBE\u7F6E > \u6444\u50CF\u5934\u8D26\u6237\uFF09\uFF0C\u7528\u8BE5\u8D26\u6237\u5E76\u5F00\u542F\u5B9E\u65F6\u753B\u9762\u91CD\u65B0\u914D\u7F6E Home Assistant \u4E2D\u7684 TP-Link \u96C6\u6210\uFF0C\u7136\u540E\u518D\u6B21\u8BF7\u6C42\u3002",
+    frigate_fix_cloud_only:
+      "\u6B64\u6444\u50CF\u5934\u53EA\u901A\u8FC7\u5382\u5546\u7684\u4E91\u7AEF\u4F20\u8F93\u89C6\u9891\uFF0CFrigate \u65E0\u6CD5\u8BFB\u53D6\u3002",
     frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
     frigate_cameras_low_res_turn_on:
       "\u4EC5\u5F00\u542F\u4E86\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002",
@@ -30570,6 +30679,14 @@ var zh_Hant_default = {
     camera_events_cat: "\u8C93",
     camera_events_bird: "\u9CE5",
     camera_events_package: "\u5305\u88F9",
+    frigate_fix_unifiprotect_rtsp:
+      "Home Assistant \u53EF\u4EE5\u958B\u555F\u5176 RTSPS \u4E32\u6D41\uFF1A\u5728 \u8A2D\u5B9A > \u7CFB\u7D71 > \u4FEE\u5FA9 \u4E2D\u78BA\u8A8D\u8A72\u651D\u5F71\u6A5F\u7684\u4FEE\u5FA9\uFF0C\u7136\u5F8C\u518D\u6B21\u8ACB\u6C42\u3002",
+    frigate_fix_reolink_rtsp:
+      "\u5728 Reolink \u61C9\u7528\u7A0B\u5F0F\u4E2D\u958B\u555F RTSP\uFF08\u651D\u5F71\u6A5F\u7684 \u8A2D\u5B9A > \u7DB2\u8DEF > \u9032\u968E > \u9023\u63A5\u57E0\u8A2D\u5B9A\uFF09\uFF0C\u7136\u5F8C\u518D\u6B21\u8ACB\u6C42\u3002",
+    frigate_fix_tapo_camera_account:
+      "\u5728 Tapo \u61C9\u7528\u7A0B\u5F0F\u4E2D\u5EFA\u7ACB\u651D\u5F71\u6A5F\u5E33\u865F\uFF08\u651D\u5F71\u6A5F\u7684 \u8A2D\u5B9A > \u9032\u968E\u8A2D\u5B9A > \u651D\u5F71\u6A5F\u5E33\u865F\uFF09\uFF0C\u7528\u8A72\u5E33\u865F\u4E26\u958B\u555F\u5373\u6642\u5F71\u50CF\u91CD\u65B0\u8A2D\u5B9A Home Assistant \u4E2D\u7684 TP-Link \u6574\u5408\uFF0C\u7136\u5F8C\u518D\u6B21\u8ACB\u6C42\u3002",
+    frigate_fix_cloud_only:
+      "\u6B64\u651D\u5F71\u6A5F\u53EA\u900F\u904E\u5EE0\u5546\u7684\u96F2\u7AEF\u50B3\u8F38\u5F71\u50CF\uFF0CFrigate \u7121\u6CD5\u8B80\u53D6\u3002",
     frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
     frigate_cameras_low_res_turn_on:
       "\u50C5\u958B\u555F\u4E86\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002",
@@ -35847,6 +35964,24 @@ function renderRefineSuggestions(host2) {
 
 // src/panel/frigate-cameras.js
 var DEFAULT_USERNAME = "admin";
+var FIXES = {
+  unifiprotect_rtsp: [
+    "frigate_fix_unifiprotect_rtsp",
+    "Home Assistant can turn on its RTSPS stream: confirm the camera's repair in Settings > System > Repairs, then ask again.",
+  ],
+  reolink_rtsp: [
+    "frigate_fix_reolink_rtsp",
+    "Turn on RTSP in the Reolink app (the camera's Settings > Network > Advanced > Port Settings), then ask again.",
+  ],
+  tapo_camera_account: [
+    "frigate_fix_tapo_camera_account",
+    "Create a camera account in the Tapo app (the camera's Settings > Advanced Settings > Camera Account), reconfigure the TP-Link integration in Home Assistant with it and live view on, then ask again.",
+  ],
+  cloud_only: [
+    "frigate_fix_cloud_only",
+    "This camera streams only through its maker's cloud, which Frigate cannot read.",
+  ],
+};
 var LOGINS = /* @__PURE__ */ new Map();
 var ERRORS = /* @__PURE__ */ new Map();
 var FULL_QUALITY = /* @__PURE__ */ new Map();
@@ -36064,6 +36199,17 @@ function renderFrigateCameraRows(host2, action) {
             </div>`
           : ""
       }
+      ${(action.skipped || []).map((s6) => {
+        const fix = FIXES[s6.fix];
+        return fix
+          ? b2`<div class="frigate-camera-fix">
+              <ha-icon icon="mdi:lightbulb-outline"></ha-icon>
+              <span
+                ><strong>${s6.name}</strong>: ${host2._t(fix[0], fix[1])}</span
+              >
+            </div>`
+          : "";
+      })}
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
@@ -58656,7 +58802,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "c9f9b8affe2e" : "";
+var PANEL_BUILD = true ? "952319daf1ca" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

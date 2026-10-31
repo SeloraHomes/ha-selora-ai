@@ -2447,7 +2447,8 @@ TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
         "The user gets a card "
         "naming each camera, what it tracks and records, and that Frigate restarts; "
         "a network camera's login is typed into the card, so never ask for a "
-        "password in chat. Call again with other arguments to change the card."
+        "password in chat. Call again with other arguments to change the card. "
+        "A skipped camera's how_to_fix is what the user can change: tell them."
     ),
     params=(
         ToolParam(
