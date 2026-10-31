@@ -22,6 +22,7 @@ from .names import (
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_ADD_FACE_PHOTO,
+    TOOL_ADD_INTEGRATION,
     TOOL_ASSIGN_AREA,
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
@@ -2303,6 +2304,45 @@ _TOOL_DEFINITIONS.extend(
                     "options": {
                         "type": "object",
                         "description": "The form's values, keyed by its field names.",
+                    },
+                    "flow_id": {
+                        "type": "string",
+                        "description": "From a previous call, to answer the flow's next step.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_ADD_INTEGRATION,
+            description=(
+                "Add an installed integration, as Settings → Devices & services → Add "
+                "integration does — also a second entry of one the home already has "
+                "(another team, account or location). Call first with just `domain`: it "
+                "returns the setup form's fields (or the choices, when it starts with a "
+                "menu — then pass `type`) and a flow_id. Call again with that flow_id "
+                "and `fields` holding the values; each further step comes back the same "
+                "way until status is added. Ask the user for values you do not know "
+                "rather than guessing. A setup that asks for a password, API key or "
+                "other login, or a sign-in in the browser, is refused: the user adds "
+                "it in Settings. A custom integration is installed with "
+                "selora_hacs_install first. Helpers use selora_create_helper. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["domain"],
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "description": "The integration's domain, e.g. 'teamtracker'.",
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "When the step is a menu: the choice.",
+                    },
+                    "fields": {
+                        "type": "object",
+                        "description": "The step's values, keyed by its field names.",
                     },
                     "flow_id": {
                         "type": "string",

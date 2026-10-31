@@ -1,5 +1,5 @@
-"""MCP tools for integrations (config entries): list, reload, enable or disable,
-remove, change options."""
+"""MCP tools for integrations (config entries): list, add, reload, enable or
+disable, remove, change options."""
 
 from __future__ import annotations
 
@@ -65,6 +65,20 @@ async def _tool_set_integration_options(
         str(arguments.get("entry_id") or ""),
         _opt_str(arguments.get("type")),
         options if isinstance(options, dict) else None,
+        _opt_str(arguments.get("flow_id")),
+    )
+
+
+async def _tool_add_integration(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    from ..integration_manager import async_add_integration  # noqa: PLC0415
+    from ..tool_executor import _opt_str  # noqa: PLC0415
+
+    fields = arguments.get("fields")
+    return await async_add_integration(
+        hass,
+        str(arguments.get("domain") or ""),
+        _opt_str(arguments.get("type")),
+        fields if isinstance(fields, dict) else None,
         _opt_str(arguments.get("flow_id")),
     )
 

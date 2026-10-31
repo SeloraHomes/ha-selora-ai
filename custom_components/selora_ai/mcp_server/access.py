@@ -18,6 +18,7 @@ from .names import (
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_ADD_FACE_PHOTO,
+    TOOL_ADD_INTEGRATION,
     TOOL_ASSIGN_AREA,
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
@@ -290,6 +291,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_SET_INTEGRATION_ENABLED,
         TOOL_REMOVE_INTEGRATION,
         TOOL_SET_INTEGRATION_OPTIONS,
+        TOOL_ADD_INTEGRATION,
         TOOL_REMOVE_DEVICE,
         TOOL_REMOVE_ENTITY,
         # Read-only, but admin-gated as Home Assistant's update/release_notes is.

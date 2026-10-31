@@ -210,6 +210,11 @@ async def async_drive(
         release(hass, flow_id, abort=False)
         return {"done": result}
     release(hass, flow_id, abort=True)
+    # One refused at its first step was never held, so release left it open;
+    # one that aborted itself is already gone.
+    if flow_id:
+        with contextlib.suppress(UnknownFlow):
+            manager.async_abort(flow_id)
     if kind in ("external", "progress", "external_step", "show_progress"):
         return {"error": "This step needs the browser; finish it in Settings."}
     reason = result.get("reason") or kind

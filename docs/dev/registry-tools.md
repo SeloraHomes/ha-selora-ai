@@ -253,8 +253,8 @@ the model stops reciting Settings click-paths.
 
 ## Integrations (MCP)
 
-`integration_manager.py` lists config entries and reloads, enables/disables,
-removes or reconfigures one, through `hass.config_entries` as Settings →
+`integration_manager.py` lists config entries, adds one, and reloads,
+enables/disables, removes or reconfigures one, through `hass.config_entries` as Settings →
 Devices & services does.
 
 - **Selora AI's own entry is refused for every change.** Disabling, removing or
@@ -274,6 +274,20 @@ Devices & services does.
   Home Assistant's own `config_entries/disable` does.
 - **Removing always asks first** (`requires_confirmation` with the device and
   entity counts) — Home Assistant rewrites no automation that used them.
+- **Adding runs the integration's own `user` config flow**, walked by
+  `flow_id` like an options flow, so a second entry (another team, account or
+  location) is added the same way. Helpers go to `create_helper`, Selora AI
+  itself is refused.
+  - **Logins never reach the model.** A step with a credential field (the
+    `is_set` marker `_describe_serialized` gives one) is refused and the flow
+    aborted, pointing the user at Settings. Submitted values with a
+    credential-like name are refused too, for a form that could not be
+    described.
+  - **The call that starts the flow submits nothing**, even with `fields`:
+    `async_drive` would otherwise submit the first form before it was ever
+    described, so before a login in it could be refused.
+  - A browser step (OAuth sign-in) is refused by `async_drive`, as it is for
+    every flow.
 - Listing is read-only access, as `config_entries/get` is in Home Assistant;
   every change needs admin.
 
