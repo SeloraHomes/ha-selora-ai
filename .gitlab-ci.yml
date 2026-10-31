@@ -27,7 +27,7 @@ variables:
   # that pins the next stable core as soon as one ships — a stale cap is how
   # 2026.9 went untested while hubs ran it. lefthook.yml and CONTRIBUTING.md
   # carry the same cap.
-  - pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.368" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
+  - pip install pytest pytest-asyncio pytest-xdist "pytest-homeassistant-custom-component<0.13.368" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
   # The core components' requirements, at the versions the installed HA pins.
   - pip install --quiet $(python scripts/core_test_requirements.py)
 
@@ -127,7 +127,7 @@ unit:
     - python -m compileall -q custom_components/ scripts/ tests/
     - *ha-test-deps
   script:
-    - pytest tests/ -v
+    - pytest tests/ -n auto -v
 
 soak:
   stage: test
