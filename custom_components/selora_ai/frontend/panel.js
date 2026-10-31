@@ -43673,10 +43673,6 @@ function searchesOf(msg) {
   }
   return searches;
 }
-function startOf(event) {
-  const start = parseFloat(String(event.id).split("-")[0]);
-  return Number.isFinite(start) ? start : null;
-}
 var INSTANCE = /^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$/;
 function picturePath(event, height) {
   const id = encodeURIComponent(event.id);
@@ -43691,11 +43687,8 @@ function picturePath(event, height) {
     : `/api/frigate/snapshot/${id}`;
 }
 function clipPath(event) {
-  const start = startOf(event);
-  if (start === null || event.in_progress || !event.has_clip) return null;
-  const end = start + (event.seconds || 0);
-  const camera = encodeURIComponent(event.camera);
-  return `/api/frigate/recording/${camera}/start/${Math.floor(start)}/end/${Math.ceil(end + 1)}`;
+  if (event.in_progress || !event.has_clip) return null;
+  return `/api/selora_ai/frigate/events/${encodeURIComponent(event.id)}/clip.mp4`;
 }
 async function sign(host2, path) {
   const entry = SIGNED.get(path) || {};
@@ -58808,7 +58801,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "66821561da8c" : "";
+var PANEL_BUILD = true ? "aaec074f3791" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

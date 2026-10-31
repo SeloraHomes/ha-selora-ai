@@ -190,14 +190,16 @@ describe("the camera events card", () => {
     await vi.waitFor(() =>
       expect(h.hass.callWS).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: "/api/frigate/recording/front%20door/start/1792887092/end/1792887103",
+          path: `/api/selora_ai/frigate/events/${PORCH.id}/clip.mp4`,
         }),
       ),
     );
     await vi.waitFor(() => {
       const out = flatten(renderCameraEventsCard(h, msg));
       expect(out).toContain("<video");
-      expect(out).toContain("/api/frigate/recording/front%20door/");
+      expect(out).toContain(
+        `/api/selora_ai/frigate/events/${PORCH.id}/clip.mp4`,
+      );
     });
   });
 
