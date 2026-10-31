@@ -207,7 +207,7 @@
     "chat_suggest_thinking": "Gondolkodom…",
     "chat_suggest_one_for_me": "Javasoljon nekem egyet",
     "chat_jump_to_latest": "Ugrás a legutóbbi üzenetre",
-    "chat_autocomplete_hint": "↑↓ navigáció · ↵ beszúrás · Esc bezárás",
+    "chat_autocomplete_hint": "↑↓ navigáció · Tab beszúrás · Esc bezárás",
     "chat_selection_remove": "Eltávolítás",
     "chat_stop_generating": "Generálás leállítása",
     "chat_send": "Küldés",

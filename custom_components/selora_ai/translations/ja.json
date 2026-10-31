@@ -187,7 +187,7 @@
     "chat_suggest_thinking": "思考中…",
     "chat_suggest_one_for_me": "おすすめを提案してもらう",
     "chat_jump_to_latest": "最新のメッセージへ移動",
-    "chat_autocomplete_hint": "↑↓ 移動 · ↵ 挿入 · Esc 閉じる",
+    "chat_autocomplete_hint": "↑↓ 移動 · Tab 挿入 · Esc 閉じる",
     "chat_selection_remove": "削除",
     "chat_stop_generating": "生成を停止",
     "chat_send": "送信",

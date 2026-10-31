@@ -187,7 +187,7 @@
     "chat_suggest_thinking": "Sto pensando…",
     "chat_suggest_one_for_me": "Suggeriscine uno",
     "chat_jump_to_latest": "Vai all'ultimo messaggio",
-    "chat_autocomplete_hint": "↑↓ naviga · ↵ inserisci · Esc chiudi",
+    "chat_autocomplete_hint": "↑↓ naviga · Tab inserisci · Esc chiudi",
     "chat_selection_remove": "Rimuovi",
     "chat_stop_generating": "Interrompi generazione",
     "chat_send": "Invia",

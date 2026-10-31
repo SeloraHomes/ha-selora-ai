@@ -10653,7 +10653,7 @@ var en_default = {
     chat_suggest_one_for_me: "Suggest one for me",
     chat_jump_to_latest: "Go to latest message",
     chat_autocomplete_hint:
-      "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+      "\u2191\u2193 navigate \xB7 Tab insert \xB7 Esc dismiss",
     chat_selection_remove: "Remove",
     chat_stop_generating: "Stop generating",
     chat_send: "Send",
@@ -12064,7 +12064,7 @@ var fr_default = {
     chat_suggest_one_for_me: "Sugg\xE9rez-en une pour moi",
     chat_jump_to_latest: "Aller au dernier message",
     chat_autocomplete_hint:
-      "\u2191\u2193 naviguer \xB7 \u21B5 ins\xE9rer \xB7 \xC9chap fermer",
+      "\u2191\u2193 naviguer \xB7 Tab ins\xE9rer \xB7 \xC9chap fermer",
     chat_selection_remove: "Retirer",
     chat_stop_generating: "Arr\xEAter la g\xE9n\xE9ration",
     chat_send: "Envoyer",
@@ -13542,7 +13542,7 @@ var de_default = {
     chat_suggest_one_for_me: "Schlagen Sie mir eine vor",
     chat_jump_to_latest: "Zur neuesten Nachricht springen",
     chat_autocomplete_hint:
-      "\u2191\u2193 navigieren \xB7 \u21B5 einf\xFCgen \xB7 Esc schlie\xDFen",
+      "\u2191\u2193 navigieren \xB7 Tab einf\xFCgen \xB7 Esc schlie\xDFen",
     chat_selection_remove: "Entfernen",
     chat_stop_generating: "Generierung stoppen",
     chat_send: "Senden",
@@ -15009,7 +15009,7 @@ var es_default = {
     chat_suggest_one_for_me: "Sugi\xE9rame una",
     chat_jump_to_latest: "Ir al \xFAltimo mensaje",
     chat_autocomplete_hint:
-      "\u2191\u2193 navegar \xB7 \u21B5 insertar \xB7 Esc descartar",
+      "\u2191\u2193 navegar \xB7 Tab insertar \xB7 Esc descartar",
     chat_selection_remove: "Quitar",
     chat_stop_generating: "Detener generaci\xF3n",
     chat_send: "Enviar",
@@ -16451,7 +16451,7 @@ var it_default = {
     chat_suggest_one_for_me: "Suggeriscine uno",
     chat_jump_to_latest: "Vai all'ultimo messaggio",
     chat_autocomplete_hint:
-      "\u2191\u2193 naviga \xB7 \u21B5 inserisci \xB7 Esc chiudi",
+      "\u2191\u2193 naviga \xB7 Tab inserisci \xB7 Esc chiudi",
     chat_selection_remove: "Rimuovi",
     chat_stop_generating: "Interrompi generazione",
     chat_send: "Invia",
@@ -17915,7 +17915,7 @@ var nl_default = {
     chat_suggest_one_for_me: "Stel er een voor mij voor",
     chat_jump_to_latest: "Ga naar het laatste bericht",
     chat_autocomplete_hint:
-      "\u2191\u2193 navigeren \xB7 \u21B5 invoegen \xB7 Esc sluiten",
+      "\u2191\u2193 navigeren \xB7 Tab invoegen \xB7 Esc sluiten",
     chat_selection_remove: "Verwijderen",
     chat_stop_generating: "Generatie stoppen",
     chat_send: "Verzenden",
@@ -19371,7 +19371,7 @@ var hu_default = {
     chat_suggest_one_for_me: "Javasoljon nekem egyet",
     chat_jump_to_latest: "Ugr\xE1s a legut\xF3bbi \xFCzenetre",
     chat_autocomplete_hint:
-      "\u2191\u2193 navig\xE1ci\xF3 \xB7 \u21B5 besz\xFAr\xE1s \xB7 Esc bez\xE1r\xE1s",
+      "\u2191\u2193 navig\xE1ci\xF3 \xB7 Tab besz\xFAr\xE1s \xB7 Esc bez\xE1r\xE1s",
     chat_selection_remove: "Elt\xE1vol\xEDt\xE1s",
     chat_stop_generating: "Gener\xE1l\xE1s le\xE1ll\xEDt\xE1sa",
     chat_send: "K\xFCld\xE9s",
@@ -20856,7 +20856,7 @@ var pt_default = {
     chat_suggest_one_for_me: "Sugerir uma para mim",
     chat_jump_to_latest: "Ir para a mensagem mais recente",
     chat_autocomplete_hint:
-      "\u2191\u2193 navegar \xB7 \u21B5 inserir \xB7 Esc dispensar",
+      "\u2191\u2193 navegar \xB7 Tab inserir \xB7 Esc dispensar",
     chat_selection_remove: "Remover",
     chat_stop_generating: "Parar de gerar",
     chat_send: "Enviar",
@@ -22393,7 +22393,7 @@ var ru_default = {
     chat_jump_to_latest:
       "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u043C\u0443 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044E",
     chat_autocomplete_hint:
-      "\u2191\u2193 \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F \xB7 \u21B5 \u0432\u0441\u0442\u0430\u0432\u0438\u0442\u044C \xB7 Esc \u0437\u0430\u043A\u0440\u044B\u0442\u044C",
+      "\u2191\u2193 \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F \xB7 Tab \u0432\u0441\u0442\u0430\u0432\u0438\u0442\u044C \xB7 Esc \u0437\u0430\u043A\u0440\u044B\u0442\u044C",
     chat_selection_remove: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
     chat_stop_generating:
       "\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044E",
@@ -24485,7 +24485,7 @@ var ja_default = {
     chat_jump_to_latest:
       "\u6700\u65B0\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u3078\u79FB\u52D5",
     chat_autocomplete_hint:
-      "\u2191\u2193 \u79FB\u52D5 \xB7 \u21B5 \u633F\u5165 \xB7 Esc \u9589\u3058\u308B",
+      "\u2191\u2193 \u79FB\u52D5 \xB7 Tab \u633F\u5165 \xB7 Esc \u9589\u3058\u308B",
     chat_selection_remove: "\u524A\u9664",
     chat_stop_generating: "\u751F\u6210\u3092\u505C\u6B62",
     chat_send: "\u9001\u4FE1",
@@ -26240,7 +26240,7 @@ var ko_default = {
     chat_suggest_one_for_me: "\uCD94\uCC9C\uD574 \uC8FC\uC138\uC694",
     chat_jump_to_latest: "\uCD5C\uC2E0 \uBA54\uC2DC\uC9C0\uB85C \uC774\uB3D9",
     chat_autocomplete_hint:
-      "\u2191\u2193 \uC774\uB3D9 \xB7 \u21B5 \uC0BD\uC785 \xB7 Esc \uB2EB\uAE30",
+      "\u2191\u2193 \uC774\uB3D9 \xB7 Tab \uC0BD\uC785 \xB7 Esc \uB2EB\uAE30",
     chat_selection_remove: "\uC81C\uAC70",
     chat_stop_generating: "\uC0DD\uC131 \uC911\uC9C0",
     chat_send: "\uBCF4\uB0B4\uAE30",
@@ -27872,7 +27872,7 @@ var zh_Hans_default = {
     chat_suggest_one_for_me: "\u4E3A\u6211\u63A8\u8350\u4E00\u4E2A",
     chat_jump_to_latest: "\u524D\u5F80\u6700\u65B0\u6D88\u606F",
     chat_autocomplete_hint:
-      "\u2191\u2193 \u5BFC\u822A \xB7 \u21B5 \u63D2\u5165 \xB7 Esc \u5173\u95ED",
+      "\u2191\u2193 \u5BFC\u822A \xB7 Tab \u63D2\u5165 \xB7 Esc \u5173\u95ED",
     chat_selection_remove: "\u79FB\u9664",
     chat_stop_generating: "\u505C\u6B62\u751F\u6210",
     chat_send: "\u53D1\u9001",
@@ -29439,7 +29439,7 @@ var zh_Hant_default = {
     chat_suggest_one_for_me: "\u5E6B\u6211\u5EFA\u8B70\u4E00\u500B",
     chat_jump_to_latest: "\u8DF3\u81F3\u6700\u65B0\u8A0A\u606F",
     chat_autocomplete_hint:
-      "\u2191\u2193 \u79FB\u52D5 \xB7 \u21B5 \u63D2\u5165 \xB7 Esc \u95DC\u9589",
+      "\u2191\u2193 \u79FB\u52D5 \xB7 Tab \u63D2\u5165 \xB7 Esc \u95DC\u9589",
     chat_selection_remove: "\u79FB\u9664",
     chat_stop_generating: "\u505C\u6B62\u7522\u751F",
     chat_send: "\u50B3\u9001",
@@ -45546,7 +45546,7 @@ function _renderAutocomplete(host2) {
       <div class="composer-autocomplete-hint">
         ${host2._t(
           "chat_autocomplete_hint",
-          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+          "\u2191\u2193 navigate \xB7 Tab insert \xB7 Esc dismiss",
         )}
       </div>
     </div>
@@ -45671,6 +45671,7 @@ function _renderComposer(host2, opts = {}) {
                     host2._autocomplete = {
                       ...ac,
                       activeIndex: (ac.activeIndex + 1) % ac.items.length,
+                      picked: true,
                     };
                     _scrollActiveItemIntoView(host2);
                     return;
@@ -45682,11 +45683,15 @@ function _renderComposer(host2, opts = {}) {
                       activeIndex:
                         (ac.activeIndex - 1 + ac.items.length) %
                         ac.items.length,
+                      picked: true,
                     };
                     _scrollActiveItemIntoView(host2);
                     return;
                   }
-                  if (e6.key === "Enter" || e6.key === "Tab") {
+                  if (
+                    (e6.key === "Tab" && !e6.shiftKey) ||
+                    (e6.key === "Enter" && !e6.shiftKey && ac.picked)
+                  ) {
                     e6.preventDefault();
                     _selectAutocompleteItem(
                       host2,
@@ -45703,6 +45708,7 @@ function _renderComposer(host2, opts = {}) {
                 }
                 if (e6.key === "Enter" && !e6.shiftKey) {
                   e6.preventDefault();
+                  _closeAutocomplete(host2);
                   host2._sendMessage();
                   return;
                 }
@@ -58802,7 +58808,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "952319daf1ca" : "";
+var PANEL_BUILD = true ? "66821561da8c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

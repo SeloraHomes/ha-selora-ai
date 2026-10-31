@@ -207,7 +207,7 @@
     "chat_suggest_thinking": "Aan het denken…",
     "chat_suggest_one_for_me": "Stel er een voor mij voor",
     "chat_jump_to_latest": "Ga naar het laatste bericht",
-    "chat_autocomplete_hint": "↑↓ navigeren · ↵ invoegen · Esc sluiten",
+    "chat_autocomplete_hint": "↑↓ navigeren · Tab invoegen · Esc sluiten",
     "chat_selection_remove": "Verwijderen",
     "chat_stop_generating": "Generatie stoppen",
     "chat_send": "Verzenden",

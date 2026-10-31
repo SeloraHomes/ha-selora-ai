@@ -187,7 +187,7 @@
     "chat_suggest_thinking": "생각 중…",
     "chat_suggest_one_for_me": "추천해 주세요",
     "chat_jump_to_latest": "최신 메시지로 이동",
-    "chat_autocomplete_hint": "↑↓ 이동 · ↵ 삽입 · Esc 닫기",
+    "chat_autocomplete_hint": "↑↓ 이동 · Tab 삽입 · Esc 닫기",
     "chat_selection_remove": "제거",
     "chat_stop_generating": "생성 중지",
     "chat_send": "보내기",

@@ -187,7 +187,7 @@
     "chat_suggest_thinking": "Думаю…",
     "chat_suggest_one_for_me": "Предложите вариант",
     "chat_jump_to_latest": "Перейти к последнему сообщению",
-    "chat_autocomplete_hint": "↑↓ навигация · ↵ вставить · Esc закрыть",
+    "chat_autocomplete_hint": "↑↓ навигация · Tab вставить · Esc закрыть",
     "chat_selection_remove": "Удалить",
     "chat_stop_generating": "Остановить генерацию",
     "chat_send": "Отправить",
