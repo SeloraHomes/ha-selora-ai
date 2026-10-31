@@ -41,6 +41,14 @@ from custom_components.selora_ai.tool_registry import COMMAND_TOOL_NAMES, CONFIG
 from custom_components.selora_ai.websocket import frigate as frigate_ws
 
 FRIGATE = "http://frigate.local:5000"
+# The provider Selora OS writes: Connect names it, its address makes it Selora's.
+_SELORA_GENAI = {
+    "Selora": {
+        "provider": "openai",
+        "base_url": "https://connect.example/api/v1/ai-gateway/v1",
+        "roles": ["descriptions"],
+    }
+}
 # Where Selora OS runs Frigate for the hub (frigate/client.py SELORA_HUB_HOST).
 HUB = "http://10.42.42.2:5000"
 
@@ -54,7 +62,7 @@ def _running(*, on: bool = False, descriptions_on: bool = False) -> dict[str, An
         "face_recognition": {"enabled": on, "model_size": "small"},
     }
     if descriptions_on:
-        config["genai"] = {"selora": {"provider": "openai", "roles": ["descriptions"]}}
+        config["genai"] = _SELORA_GENAI
     return config
 
 

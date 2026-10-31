@@ -521,17 +521,25 @@ the card does.
 ## Camera descriptions
 
 Selora AI can have Frigate write a description of each person and vehicle a
-camera tracks, through Connect's gateway (`frigate/descriptions.py`). The
-homeowner turns it on in Connect; Selora OS then writes the `genai.selora`
-provider, a global `objects.genai` with `enabled: false`, and semantic search.
-Selora AI writes only each camera's `objects.genai`, and only with the
-homeowner's answer.
+camera tracks, through Connect's gateway (`frigate/descriptions.py`). Nobody
+turns it on: Connect issues the hub a key when the home's plan includes
+Frigate, and Selora OS writes a provider, a global `objects.genai` with
+`enabled: false`, and semantic search. Selora AI writes only each camera's
+`objects.genai`, and only with the homeowner's answer.
 
 - **The signal is the provider, not Connect.** Descriptions are on when
-  Frigate's config has `genai.selora` with `descriptions` in its `roles`
-  (`selora_describes`): that is what the hub runs. With the provider gone
-  nothing is offered, and the answers stay in the file, so turning it back on
-  keeps them.
+  Frigate runs a provider on Connect's AI gateway (`base_url` ending in
+  `/api/v1/ai-gateway/v1`) with `descriptions` in its `roles`
+  (`selora_describes`): that is what the hub runs. Never by its name: Connect
+  names it (`Selora`) and may rename it, and Selora OS finds its own by the
+  key. Looked up as `genai.selora`, a hub with descriptions running was told
+  they were off. With the provider gone nothing is offered, and the answers
+  stay in the file, so turning it back on keeps them.
+- **Off says why, never where to switch it on**: there is no switch. Not the
+  hub's Frigate; Connect issued the key and the hub has yet to sync; Connect
+  reports the plan but no key; or, without Connect's word, how it gets set up
+  and that support can check (`_off`). The model was told to send the user
+  to Connect, and did, to a setting that does not exist.
 - **Answers are read from the saved file** (`/api/config/raw`). The running
   config merges the global `false` into every camera, so "never asked" and "no"
   look the same there. The file holds the camera logins and the provider key:

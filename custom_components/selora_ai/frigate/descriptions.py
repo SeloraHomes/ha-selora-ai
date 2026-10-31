@@ -1,8 +1,8 @@
 """Which cameras Frigate describes with Selora AI, and the budget behind it.
 
-Selora OS writes the ``genai.selora`` provider and a global ``objects.genai``
-with ``enabled: false`` once the homeowner turns descriptions on in Connect,
-so every camera starts off. A camera's own ``objects.genai.enabled`` wins over
+Nobody turns descriptions on: Connect issues the hub a key when the home's plan
+includes Frigate, and Selora OS writes a provider on Connect's AI gateway and a
+global ``objects.genai`` with ``enabled: false``, so every camera starts off. A camera's own ``objects.genai.enabled`` wins over
 the global one; that per-camera key is the only one written here, and only
 with the homeowner's answer.
 
@@ -27,6 +27,7 @@ import json
 import logging
 import time
 from typing import TYPE_CHECKING, Any, Final
+from urllib.parse import urlsplit
 
 from homeassistant.core import callback
 from homeassistant.helpers import area_registry as ar
@@ -37,7 +38,7 @@ from homeassistant.util import dt as dt_util
 
 from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
-from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError
+from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError, frigate_entry, managed_by_hub
 from .moving import _saved_config
 from .removal import _camera_name
 
@@ -50,8 +51,10 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# The provider Selora OS writes into Frigate's ``genai`` section.
-PROVIDER: Final = "selora"
+# Connect's AI gateway, which the provider Selora OS writes calls. The
+# provider's name is Connect's to choose and change ("Selora"); its address is
+# what makes it Selora's, as its key is for Selora OS.
+_GATEWAY_PATH: Final = "/api/v1/ai-gateway/v1"
 SUGGESTION_CACHE: Final = "_frigate_descriptions_suggestion"
 _SUGGESTION_TTL: Final = 300
 _WRITE_LOCK: Final = "_frigate_descriptions_lock"
@@ -70,9 +73,33 @@ _NOT_SET_UP: Final = (
     "Frigate is not set up in Home Assistant: the Frigate integration has to be "
     "installed and connected first."
 )
-_OFF: Final = (
-    "Camera descriptions are off: the homeowner turns them on in Selora Connect, "
-    "and Selora OS then sets Frigate up. Don't offer to describe cameras until then."
+# Why descriptions are off, in the user's terms. There is no switch for them
+# anywhere: what is left to say is why the hub has not set them up.
+_OFF_NOT_HUB: Final = (
+    "Camera descriptions are off: they come with the Frigate a Selora hub runs, "
+    "which Selora OS sets up, and this Frigate is not the hub's. Another GenAI "
+    "provider is set up in Frigate itself, not by Selora AI."
+)
+_OFF_PENDING: Final = (
+    "Camera descriptions are being set up: Selora Connect has issued this hub's "
+    "key, and Selora OS adds them to Frigate on its next sync and restarts it. "
+    "Nothing needs turning on; try again in a few minutes."
+)
+_OFF_NOT_ISSUED: Final = (
+    "Camera descriptions are off: this home's plan includes them, but Selora "
+    "Connect has not set them up for this hub yet. It does so on its own when the "
+    "hub next syncs; if they stay off, Selora support can check."
+)
+_OFF_HUB: Final = (
+    "Camera descriptions are off. Nobody turns them on: Selora OS adds them to "
+    "the hub's Frigate on its own when the home's plan includes Frigate (every "
+    "paid plan does). If it does and they stay off, Selora support can check."
+)
+_OFF_HOW_TO_ANSWER: Final = (
+    "Tell the user why, from note, in a sentence or two. There is no setting for "
+    "descriptions in Selora Connect, Home Assistant or Selora AI: never send the "
+    "user to one. Don't ask which cameras to describe: none can be chosen until "
+    "descriptions are on."
 )
 
 _RULES: Final = (
@@ -320,16 +347,41 @@ _PAUSED: Final = {
 
 
 def selora_describes(config: dict[str, Any]) -> bool:
-    """Whether Frigate runs Selora AI's provider for descriptions.
+    """Whether Frigate runs Selora AI's provider for descriptions: one that
+    calls Connect's AI gateway, whatever Connect named it.
 
     ``roles`` left out means every role, as Frigate reads it.
     """
     genai = config.get("genai")
-    provider = genai.get(PROVIDER) if isinstance(genai, dict) else None
+    return isinstance(genai, dict) and any(_selora_provider(p) for p in genai.values())
+
+
+def _selora_provider(provider: Any) -> bool:
     if not isinstance(provider, dict):
+        return False
+    base_url = provider.get("base_url")
+    if not isinstance(base_url, str):
+        return False
+    if not urlsplit(base_url).path.rstrip("/").endswith(_GATEWAY_PATH):
         return False
     roles = provider.get("roles", ["descriptions"])
     return isinstance(roles, list) and "descriptions" in roles
+
+
+async def _off(hass: HomeAssistant) -> str:
+    """Why Frigate has no Selora provider: not the hub's Frigate, or what
+    Connect says of this home's key when it says anything."""
+    entry = frigate_entry(hass)
+    if entry is None or not managed_by_hub(entry):
+        return _OFF_NOT_HUB
+    if (provider := _selora_cloud(hass)) is not None:
+        await provider.async_refresh_capabilities(max_age=_BUDGET_MAX_AGE)
+        # Connect leaves camera_descriptions out for a plan without Frigate,
+        # but also when its lookup fails: only its presence is an answer.
+        raw = provider.camera_descriptions
+        if isinstance(raw, dict):
+            return _OFF_PENDING if raw.get("enabled") is True else _OFF_NOT_ISSUED
+    return _OFF_HUB
 
 
 def _genai(camera: Any) -> dict[str, Any]:
@@ -441,7 +493,6 @@ async def _connect_budget(hass: HomeAssistant) -> dict[str, Any] | None:
     if daily is None or used is None or not per_object:
         return None
     budget: dict[str, Any] = {
-        "enabled_in_connect": raw.get("enabled") is True,
         "objects_per_day": int(daily // per_object),
         "objects_left_today": int(max(0.0, daily - used) // per_object),
     }
@@ -507,7 +558,11 @@ async def async_camera_descriptions(hass: HomeAssistant, asking: str = IN_CHAT) 
     try:
         config = await client.get_config()
         if not selora_describes(config):
-            return {"descriptions": "off", "note": _OFF}
+            return {
+                "descriptions": "off",
+                "note": await _off(hass),
+                "how_to_answer": _OFF_HOW_TO_ANSWER,
+            }
         saved = await _saved_config(client)
     except FrigateError as exc:
         return {"error": str(exc)}
@@ -701,7 +756,7 @@ async def async_start(hass: HomeAssistant, lang: str) -> dict[str, Any]:
     try:
         config = await client.get_config()
         if not selora_describes(config):
-            return {"error": _OFF}
+            return {"error": await _off(hass)}
         saved = await _saved_config(client)
     except FrigateError as exc:
         return {"error": str(exc)}
@@ -761,7 +816,7 @@ async def async_answer(
         try:
             config = await client.get_config()
             if not selora_describes(config):
-                return {"error": _OFF}
+                return {"error": await _off(hass)}
             running = config.get("cameras") or {}
             if camera not in running:
                 return {"error": "Frigate no longer has that camera."}
@@ -820,7 +875,7 @@ async def async_preview_set_descriptions(
     try:
         config = await client.get_config()
         if not selora_describes(config):
-            return {"error": _OFF}
+            return {"error": await _off(hass)}
         running = config.get("cameras") or {}
         name = _camera_name(hass, running, str(arguments.get("camera") or ""))
         if name is None:
@@ -898,7 +953,7 @@ async def async_set_descriptions_confirmed(
         try:
             config = await client.get_config()
             if not selora_describes(config):
-                return {"error": _OFF}
+                return {"error": await _off(hass)}
             running = config.get("cameras") or {}
             if name not in running:
                 return {"error": "Frigate no longer has that camera."}

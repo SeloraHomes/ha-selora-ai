@@ -19,6 +19,7 @@ import yaml
 
 from custom_components.selora_ai import _apply_destructive_actions
 from custom_components.selora_ai.const import DOMAIN
+from custom_components.selora_ai.frigate.client import SELORA_HUB_HOST
 from custom_components.selora_ai.frigate.descriptions import (
     _APPLY_AFTER_S,
     _APPLY_TIMER,
@@ -45,9 +46,14 @@ from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import COMMAND_TOOL_NAMES, CONFIG_TOOL_NAMES
 
 FRIGATE = "http://frigate.local:5000"
+HUB_FRIGATE = f"http://{SELORA_HUB_HOST}:5000"
 NOW = dt_util.utcnow().timestamp()
 
 _GLOBAL_GENAI = {"enabled": False, "objects": ["car", "person"], "use_snapshot": False}
+# The provider Selora OS writes, as Frigate runs it: Connect names it, and its
+# address on Connect's gateway is what makes it Selora's.
+_GATEWAY = "https://connect.example/api/v1/ai-gateway/v1"
+_SELORA = {"provider": "openai", "base_url": _GATEWAY, "model": "selora", "roles": ["descriptions"]}
 
 
 def _running(*, provider: bool = True, describes: tuple[str, ...] = ()) -> dict[str, Any]:
@@ -73,7 +79,7 @@ def _running(*, provider: bool = True, describes: tuple[str, ...] = ()) -> dict[
         "semantic_search": {"enabled": True},
     }
     if provider:
-        config["genai"] = {"selora": {"provider": "openai", "roles": ["descriptions"]}}
+        config["genai"] = {"Selora": _SELORA}
     return config
 
 
@@ -84,7 +90,7 @@ def _saved(answers: dict[str, dict[str, Any]]) -> str:
         cameras[name] = {"objects": {"genai": genai}}
     saved = {
         "cameras": cameras,
-        "genai": {"selora": {"provider": "openai", "api_key": "sk-secret"}},
+        "genai": {"Selora": {**_SELORA, "api_key": "sk-secret"}},
     }
     return json.dumps(yaml.safe_dump(saved))
 
@@ -160,17 +166,38 @@ async def _card(hass: HomeAssistant, arguments: dict[str, Any]) -> tuple[dict, d
     return result, {**action, "fingerprint": result["destructive"]["fingerprint"]}
 
 
-def test_the_selora_provider_with_descriptions_is_the_signal() -> None:
+def test_the_provider_on_connects_gateway_with_descriptions_is_the_signal() -> None:
     assert selora_describes(_running())
     assert not selora_describes(_running(provider=False))
+    # Found by its address, whatever Connect named it.
+    assert selora_describes({"genai": {"anything": {**_SELORA, "base_url": _GATEWAY + "/"}}})
     # roles left out means every role, as Frigate reads it.
-    assert selora_describes({"genai": {"selora": {"provider": "openai"}}})
-    assert not selora_describes({"genai": {"selora": {"roles": ["review"]}}})
-    # Another provider describing is not Selora AI's feature.
+    assert selora_describes({"genai": {"Selora": {"base_url": _GATEWAY}}})
+    assert not selora_describes({"genai": {"Selora": {**_SELORA, "roles": ["review"]}}})
+    # Another provider describing is not Selora AI's feature, even named selora.
+    assert not selora_describes(
+        {"genai": {"selora": {"base_url": "http://ollama:11434", "roles": ["descriptions"]}}}
+    )
     assert not selora_describes({"genai": {"local": {"roles": ["descriptions"]}}})
 
 
-async def test_off_in_connect_says_so_and_offers_nothing(
+@pytest.fixture
+def hub_frigate(hass: HomeAssistant) -> Iterator[MockConfigEntry]:
+    """The Frigate Selora OS runs on the hub, at the host's address."""
+    entry = MockConfigEntry(domain="frigate", data={"url": HUB_FRIGATE})
+    entry.add_to_hass(hass)
+    entry.mock_state(hass, ConfigEntryState.LOADED)
+    yield entry
+    cancel_apply(hass)
+
+
+def _no_switch(text: str) -> None:
+    """There is no setting for descriptions: off never says where to turn them on."""
+    assert "turn them on in" not in text.lower(), text
+    assert "in Selora Connect" not in text, text
+
+
+async def test_off_on_a_frigate_that_is_not_the_hubs_says_so(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:
     _api(aioclient_mock, _running(provider=False))
@@ -178,8 +205,50 @@ async def test_off_in_connect_says_so_and_offers_nothing(
     result, _ = await _run(hass, "get_camera_descriptions", {})
 
     assert result["descriptions"] == "off"
-    assert "Selora Connect" in result["note"]
+    assert "not the hub's" in result["note"]
+    _no_switch(result["note"])
+    assert "never send" in result["how_to_answer"]
+    assert "which cameras" in result["how_to_answer"]
     assert await async_describe_suggestions(hass) == []
+
+
+@pytest.mark.parametrize(
+    ("budget", "says"),
+    [
+        # Connect issued the key: the hub writes the provider on its next sync.
+        ({"enabled": True}, "being set up"),
+        # Connect reports the plan, so it includes Frigate, but no key yet.
+        ({"enabled": False}, "has not set them up"),
+        # Nothing from Connect (another plan, an older Connect, a failed lookup).
+        (None, "every paid plan"),
+    ],
+)
+async def test_off_on_the_hub_says_why_from_connect(
+    hass: HomeAssistant,
+    hub_frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    budget: dict[str, Any] | None,
+    says: str,
+) -> None:
+    aioclient_mock.get(f"{HUB_FRIGATE}/api/config", json=_running(provider=False))
+    _budget(hass, budget)
+
+    result, _ = await _run(hass, "get_camera_descriptions", {})
+
+    assert result["descriptions"] == "off"
+    assert says in result["note"]
+    _no_switch(result["note"])
+
+
+async def test_off_on_the_hub_without_selora_cloud_says_how_it_gets_set_up(
+    hass: HomeAssistant, hub_frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    aioclient_mock.get(f"{HUB_FRIGATE}/api/config", json=_running(provider=False))
+
+    result, _ = await _run(hass, "get_camera_descriptions", {})
+
+    assert "Selora support" in result["note"]
+    _no_switch(result["note"])
 
 
 async def test_answers_come_from_the_saved_file_not_the_merged_config(
@@ -395,7 +464,7 @@ async def test_an_answer_changed_since_the_card_is_not_written(
     assert _written(aioclient_mock) == []
 
 
-async def test_descriptions_turned_off_in_connect_refuse_a_yes(
+async def test_descriptions_off_refuse_a_yes_and_say_why(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:
     _api(aioclient_mock, _running(provider=False))
@@ -404,7 +473,8 @@ async def test_descriptions_turned_off_in_connect_refuse_a_yes(
         hass, "set_camera_descriptions", {"camera": "driveway", "describe": True}
     )
 
-    assert "Selora Connect" in result["error"]
+    assert "not the hub's" in result["error"]
+    assert _written(aioclient_mock) == []
 
 
 async def test_the_suggestion_names_the_cameras_never_asked_about(

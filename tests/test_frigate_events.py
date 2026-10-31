@@ -21,6 +21,14 @@ from custom_components.selora_ai.tool_executor import ToolExecutor
 from .chat_harness import ChatHarness
 
 FRIGATE = "http://frigate.local:5000"
+# The provider Selora OS writes: Connect names it, its address makes it Selora's.
+_SELORA_GENAI = {
+    "Selora": {
+        "provider": "openai",
+        "base_url": "https://connect.example/api/v1/ai-gateway/v1",
+        "roles": ["descriptions"],
+    }
+}
 NOW = dt_util.utcnow().timestamp()
 
 _CONFIG: dict[str, Any] = {
@@ -416,7 +424,7 @@ async def test_a_search_reads_descriptions_when_frigate_writes_them(
     config = {
         **_CONFIG,
         "semantic_search": {"enabled": True},
-        "genai": {"selora": {"provider": "openai", "roles": ["descriptions"]}},
+        "genai": _SELORA_GENAI,
     }
     _api(aioclient_mock, EVENTS, config)
 
