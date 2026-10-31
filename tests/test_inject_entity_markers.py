@@ -5,7 +5,13 @@ chat renderer builds tile cards even when the model ignores marker rules.
 
 from __future__ import annotations
 
+from homeassistant.core import HomeAssistant
+import pytest
+
 from custom_components.selora_ai import _inject_entity_markers
+from custom_components.selora_ai.llm_client.command_policy import entities_in_tool_log
+
+from .chat_harness import ChatHarness
 
 
 def _ent(eid: str, friendly_name: str) -> dict:
@@ -623,3 +629,51 @@ def test_a_name_called_another_kind_of_device_is_not_that_entity() -> None:
         assert "[[entit" not in _inject_entity_markers(written, entities)
     assert "[[entities:lock.front_door]]" in lock
     assert "[[entities:lock.front_door]]" in bare
+
+
+def test_prose_scope_limits_names_to_entities_the_turn_read() -> None:
+    text = "Sam was last seen in the Living Room at 6:22 PM."
+    entities = [_ent("media_player.living_room", "Living Room")]
+    assert _inject_entity_markers(text, entities, prose_scope={"sensor.sam_last_camera"}) == text
+    out = _inject_entity_markers(text, entities, prose_scope={"media_player.living_room"})
+    assert out.endswith("[[entities:media_player.living_room]]")
+
+
+def test_entities_in_tool_log_reads_arguments_and_results() -> None:
+    log = [
+        {
+            "tool": "search_entities",
+            "arguments": {"query": "kitchen"},
+            "result": {"entities": [{"entity_id": "light.kitchen", "state": "on"}]},
+        },
+        {"tool": "get_entity_state", "arguments": {"entity_id": "sensor.temp_2"}, "result": {}},
+    ]
+    assert entities_in_tool_log(log) >= {"light.kitchen", "sensor.temp_2"}
+    assert entities_in_tool_log([]) is None
+    assert entities_in_tool_log(None) is None
+
+
+@pytest.mark.parametrize(
+    ("read", "tile"),
+    [("sensor.frigate_sam_last_camera", False), ("media_player.living_room", True)],
+)
+async def test_a_history_answer_tiles_only_what_it_read(
+    hass: HomeAssistant, read: str, tile: bool
+) -> None:
+    # The speaker is named after the room the camera saw Sam in.
+    hass.states.async_set("media_player.living_room", "idle", {"friendly_name": "Living Room"})
+    harness = await ChatHarness.create(hass)
+    history = {
+        "tool": "get_entity_history",
+        "arguments": {"entity_id": read, "hours": 168},
+        "result": {"entity_id": read, "entries": [{"state": "Living Room"}]},
+    }
+
+    turn = await harness.stream(
+        "when was Sam last seen at home?",
+        chunks="Sam was last seen in the **Living Room** at 6:22 PM.",
+        tool_calls=[history],
+    )
+
+    assert not turn.errors
+    assert ("[[entities:media_player.living_room]]" in turn.done["response"]) is tile

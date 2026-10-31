@@ -3449,15 +3449,26 @@ def is_dashboard_turn(tool_log: list[dict[str, Any]] | None) -> bool:
     )
 
 
-# Tools whose answer names cameras, which are named after the place they
-# watch: "the front door" is then a camera, not the lock of that name.
-_PLACE_NAMING_TOOLS: Final = frozenset({"find_camera_events"})
+_ENTITY_ID_TOKEN_RE: Final = re.compile(r"\b[a-z_]+\.[a-z0-9_]+\b")
 
 
-def names_places(tool_log: list[dict[str, Any]] | None) -> bool:
-    """Whether the answer's device names may be places a camera watches,
-    so a name in its prose must not become that device's tile."""
-    return any(entry.get("tool") in _PLACE_NAMING_TOOLS for entry in tool_log or [])
+def entities_in_tool_log(tool_log: list[dict[str, Any]] | None) -> set[str] | None:
+    """The entity_ids this turn's tools read or acted on; None when no tool ran.
+
+    A name in the answer's prose may only become the tile of one of these.
+    Anything else that shares the name is a different thing: "seen in the
+    Living Room" is where a camera saw someone, not the speaker called Living
+    Room, and "the front door" in a camera search is a camera, not the lock.
+    """
+    if not tool_log:
+        return None
+    return {
+        token
+        for entry in tool_log
+        for token in _ENTITY_ID_TOKEN_RE.findall(
+            json.dumps([entry.get("arguments"), entry.get("result")], default=str)
+        )
+    }
 
 
 # Where the change can be seen. A dashboard turn's answer is about a PAGE, and
