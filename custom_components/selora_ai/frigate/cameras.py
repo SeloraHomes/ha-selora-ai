@@ -108,6 +108,49 @@ class Skipped:
     entity_id: str
     name: str
     reason: str
+    # A FIXES key: what the owner can change so Frigate can read the camera.
+    fix: str | None = None
+
+
+# How to give Frigate a stream it can read, by the integration that has the
+# camera. The stream is a setting on these cameras, not something they lack.
+FIXES: Final = {
+    "unifiprotect_rtsp": (
+        "Home Assistant can turn on its RTSPS stream: confirm the camera's repair "
+        "in Settings > System > Repairs, then ask again."
+    ),
+    "reolink_rtsp": (
+        "Turn on RTSP in the Reolink app (the camera's Settings > Network > "
+        "Advanced > Port Settings), then ask again."
+    ),
+    "tapo_camera_account": (
+        "Create a camera account in the Tapo app (the camera's Settings > Advanced "
+        "Settings > Camera Account), reconfigure the TP-Link integration in Home "
+        "Assistant with it and live view on, then ask again."
+    ),
+    "cloud_only": (
+        "This camera streams only through its maker's cloud, which Frigate cannot read."
+    ),
+}
+_NO_STREAM_FIX: Final = {
+    "unifiprotect": "unifiprotect_rtsp",
+    "reolink": "reolink_rtsp",
+    "tplink": "tapo_camera_account",
+}
+_CLOUD_ONLY: Final = frozenset({"nest", "ring", "blink"})
+# TP-Link connection families (python-kasa DeviceFamily) that are cameras.
+_TAPO_CAMERA_FAMILIES: Final = frozenset({"SMART.IPCAMERA", "SMART.TAPODOORBELL"})
+_LENS: Final = re.compile(r"_lens\d+$")
+
+
+def _fix(platform: str, reason: str) -> str | None:
+    if reason == "it is already in Frigate":
+        return None
+    if platform in _CLOUD_ONLY:
+        return "cloud_only"
+    if reason == "it has no stream Frigate can read":
+        return _NO_STREAM_FIX.get(platform)
+    return None
 
 
 def shown(url: str) -> str:
@@ -365,7 +408,9 @@ async def async_camera_candidates(
                 "its stream is in a format Frigate cannot read",
             )
             reason = next((r for r in order if r in reasons), reasons[0])
-            skipped.append(Skipped(entries[0].entity_id, name, reason))
+            skipped.append(
+                Skipped(entries[0].entity_id, name, reason, _fix(entries[0].platform, reason))
+            )
             continue
         ranked = [(e, url, _words(e)) for e, url in streams]
         main = next((s for s in ranked if _MAIN_WORDS & s[2]), None) or next(
@@ -392,6 +437,7 @@ async def async_camera_candidates(
                 main_off_id=off.entity_id if off else None,
             )
         )
+    skipped.extend(_streamless_cameras(hass, ignored))
     return candidates, skipped
 
 
@@ -430,6 +476,81 @@ def unsupported_error(labels: list[str], supported: frozenset[str]) -> dict[str,
         "error": f"Frigate's current model does not detect {', '.join(labels)}. {FOLDED_LABELS}",
         "model_labels": sorted(supported),
     }
+
+
+def _reolink_camera(dev_reg: dr.DeviceRegistry, device_id: str) -> str:
+    """The camera a Reolink device belongs to: a dual-lens camera has a
+    sub-device per lens, which may hold its motion sensor or its streams."""
+    device = dev_reg.async_get(device_id)
+    if (
+        device is not None
+        and device.via_device_id
+        and any(d == "reolink" and _LENS.search(i) for d, i in device.identifiers)
+    ):
+        return device.via_device_id
+    return device_id
+
+
+def _streamless_cameras(hass: HomeAssistant, ignored: set[str]) -> list[Skipped]:
+    """Cameras whose integration made no stream entity because a setting is off.
+
+    Reolink makes no stream entity while the camera's RTSP port is off (its
+    snapshot entities are disabled by default), and TP-Link none without the
+    Tapo camera account. Their other entities say the device is a camera, and
+    only while the integration is running. A stream entity the user disabled or
+    excluded still counts as one; a stale one, with no state, or one the
+    integration disabled, does not.
+    """
+    ent_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
+    streaming = {
+        _reolink_camera(dev_reg, entry.device_id)
+        for entry in ent_reg.entities.values()
+        if entry.domain == "camera"
+        and entry.device_id
+        and not _NOT_A_STREAM & _words(entry)
+        and (
+            entry.disabled_by is er.RegistryEntryDisabler.USER
+            or entry.entity_id in ignored
+            or hass.states.get(entry.entity_id) is not None
+        )
+    }
+    found: dict[str, str] = {}
+    for entry in ent_reg.entities.values():
+        if (
+            entry.platform == "reolink"
+            and entry.domain == "binary_sensor"
+            and entry.unique_id.endswith("_motion")
+            and entry.device_id
+            and entry.entity_id not in ignored
+            and hass.states.get(entry.entity_id) is not None
+        ):
+            found.setdefault(_reolink_camera(dev_reg, entry.device_id), "reolink_rtsp")
+    for config_entry in hass.config_entries.async_loaded_entries("tplink"):
+        params = config_entry.data.get("connection_parameters")
+        family = params.get("device_family") if isinstance(params, dict) else None
+        if family not in _TAPO_CAMERA_FAMILIES:
+            continue
+        for device in dr.async_entries_for_config_entry(dev_reg, config_entry.entry_id):
+            if device.via_device_id is None:
+                found.setdefault(device.id, "tapo_camera_account")
+    skipped: list[Skipped] = []
+    for device_id, fix in sorted(found.items()):
+        device = dev_reg.async_get(device_id)
+        if device is None or device_id in streaming or device.disabled_by is not None:
+            continue
+        entity_ids = {e.entity_id for e in er.async_entries_for_device(ent_reg, device_id)}
+        if entity_ids and entity_ids <= ignored:
+            continue
+        skipped.append(
+            Skipped(
+                device_id,
+                str(device.name_by_user or device.name or device_id),
+                "it has no stream Frigate can read",
+                fix,
+            )
+        )
+    return skipped
 
 
 def clean_objects(value: Any) -> list[str]:

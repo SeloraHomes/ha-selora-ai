@@ -32,6 +32,7 @@ from homeassistant.helpers import entity_registry as er
 from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
 from .cameras import (
+    FIXES,
     Candidate,
     Skipped,
     Stream,
@@ -369,7 +370,13 @@ async def async_preview_add_cameras(
     except FrigateError as exc:
         return {"error": str(exc)}
     skipped_rows = [
-        {"camera": s.entity_id, "name": s.name, "reason": s.reason} for s in gathered.skipped
+        {
+            "camera": s.entity_id,
+            "name": s.name,
+            "reason": s.reason,
+            **({"how_to_fix": FIXES[s.fix]} if s.fix else {}),
+        }
+        for s in gathered.skipped
     ]
     # An address that is not one (a room name taken for a host) is answered
     # with the cameras the scan did find, so the next call can name the right one.
@@ -427,7 +434,11 @@ async def async_preview_add_cameras(
             # Shown on the card: the user should see what is left out, not
             # only the model.
             "skipped": [
-                {"name": sanitize_untrusted_text(s.name, 60), "reason": s.reason}
+                {
+                    "name": sanitize_untrusted_text(s.name, 60),
+                    "reason": s.reason,
+                    **({"fix": s.fix} if s.fix else {}),
+                }
                 for s in gathered.skipped[:_MAX_SKIPPED_SHOWN]
             ],
         },

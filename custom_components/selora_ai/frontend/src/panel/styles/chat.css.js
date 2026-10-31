@@ -1776,6 +1776,19 @@ export const chatStyles = css`
     font-size: 12px;
     color: var(--error-color, #ef4444);
   }
+  .frigate-camera-fix {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--secondary-text-color);
+  }
+  .frigate-camera-fix ha-icon {
+    --mdc-icon-size: 16px;
+    flex: none;
+    color: var(--warning-color, #f59e0b);
+  }
   @media (max-width: 600px) {
     .frigate-login {
       grid-template-columns: 1fr;

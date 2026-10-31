@@ -130,6 +130,26 @@ describe("the Frigate cameras card", () => {
     );
   });
 
+  it("says what to turn on for a camera it could not add", () => {
+    const out = flatten(
+      renderFrigateCameraRows(host(), {
+        ...action("plan-f"),
+        skipped: [
+          {
+            name: "Garage",
+            reason: "it has no stream Frigate can read",
+            fix: "unifiprotect_rtsp",
+          },
+          { name: "Hall", reason: "it has no stream Frigate can read" },
+          { name: "Shed", reason: "something new", fix: "unknown_fix" },
+        ],
+      }),
+    );
+
+    expect(out).toContain("Garage</strong>: Home Assistant can turn on");
+    expect(out.match(/frigate-camera-fix/g)).toHaveLength(1);
+  });
+
   it("sends only the plan id and the logins typed in", async () => {
     const h = host(async () => ({ status: "added", cameras: ["Garage Cam"] }));
     const card = action("plan-b");

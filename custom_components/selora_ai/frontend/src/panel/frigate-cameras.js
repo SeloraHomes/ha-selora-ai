@@ -12,6 +12,27 @@ import { interpolate } from "../shared/i18n.js";
 
 const DEFAULT_USERNAME = "admin";
 
+// What to change so Frigate can read a skipped camera, by the backend's fix
+// code (frigate/cameras.py FIXES).
+const FIXES = {
+  unifiprotect_rtsp: [
+    "frigate_fix_unifiprotect_rtsp",
+    "Home Assistant can turn on its RTSPS stream: confirm the camera's repair in Settings > System > Repairs, then ask again.",
+  ],
+  reolink_rtsp: [
+    "frigate_fix_reolink_rtsp",
+    "Turn on RTSP in the Reolink app (the camera's Settings > Network > Advanced > Port Settings), then ask again.",
+  ],
+  tapo_camera_account: [
+    "frigate_fix_tapo_camera_account",
+    "Create a camera account in the Tapo app (the camera's Settings > Advanced Settings > Camera Account), reconfigure the TP-Link integration in Home Assistant with it and live view on, then ask again.",
+  ],
+  cloud_only: [
+    "frigate_fix_cloud_only",
+    "This camera streams only through its maker's cloud, which Frigate cannot read.",
+  ],
+};
+
 // plan_id → camera key → {username, password}
 const LOGINS = new Map();
 // plan_id → camera key → error text
@@ -259,6 +280,17 @@ export function renderFrigateCameraRows(host, action) {
             </div>`
           : ""
       }
+      ${(action.skipped || []).map((s) => {
+        const fix = FIXES[s.fix];
+        return fix
+          ? html`<div class="frigate-camera-fix">
+              <ha-icon icon="mdi:lightbulb-outline"></ha-icon>
+              <span
+                ><strong>${s.name}</strong>: ${host._t(fix[0], fix[1])}</span
+              >
+            </div>`
+          : "";
+      })}
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
