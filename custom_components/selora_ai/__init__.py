@@ -21,7 +21,7 @@ LLM Backends:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Collection
 from contextlib import suppress
 from datetime import datetime, timedelta
 import hashlib
@@ -2177,7 +2177,7 @@ def _inject_entity_markers(
     text: str,
     entities: list[EntitySnapshot],
     *,
-    prose_fallback: bool = True,
+    prose_scope: Collection[str] | None = None,
 ) -> str:
     """Rewrite an LLM "answer" so devices it named in prose render as
     tile cards instead of duplicated markdown.
@@ -2204,8 +2204,9 @@ def _inject_entity_markers(
       2. Prose-only mention fallback — runs only when the response has
          neither markers nor stripped bullet runs. Without this guard,
          area sub-headings ("### Kitchen") match same-named entities
-         (media_player.kitchen) and surface spurious tiles. Off when
-         *prose_fallback* is False.
+         (media_player.kitchen) and surface spurious tiles. With
+         *prose_scope* (the entities the turn's tools read or acted on),
+         a name only matches one of those.
 
     Entities the LLM already wrapped in a marker are never double-marked.
 
@@ -2544,7 +2545,7 @@ def _inject_entity_markers(
     # this guard, area sub-headings like "### Kitchen" false-positive
     # match against media_player.kitchen and surface spurious tiles.
     prose_eids: list[str] = []
-    fallback_mode = prose_fallback and not already and not captured_in_bullets
+    fallback_mode = not already and not captured_in_bullets
 
     def _under_cap() -> bool:
         return len(captured_in_bullets) + len(prose_eids) < _AUTO_MARKER_MAX_IDS
@@ -2565,6 +2566,7 @@ def _inject_entity_markers(
                     eid in captured_in_bullets
                     or eid in prose_eids
                     or eid in already
+                    or (prose_scope is not None and eid not in prose_scope)
                     or not _under_cap()
                 ):
                     continue
@@ -2894,7 +2896,7 @@ async def _handle_websocket_chat(
         response_text = _inject_entity_markers(
             response_text,
             entities,
-            prose_fallback=not _names_places(result.get("tool_calls")),
+            prose_scope=_entities_in_tool_log(result.get("tool_calls")),
         )
 
     if intent_type in ("delayed_command", "cancel"):
@@ -4128,7 +4130,9 @@ async def _handle_websocket_chat_stream(
             response_text = _inject_entity_markers(
                 response_text,
                 entities,
-                prose_fallback=not _names_places(tool_executor.call_log if tool_executor else None),
+                prose_scope=_entities_in_tool_log(
+                    tool_executor.call_log if tool_executor else None
+                ),
             )
         elif intent_type in ("delayed_command", "cancel"):
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
@@ -4701,7 +4705,9 @@ from .llm_client.command_policy import (  # noqa: E402, PLC0415
     _SENTENCE_FORMAT_BY_LANG,
     _normalize_lang,
 )
-from .llm_client.command_policy import names_places as _names_places  # noqa: E402, PLC0415
+from .llm_client.command_policy import (  # noqa: E402, PLC0415
+    entities_in_tool_log as _entities_in_tool_log,
+)
 from .llm_client.command_policy import past_verb_for as _past_verb_for  # noqa: E402, PLC0415
 
 # Localized footer / empty / error strings for the persisted approval
