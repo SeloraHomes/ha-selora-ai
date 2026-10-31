@@ -59013,7 +59013,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "dcd2a3932e04" : "";
+var PANEL_BUILD = true ? "67f868ce5062" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -59920,6 +59920,19 @@ async function _sendMessage(options = {}) {
         this._messages = [...this._messages];
       } else if (event.type === "done") {
         teardown();
+        if (event.discarded) {
+          cancelSubscription();
+          this._messages = this._messages.filter((m3) => m3 !== assistantMsg);
+          if (this._activeTurn === myTurn) {
+            this._loading = false;
+            this._streaming = false;
+            this.updateComplete.then(() => {
+              const ta2 = this.shadowRoot?.querySelector(".composer-textarea");
+              if (ta2 && !ta2.disabled) ta2.focus();
+            });
+          }
+          return;
+        }
         const responseText = event.response || assistantMsg.content || "";
         logChatTurn(responseText, event, Date.now() - sendStartedAt);
         const hasStructured =

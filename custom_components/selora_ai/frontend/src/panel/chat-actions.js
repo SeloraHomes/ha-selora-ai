@@ -531,6 +531,22 @@ export async function _sendMessage(options = {}) {
         this._messages = [...this._messages];
       } else if (event.type === "done") {
         teardown();
+        if (event.discarded) {
+          // A resumed turn that did nothing: its words would only repeat the
+          // outcome line already in the chat, so the server kept none of it.
+          cancelSubscription();
+          this._messages = this._messages.filter((m) => m !== assistantMsg);
+          if (this._activeTurn === myTurn) {
+            this._loading = false;
+            this._streaming = false;
+            // Same as a normal done: the composer lost focus while disabled.
+            this.updateComplete.then(() => {
+              const ta = this.shadowRoot?.querySelector(".composer-textarea");
+              if (ta && !ta.disabled) ta.focus();
+            });
+          }
+          return;
+        }
         const responseText = event.response || assistantMsg.content || "";
         logChatTurn(responseText, event, Date.now() - sendStartedAt);
         // Truncation detection: bubble landed clean ("done" event)

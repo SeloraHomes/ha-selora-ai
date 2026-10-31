@@ -21,8 +21,8 @@ fix.
   exactly what is left. Models routinely announce the follow-up in prose and leave
   it unset, so when absent the user's own last message is REPLAYED with a note
   that the proposal now exists, and the model decides what remains. That directive
-  says plainly a short confirmation is right when the proposal was the whole
-  request — told only to "continue", a model invents work.
+  gives the model a way to say the proposal was the whole request — told only
+  to "continue", a model invents work.
 - **A self-contained client action never resumes.** Adding cameras to
   Frigate is the whole request. Replayed, the model called the tool again and
   reported the cameras it had just added as refused; given a
@@ -34,6 +34,24 @@ fix.
   shows. A real follow-up ("…and put it on the dashboard") is dropped too, on
   purpose: the camera reaches HA only once Frigate is back, a minute after the
   confirm, so a resumed turn would act on an entity that does not exist yet.
+- **"Nothing left" is the model's word, not our inference.** With nothing
+  outstanding, a replayed turn could only restate the outcome line ("Deleted the
+  Cameras dashboard." then "The Cameras dashboard has been removed."). The
+  directive asks for `_NOTHING_LEFT` as its last word then; when it ran no tool
+  and nothing else is left to show (no words, card or chips), the turn comes back
+  `discarded` and nothing is persisted. A turn that ran tools is kept, read or
+  write alike, with its steps as the bubble and no "no response" fallback. Inferring it from
+  the reply's shape dropped, in turn, an invalid automation awaiting correction,
+  a question back to the user, a failed tool call and a blocked command — and a
+  bare "Done." became a "no entity matched" clarification under the command
+  policy. A resumed turn's prose is never streamed (steps are), so the marker never shows;
+  said beside other words it is stripped, and only as a trailing standalone word. `tests/evals/test_resumption.py`
+  checks a real model uses it, and still does the rest when there is a rest.
+- **A resumed turn raises no synthetic automation spinner.** The directive's
+  "If … do that part" reads as a rule to `_is_definite_automation`; an
+  automation the turn really proposes still gets the spinner from the
+  mid-stream opener check. On a cloud provider it still gets the automation
+  idle budget, since what remains is often an automation.
 - **The replayed request is RECORDED on the proposal** (`origin_request`, written
   at append time). Walking back through the session is wrong once pruning kept the
   first message pinned and dropped the proposal's own request — the scan would
