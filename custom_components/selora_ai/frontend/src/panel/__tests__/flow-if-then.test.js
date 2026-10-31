@@ -227,3 +227,58 @@ describe("repeat label counting", () => {
     expect(out).toContain("Repeat");
   });
 });
+
+// ── repeat loops and variables steps ─────────────────────────────────────────
+describe("repeat loop and variables steps", () => {
+  const chart = (actions) =>
+    flatten(
+      renderAutomationFlowchart(host, {
+        triggers: [{ trigger: "state", entity_id: "light.main", to: "on" }],
+        actions,
+      }),
+    );
+  const step = {
+    action: "light.turn_off",
+    target: { entity_id: "{{ lamp }}" },
+  };
+
+  it("shows a while condition before the body, with the return line", () => {
+    const out = chart([
+      {
+        repeat: {
+          while: [{ condition: "state", entity_id: "light.main", state: "on" }],
+          sequence: [step],
+        },
+      },
+    ]);
+    expect(out).toContain("flow-loop-return");
+    // The entity link sits between the name and " is on".
+    expect(out).toContain(" is on");
+    expect(out.indexOf(" is on")).toBeLessThan(out.indexOf("Turn off"));
+  });
+
+  it("shows an until condition after the body", () => {
+    const out = chart([
+      {
+        repeat: {
+          until: [
+            { condition: "state", entity_id: "light.sconces", state: "off" },
+          ],
+          sequence: [{ action: "light.turn_on" }],
+        },
+      },
+    ]);
+    expect(out).toContain(" is off");
+    expect(out.indexOf("Turn on")).toBeLessThan(out.indexOf(" is off"));
+  });
+
+  it("hides variables steps and resolves the targets they bind", () => {
+    const out = chart([
+      { variables: { lamp: "light.sconces", source: "{{ trigger.id }}" } },
+      step,
+    ]);
+    expect(out).not.toContain("Set ");
+    expect(out).not.toContain("{{ lamp }}");
+    expect(out).toContain("Turn off");
+  });
+});

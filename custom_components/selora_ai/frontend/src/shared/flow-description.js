@@ -132,12 +132,17 @@ const PHRASES = {
     action_reload: "Reload",
     extra_brightness: (v) => `at ${v}%`,
     extra_temp: (v) => `to ${v}°`,
+    action_volume_set: "Set volume of",
+    extra_volume: (v) => `to ${v}`,
     extra_color_temp: (v) => `color temp ${v}`,
     wait_str: (d) => `Wait ${d}`,
     wait_parts: (p) => `Wait ${p}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
+    wait_until_event: (what, limit) => `Wait${limit} until ${what}`,
+    wait_limit: (d) => ` up to ${d}`,
+    when_prefix: "When ",
     activate_scene: (e) => `Activate scene: ${e}`,
     choose_between: (n) => `Choose between ${n} option${n !== 1 ? "s" : ""}`,
     if_then: (n) =>
@@ -151,6 +156,7 @@ const PHRASES = {
     parallel: (n) => `Run ${n} actions in parallel`,
     sequence: (n) => `Run a sequence of ${n} steps`,
     set_variables: "Set variables",
+    set_variables_list: (list) => `Set ${list}`,
     stop_label: (s) => `Stop: ${s}`,
     fire_event: (e) => `Fire event: ${e}`,
     automation_step: "Automation step",
@@ -260,12 +266,17 @@ const PHRASES = {
     action_reload: "Recharger",
     extra_brightness: (v) => `à ${v}%`,
     extra_temp: (v) => `à ${v}°`,
+    action_volume_set: "Régler le volume de",
+    extra_volume: (v) => `à ${v}`,
     extra_color_temp: (v) => `temp. de couleur ${v}`,
     wait_str: (d) => `Attendre ${d}`,
     wait_parts: (p) => `Attendre ${p}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un déclencheur",
+    wait_until_event: (what, limit) => `Attendre${limit} que ${what}`,
+    wait_limit: (d) => ` jusqu'à ${d}`,
+    when_prefix: "Quand ",
     activate_scene: (e) => `Activer la scène : ${e}`,
     choose_between: (n) => `Choisir parmi ${n} option${n !== 1 ? "s" : ""}`,
     if_then: (n) =>
@@ -279,6 +290,7 @@ const PHRASES = {
     parallel: (n) => `Exécuter ${n} actions en parallèle`,
     sequence: (n) => `Exécuter une séquence de ${n} étapes`,
     set_variables: "Définir des variables",
+    set_variables_list: (list) => `Définir ${list}`,
     stop_label: (s) => `Arrêter : ${s}`,
     fire_event: (e) => `Déclencher l'événement : ${e}`,
     automation_step: "Étape d'automatisation",
@@ -386,12 +398,17 @@ const PHRASES = {
     action_reload: "Neu laden",
     extra_brightness: (v) => `auf ${v}%`,
     extra_temp: (v) => `auf ${v}°`,
+    action_volume_set: "Lautstärke einstellen für",
+    extra_volume: (v) => `auf ${v}`,
     extra_color_temp: (v) => `Farbtemp. ${v}`,
     wait_str: (d) => `${d} warten`,
     wait_parts: (p) => `${p} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erfüllt ist",
     wait_for_trigger: "Auf Auslöser warten",
+    wait_until_event: (what, limit) => `Warten${limit}, bis ${what}`,
+    wait_limit: (d) => ` bis zu ${d}`,
+    when_prefix: "Wenn ",
     activate_scene: (e) => `Szene aktivieren: ${e}`,
     choose_between: (n) => `Aus ${n} Optionen wählen`,
     if_then: (n) =>
@@ -405,6 +422,7 @@ const PHRASES = {
     parallel: (n) => `${n} Aktionen parallel ausführen`,
     sequence: (n) => `Eine Sequenz von ${n} Schritten ausführen`,
     set_variables: "Variablen setzen",
+    set_variables_list: (list) => `Setzen: ${list}`,
     stop_label: (s) => `Stoppen: ${s}`,
     fire_event: (e) => `Ereignis auslösen: ${e}`,
     automation_step: "Automatisierungsschritt",
@@ -509,6 +527,8 @@ const PHRASES = {
     action_open_cover: "Abrir",
     action_close_cover: "Cerrar",
     action_set_temperature: "Establecer temperatura para",
+    action_volume_set: "Establecer volumen para",
+    extra_volume: (v) => `a ${v}`,
     action_set_value: "Establecer valor para",
     action_send_command: "Enviar comando a",
     action_reload: "Recargar",
@@ -520,6 +540,9 @@ const PHRASES = {
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condición",
     wait_for_trigger: "Esperar un disparador",
+    wait_until_event: (what, limit) => `Esperar${limit} hasta que ${what}`,
+    wait_limit: (d) => ` como máximo ${d}`,
+    when_prefix: "Cuando ",
     activate_scene: (e) => `Activar escena: ${e}`,
     choose_between: (n) => `Elegir entre ${n} opci${n !== 1 ? "ones" : "ón"}`,
     if_then: (n) =>
@@ -533,6 +556,7 @@ const PHRASES = {
     parallel: (n) => `Ejecutar ${n} acciones en paralelo`,
     sequence: (n) => `Ejecutar una secuencia de ${n} pasos`,
     set_variables: "Establecer variables",
+    set_variables_list: (list) => `Establecer ${list}`,
     stop_label: (s) => `Detener: ${s}`,
     fire_event: (e) => `Disparar evento: ${e}`,
     automation_step: "Paso de automatización",
@@ -636,6 +660,8 @@ const PHRASES = {
     action_open_cover: "Apri",
     action_close_cover: "Chiudi",
     action_set_temperature: "Imposta temperatura per",
+    action_volume_set: "Imposta volume per",
+    extra_volume: (v) => `a ${v}`,
     action_set_value: "Imposta valore per",
     action_send_command: "Invia comando a",
     action_reload: "Ricarica",
@@ -647,6 +673,9 @@ const PHRASES = {
     wait_plain: "Attendi",
     wait_until: "Attendi finché la condizione non è soddisfatta",
     wait_for_trigger: "Attendi un trigger",
+    wait_until_event: (what, limit) => `Attendi${limit} finché ${what}`,
+    wait_limit: (d) => ` al massimo ${d}`,
+    when_prefix: "Quando ",
     activate_scene: (e) => `Attiva scena: ${e}`,
     choose_between: (n) => `Scegli tra ${n} opzion${n !== 1 ? "i" : "e"}`,
     if_then: (n) =>
@@ -660,6 +689,7 @@ const PHRASES = {
     parallel: (n) => `Esegui ${n} azioni in parallelo`,
     sequence: (n) => `Esegui una sequenza di ${n} passaggi`,
     set_variables: "Imposta variabili",
+    set_variables_list: (list) => `Imposta ${list}`,
     stop_label: (s) => `Ferma: ${s}`,
     fire_event: (e) => `Lancia evento: ${e}`,
     automation_step: "Passo di automazione",
@@ -770,12 +800,17 @@ const PHRASES = {
     action_reload: "Opnieuw laden",
     extra_brightness: (v) => `op ${v}%`,
     extra_temp: (v) => `naar ${v}°`,
+    action_volume_set: "Volume instellen voor",
+    extra_volume: (v) => `naar ${v}`,
     extra_color_temp: (v) => `kleurtemp. ${v}`,
     wait_str: (d) => `Wacht ${d}`,
     wait_parts: (p) => `Wacht ${p}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
+    wait_until_event: (what, limit) => `Wacht${limit} tot ${what}`,
+    wait_limit: (d) => ` maximaal ${d}`,
+    when_prefix: "Wanneer ",
     activate_scene: (e) => `Scène activeren: ${e}`,
     choose_between: (n) => `Kies tussen ${n} ${n !== 1 ? "opties" : "optie"}`,
     if_then: (n) =>
@@ -789,6 +824,7 @@ const PHRASES = {
     parallel: (n) => `Voer ${n} acties parallel uit`,
     sequence: (n) => `Voer een reeks van ${n} stappen uit`,
     set_variables: "Variabelen instellen",
+    set_variables_list: (list) => `Instellen: ${list}`,
     stop_label: (s) => `Stop: ${s}`,
     fire_event: (e) => `Gebeurtenis afvuren: ${e}`,
     automation_step: "Automatiseringsstap",
@@ -898,12 +934,17 @@ const PHRASES = {
     action_reload: "Újratöltés",
     extra_brightness: (v) => `${v}%-on`,
     extra_temp: (v) => `${v}°-ra`,
+    action_volume_set: "Hangerő beállítása:",
+    extra_volume: (v) => `${v}`,
     extra_color_temp: (v) => `színhőmérséklet ${v}`,
     wait_str: (d) => `Várakozás: ${d}`,
     wait_parts: (p) => `Várakozás: ${p}`,
     wait_plain: "Várakozás",
     wait_until: "Várakozás, amíg a feltétel teljesül",
     wait_for_trigger: "Várakozás triggerre",
+    wait_until_event: (what, limit) => `Várakozás${limit}, amíg ${what}`,
+    wait_limit: (d) => ` legfeljebb ${d}`,
+    when_prefix: "Amikor ",
     activate_scene: (e) => `Jelenet aktiválása: ${e}`,
     choose_between: (n) => `Választás ${n} opció közül`,
     if_then: (n) => `Ha a feltételek teljesülnek, ${n} művelet futtatása`,
@@ -916,6 +957,7 @@ const PHRASES = {
     parallel: (n) => `${n} művelet párhuzamos futtatása`,
     sequence: (n) => `${n} lépéses szekvencia futtatása`,
     set_variables: "Változók beállítása",
+    set_variables_list: (list) => `Beállítás: ${list}`,
     stop_label: (s) => `Megállítás: ${s}`,
     fire_event: (e) => `Esemény kiváltása: ${e}`,
     automation_step: "Automatizmus lépése",
@@ -1249,6 +1291,22 @@ function _sunOffset(offset) {
   // raw value rather than being dropped, which is the failure this fixes.
   if (!label) return /^[0:]+$/.test(raw) ? null : { label: offset, neg: false };
   return { label, neg };
+}
+
+// A wait's `timeout` as " up to 30s", or "" when there is none or it is a
+// template. HA takes a mapping, seconds, or "HH:MM[:SS]".
+function _waitLimit(timeout, t) {
+  if (timeout == null || timeout === "") return "";
+  let value = timeout;
+  if (typeof timeout === "number") value = { seconds: timeout };
+  else if (typeof timeout === "string") {
+    const m = timeout.trim().match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (!m) return "";
+    value = { hours: +m[1], minutes: +m[2], seconds: +(m[3] || 0) };
+  }
+  if (typeof value !== "object") return "";
+  const label = fmtDuration(value);
+  return label && label !== String(value) ? t("wait_limit", label) : "";
 }
 
 export function describeFlowItem(hass, item, ctx) {
@@ -1591,6 +1649,7 @@ export function describeFlowItem(hass, item, ctx) {
       set_value: "action_set_value",
       send_command: "action_send_command",
       reload: "action_reload",
+      volume_set: "action_volume_set",
     };
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
@@ -1605,6 +1664,10 @@ export function describeFlowItem(hass, item, ctx) {
       extras.push(t("extra_temp", item.data.temperature));
     if (item.data?.color_temp != null)
       extras.push(t("extra_color_temp", item.data.color_temp));
+    if (item.data?.volume_level != null) {
+      const volume = _volumeLabel(item.data.volume_level);
+      if (volume) extras.push(t("extra_volume", volume));
+    }
     if (item.data?.message && !String(item.data.message).includes("{{")) {
       const short =
         item.data.message.length > 50
@@ -1626,8 +1689,28 @@ export function describeFlowItem(hass, item, ctx) {
     if (d.seconds) parts.push(`${d.seconds}s`);
     return parts.length ? t("wait_parts", parts.join(" ")) : t("wait_plain");
   }
-  if (item.wait_template) return t("wait_until");
-  if (item.wait_for_trigger) return t("wait_for_trigger");
+  if (item.wait_template) {
+    const what = _describeComparisonTemplate(hass, item.wait_template, t, lang);
+    if (!what) return t("wait_until");
+    return t("wait_until_event", what, _waitLimit(item.timeout, t));
+  }
+  if (item.wait_for_trigger) {
+    // Each trigger reads "When X turns off"; drop the "When" so it follows
+    // "until". A trigger phrased another way ("Every 5 minutes") stays whole.
+    const prefix = t("when_prefix");
+    const whats = asArray(item.wait_for_trigger)
+      .filter((tr) => tr && typeof tr === "object")
+      .map((tr) => {
+        const d = describeFlowItem(hass, tr, ctx);
+        return d.startsWith(prefix) ? d.slice(prefix.length) : d;
+      });
+    if (!whats.length) return t("wait_for_trigger");
+    return t(
+      "wait_until_event",
+      whats.join(t("or")),
+      _waitLimit(item.timeout, t),
+    );
+  }
   if (item.scene) return t("activate_scene", fmtEntity(hass, item.scene));
   if (item.choose) return t("choose_between", asArray(item.choose).length);
   // Callers that expand `if`/`then`/`else` structurally never reach this;
@@ -1649,7 +1732,31 @@ export function describeFlowItem(hass, item, ctx) {
   }
   if (item.parallel) return t("parallel", asArray(item.parallel).length);
   if (item.sequence) return t("sequence", asArray(item.sequence).length);
-  if (item.variables) return t("set_variables");
+  if (item.variables) {
+    const vars =
+      typeof item.variables === "object" && !Array.isArray(item.variables)
+        ? Object.entries(item.variables)
+        : [];
+    if (!vars.length) return t("set_variables");
+    // An entity value names the entity (and becomes a chip); a short literal
+    // shows as-is; a template has no value until it runs, so only its name.
+    const parts = vars.map(([name, value]) => {
+      if (_isEntityIdValue(value))
+        return `${name} = ${fmtEntities(hass, value, lang)}`;
+      if (
+        (typeof value === "string" &&
+          !value.includes("{{") &&
+          !value.includes("{%")) ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        const s = String(value);
+        return `${name} = ${s.length > 40 ? s.slice(0, 37) + "…" : s}`;
+      }
+      return name;
+    });
+    return t("set_variables_list", parts.join(", "));
+  }
   if (item.stop) return t("stop_label", item.stop);
   if (item.event) return t("fire_event", String(item.event).replace(/_/g, " "));
 
@@ -1703,7 +1810,7 @@ export function collectFlowEntityIds(item) {
       // area_ids, templated values (`{{ states(...) }}`), and special
       // sentinels like `all` — clicking those would dispatch
       // `hass-more-info` with an invalid ID and render broken chips.
-      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v)) continue;
+      if (!_ENTITY_ID_RE.test(v)) continue;
       if (seen.has(v)) continue;
       seen.add(v);
       out.push(v);
@@ -1714,15 +1821,252 @@ export function collectFlowEntityIds(item) {
   push(item.data?.entity_id);
   // `tts.speak` names its speaker here, not in `target` (which is the engine).
   push(item.data?.media_player_entity_id);
+  // A `variables` step that binds an entity names it in its description.
+  if (item.variables && typeof item.variables === "object") {
+    for (const v of Object.values(item.variables)) {
+      if (_isEntityIdValue(v)) push(v);
+    }
+  }
   // Template triggers/conditions reference entities inside Jinja calls —
   // surface those too so their descriptions get clickable chips.
-  if (typeof item.value_template === "string") {
-    for (const m of item.value_template.matchAll(
+  for (const tpl of [item.value_template, item.wait_template]) {
+    if (typeof tpl !== "string") continue;
+    for (const m of tpl.matchAll(
       /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
     )) {
       push(m[1]);
     }
   }
+  // A wait names the entities of the triggers it waits for.
+  for (const tr of asArray(item.wait_for_trigger)) {
+    push(collectFlowEntityIds(tr));
+  }
+  return out;
+}
+
+const _ENTITY_ID_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+const _VAR_REF_RE = /^\s*\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$/;
+
+function _isEntityIdValue(v) {
+  if (typeof v === "string") return _ENTITY_ID_RE.test(v);
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((x) => typeof x === "string" && _ENTITY_ID_RE.test(x))
+  );
+}
+
+// Evaluate plain arithmetic ("50 / 100", "(2 + 3) * 4"); null for anything
+// else. A tiny parser, not eval: the input is LLM-written YAML.
+function _evalArithmetic(src) {
+  const tokens = String(src).match(/\d+(?:\.\d+)?|[-+*/()]/g);
+  if (!tokens || tokens.join("") !== String(src).replace(/\s+/g, ""))
+    return null;
+  let i = 0;
+  const factor = () => {
+    const tok = tokens[i++];
+    if (tok === "-") return -factor();
+    if (tok === "(") {
+      const v = expr();
+      return tokens[i++] === ")" ? v : NaN;
+    }
+    return tok != null && /^\d/.test(tok) ? Number(tok) : NaN;
+  };
+  const term = () => {
+    let v = factor();
+    while (tokens[i] === "*" || tokens[i] === "/")
+      v = tokens[i++] === "*" ? v * factor() : v / factor();
+    return v;
+  };
+  const expr = () => {
+    let v = term();
+    while (tokens[i] === "+" || tokens[i] === "-")
+      v = tokens[i++] === "+" ? v + term() : v - term();
+    return v;
+  };
+  const value = expr();
+  return i === tokens.length && Number.isFinite(value) ? value : null;
+}
+
+// A number written as a number, a numeric string, or a template that is
+// only arithmetic (`{{ 50 / 100 }}`); null otherwise.
+function _literalNumber(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v !== "string") return null;
+  const m = v.match(/^\s*\{\{([\s\S]*)\}\}\s*$/);
+  return _evalArithmetic(m ? m[1] : v);
+}
+
+// A variable's value when the flowchart can state it without running the
+// automation: entity ids and numbers. Anything else is undefined.
+function _knownValue(v) {
+  if (_isEntityIdValue(v)) return v;
+  const n = _literalNumber(v);
+  return n == null ? undefined : n;
+}
+
+// `volume_level` (0–1) as "50%", or the variable it reads ("prev_volume") when
+// its value is only known at run time; null for any other template.
+function _volumeLabel(v) {
+  const n = _literalNumber(v);
+  if (n != null) return `${Math.round(n * 100)}%`;
+  const m = typeof v === "string" ? v.match(_VAR_REF_RE) : null;
+  return m ? m[1] : null;
+}
+
+// `env` plus the known values of a `variables` mapping; a name rebound to
+// something unknown leaves the scope rather than keeping its old value.
+function _bindVariables(env, vars) {
+  if (!vars || typeof vars !== "object" || Array.isArray(vars)) return env;
+  const out = { ...env };
+  for (const [name, raw] of Object.entries(vars)) {
+    const value = _knownValue(raw);
+    if (value === undefined) delete out[name];
+    else out[name] = value;
+  }
+  return out;
+}
+
+function _withoutNames(env, names) {
+  if (!names.size) return env;
+  const out = { ...env };
+  for (const name of names) delete out[name];
+  return out;
+}
+
+// The step lists nested in a block action, each a branch that may not run.
+function _nestedSequences(step) {
+  return [
+    step.then,
+    step.else,
+    step.default,
+    step.sequence,
+    step.repeat?.sequence,
+    ...asArray(step.choose).map((option) => option?.sequence),
+    ...asArray(step.parallel),
+  ];
+}
+
+// Every name a live `variables` step assigns anywhere in `steps`.
+function _assignedNames(steps, out = new Set()) {
+  for (const step of asArray(steps)) {
+    if (!step || typeof step !== "object") continue;
+    if (
+      step.enabled !== false &&
+      step.variables &&
+      typeof step.variables === "object" &&
+      !Array.isArray(step.variables)
+    ) {
+      for (const name of Object.keys(step.variables)) out.add(name);
+    }
+    for (const nested of _nestedSequences(step)) _assignedNames(nested, out);
+  }
+  return out;
+}
+
+/**
+ * Work out, for each trigger, condition and action, which of the
+ * automation's variables have a value known without running it — entity ids
+ * (`sonos: media_player.living_room`) and numbers
+ * (`siren_volume: "{{ 50 / 100 }}"`). A step sees only what was bound before
+ * it on its own path: a name a branch or loop assigns is unknown after that
+ * block (the branch may not have run), and inside a loop that reassigns it
+ * (each pass differs). Naming the wrong entity is worse than showing the
+ * template.
+ *
+ * @param {Object} auto - automation config
+ * @returns {(item: Object) => Object<string, string | string[] | number>}
+ *   the variables in scope at `item`; the automation's own for anything the
+ *   walk did not reach
+ */
+export function flowVariableScopes(auto) {
+  const scopes = new WeakMap();
+  const mark = (obj, env) => {
+    if (obj && typeof obj === "object") scopes.set(obj, env);
+  };
+  const markConditions = (conds, env) => {
+    for (const c of asArray(conds)) {
+      mark(c, env);
+      if (c && typeof c === "object") markConditions(c.conditions, env);
+    }
+  };
+  const walk = (steps, env) => {
+    for (const step of asArray(steps)) {
+      if (!step || typeof step !== "object") continue;
+      mark(step, env);
+      for (const tr of asArray(step.wait_for_trigger)) mark(tr, env);
+      if (step.variables != null) {
+        if (step.enabled !== false) env = _bindVariables(env, step.variables);
+        continue;
+      }
+      markConditions(step.if, env);
+      walk(step.then, env);
+      walk(step.else, env);
+      for (const option of asArray(step.choose)) {
+        markConditions(option?.conditions, env);
+        walk(option?.sequence, env);
+      }
+      walk(step.default, env);
+      walk(step.sequence, env);
+      for (const branch of asArray(step.parallel)) walk(branch, env);
+      if (step.repeat) {
+        const inLoop = _withoutNames(env, _assignedNames(step.repeat.sequence));
+        markConditions(step.repeat.while, inLoop);
+        markConditions(step.repeat.until, inLoop);
+        walk(step.repeat.sequence, inLoop);
+      }
+      env = _withoutNames(env, _assignedNames(_nestedSequences(step)));
+    }
+  };
+  if (!auto || typeof auto !== "object") return () => ({});
+  const base = _bindVariables({}, auto.variables);
+  // Triggers run before the automation's variables exist.
+  const triggerEnv = _bindVariables({}, auto.trigger_variables);
+  for (const tr of asArray(auto.triggers ?? auto.trigger)) mark(tr, triggerEnv);
+  markConditions(auto.conditions ?? auto.condition, base);
+  walk(auto.actions ?? auto.action, base);
+  return (item) => scopes.get(item) ?? base;
+}
+
+/**
+ * Replace `{{ name }}` references in a flow item with the values the
+ * automation's variables bind them to: entity ids where an entity goes, so a
+ * templated target reads (and links) as the entity it is, and numbers where a
+ * number goes (`volume_level`). Returns the item untouched when nothing
+ * resolves.
+ *
+ * @param {Object} item - trigger, condition, or action object
+ * @param {Object<string, string | string[] | number>} [vars] - in scope at `item`, from flowVariableScopes
+ * @returns {Object}
+ */
+export function resolveFlowVariables(item, vars) {
+  if (!item || typeof item !== "object" || !vars) return item;
+  const lookup = (val, accept) => {
+    const m = typeof val === "string" ? val.match(_VAR_REF_RE) : null;
+    const v = m ? vars[m[1]] : undefined;
+    return v !== undefined && accept(v) ? v : val;
+  };
+  const entity = (val) => {
+    if (!Array.isArray(val)) return lookup(val, _isEntityIdValue);
+    const resolved = val.flatMap((v) => lookup(v, _isEntityIdValue));
+    return resolved.length !== val.length ||
+      resolved.some((v, i) => v !== val[i])
+      ? resolved
+      : val;
+  };
+  const number = (val) => lookup(val, (v) => typeof v === "number");
+  const swap = (obj, key, resolve) => {
+    if (!obj || typeof obj !== "object" || obj[key] == null) return obj;
+    const next = resolve(obj[key]);
+    return next === obj[key] ? obj : { ...obj, [key]: next };
+  };
+  let out = swap(item, "entity_id", entity);
+  const target = swap(out.target, "entity_id", entity);
+  if (target !== out.target) out = { ...out, target };
+  let data = swap(out.data, "entity_id", entity);
+  data = swap(data, "media_player_entity_id", entity);
+  data = swap(data, "volume_level", number);
+  if (data !== out.data) out = { ...out, data };
   return out;
 }
 

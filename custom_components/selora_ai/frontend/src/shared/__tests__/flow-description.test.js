@@ -3,6 +3,8 @@ import {
   describeFlowItem,
   collectFlowEntityIds,
   collectFlowDeviceRefs,
+  flowVariableScopes,
+  resolveFlowVariables,
   displayTriggers,
   mergeEquivalentTriggers,
   asArray,
@@ -870,7 +872,274 @@ describe("Actions", () => {
     const result = describeFlowItem(mockHass, {
       variables: { brightness: 100 },
     });
-    expect(result).toBe("Set variables");
+    expect(result).toBe("Set brightness = 100");
+  });
+
+  it("names entity variables and leaves templates as names", () => {
+    const item = {
+      variables: {
+        lamp: "light.living_room",
+        source: "{{ trigger.to_state.name }}",
+        url: "/local/alarm/siren.mp3",
+      },
+    };
+    expect(describeFlowItem(mockHass, item)).toBe(
+      "Set lamp = Living Room Light, source, url = /local/alarm/siren.mp3",
+    );
+    expect(collectFlowEntityIds(item)).toEqual(["light.living_room"]);
+  });
+
+  it("says what a wait_for_trigger waits for, and for how long", () => {
+    const item = {
+      wait_for_trigger: [
+        { trigger: "state", entity_id: "light.living_room", to: "off" },
+      ],
+      timeout: { seconds: 30 },
+      continue_on_timeout: true,
+    };
+    expect(describeFlowItem(mockHass, item)).toBe(
+      "Wait up to 30s until Living Room Light turns off",
+    );
+    expect(collectFlowEntityIds(item)).toEqual(["light.living_room"]);
+  });
+
+  it("joins several waited-for triggers and reads HH:MM:SS timeouts", () => {
+    const item = {
+      wait_for_trigger: [
+        { trigger: "state", entity_id: "light.living_room", to: "off" },
+        { trigger: "state", entity_id: "binary_sensor.front_door", to: "on" },
+      ],
+      timeout: "00:01:30",
+    };
+    expect(describeFlowItem(mockHass, item)).toBe(
+      "Wait up to 1m 30s until Living Room Light turns off or Front Door turns on",
+    );
+  });
+
+  it("reads a two-field timeout as hours and minutes, as HA does", () => {
+    // cv.time_period_str: "HH:MM" or "HH:MM:SS" — never "MM:SS".
+    expect(
+      describeFlowItem(mockHass, {
+        wait_for_trigger: {
+          trigger: "state",
+          entity_id: "light.living_room",
+          to: "on",
+        },
+        timeout: "01:30",
+      }),
+    ).toBe("Wait up to 1h 30m until Living Room Light turns on");
+  });
+
+  it("omits a templated timeout", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        wait_for_trigger: {
+          trigger: "state",
+          entity_id: "light.living_room",
+          to: "on",
+        },
+        timeout: "{{ delay }}",
+      }),
+    ).toBe("Wait until Living Room Light turns on");
+  });
+
+  it("says what a wait_template waits for", () => {
+    const item = {
+      wait_template: "{{ is_state('light.living_room', 'on') }}",
+      timeout: 10,
+    };
+    expect(describeFlowItem(mockHass, item)).toBe(
+      "Wait up to 10s until Living Room Light is on",
+    );
+    expect(collectFlowEntityIds(item)).toEqual(["light.living_room"]);
+  });
+
+  it("keeps the generic wait label for an opaque template", () => {
+    expect(
+      describeFlowItem(mockHass, { wait_template: "{{ now().hour > 8 }}" }),
+    ).toBe("Wait until condition is met");
+  });
+
+  it("does not humanize an unresolved templated target", () => {
+    const result = describeFlowItem(mockHass, {
+      action: "media_player.media_stop",
+      target: { entity_id: "{{ sonos }}" },
+    });
+    expect(result).toBe("Media Stop {{ sonos }}");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Entity variables
+// ---------------------------------------------------------------------------
+describe("Entity variables", () => {
+  const stop = {
+    action: "media_player.media_stop",
+    target: { entity_id: "{{ sonos }}" },
+  };
+  const useLamp = {
+    action: "light.turn_on",
+    target: { entity_id: ["{{ lamp }}"] },
+  };
+  const before = {
+    action: "light.turn_off",
+    target: { entity_id: "{{ lamp }}" },
+  };
+  const after = { action: "light.toggle", target: { entity_id: "{{ lamp }}" } };
+  const branchSet = { variables: { lamp: "light.living_room" } };
+  const auto = {
+    variables: { sonos: "media_player.sonos", vol: "{{ 0.5 }}" },
+    actions: [
+      before,
+      { if: [], then: [branchSet, useLamp, { repeat: { sequence: [stop] } }] },
+      after,
+    ],
+  };
+  const at = flowVariableScopes(auto);
+
+  it("knows entity ids and numbers, from the automation down", () => {
+    // `stop` runs in the loop after the branch bound `lamp`.
+    expect(at(stop)).toEqual({
+      sonos: "media_player.sonos",
+      vol: 0.5,
+      lamp: "light.living_room",
+    });
+  });
+
+  it("resolves a reference after its variables step on the same path", () => {
+    const item = resolveFlowVariables(useLamp, at(useLamp));
+    expect(item.target.entity_id).toEqual(["light.living_room"]);
+    expect(describeFlowItem(mockHass, item)).toBe("Turn on Living Room Light");
+  });
+
+  it("does not resolve a reference before the step that binds it", () => {
+    expect(at(before)).not.toHaveProperty("lamp");
+  });
+
+  it("does not resolve past a branch that may not have run", () => {
+    expect(at(after)).not.toHaveProperty("lamp");
+  });
+
+  it("skips templates it cannot evaluate", () => {
+    const scopes = flowVariableScopes({
+      variables: {
+        end: "{{ (now() + timedelta(minutes=5)).isoformat() }}",
+        prev: "{{ state_attr('media_player.x', 'volume_level') }}",
+        sneaky: "{{ 1 + foo }}",
+      },
+      actions: [stop],
+    });
+    expect(scopes(stop)).toEqual({});
+  });
+
+  it("follows a rebinding in order", () => {
+    const first = { action: "light.turn_on", target: { entity_id: "{{ x }}" } };
+    const second = {
+      action: "light.turn_off",
+      target: { entity_id: "{{ x }}" },
+    };
+    const scopes = flowVariableScopes({
+      variables: { x: "light.a" },
+      actions: [first, { variables: { x: "light.b" } }, second],
+    });
+    expect(scopes(first)).toEqual({ x: "light.a" });
+    expect(scopes(second)).toEqual({ x: "light.b" });
+  });
+
+  it("forgets a name rebound to something unknown", () => {
+    const step = { action: "light.turn_on", target: { entity_id: "{{ x }}" } };
+    const scopes = flowVariableScopes({
+      variables: { x: "light.a" },
+      actions: [{ variables: { x: "{{ states('input_text.t') }}" } }, step],
+    });
+    expect(scopes(step)).toEqual({});
+  });
+
+  it("ignores a disabled variables step", () => {
+    const step = { action: "light.turn_on", target: { entity_id: "{{ x }}" } };
+    const scopes = flowVariableScopes({
+      actions: [{ variables: { x: "light.a" }, enabled: false }, step],
+    });
+    expect(scopes(step)).toEqual({});
+  });
+
+  it("does not trust, inside a loop, a name the loop reassigns", () => {
+    const step = { action: "light.turn_on", target: { entity_id: "{{ x }}" } };
+    const scopes = flowVariableScopes({
+      variables: { x: "light.a" },
+      actions: [
+        {
+          repeat: {
+            count: 2,
+            sequence: [step, { variables: { x: "light.b" } }],
+          },
+        },
+      ],
+    });
+    expect(scopes(step)).toEqual({});
+  });
+
+  it("keeps the automation's variables out of its triggers", () => {
+    const trigger = { trigger: "state", entity_id: "{{ sonos }}" };
+    const scopes = flowVariableScopes({ ...auto, triggers: [trigger] });
+    expect(scopes(trigger)).toEqual({});
+  });
+
+  it("leaves an unknown reference untouched", () => {
+    const item = {
+      action: "light.turn_on",
+      target: { entity_id: "{{ other }}" },
+    };
+    expect(resolveFlowVariables(item, { lamp: "light.x" })).toBe(item);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Volume
+// ---------------------------------------------------------------------------
+describe("Volume", () => {
+  const hass = {
+    states: {
+      "media_player.sonos": { attributes: { friendly_name: "Sonos" } },
+    },
+  };
+  const volumeSet = (volume_level) => ({
+    action: "media_player.volume_set",
+    target: { entity_id: "media_player.sonos" },
+    data: { volume_level },
+  });
+
+  it("states a literal volume as a percentage", () => {
+    expect(describeFlowItem(hass, volumeSet(0.35))).toBe(
+      "Set volume of Sonos (to 35%)",
+    );
+  });
+
+  it("evaluates an arithmetic template", () => {
+    expect(describeFlowItem(hass, volumeSet("{{ 50 / 100 }}"))).toBe(
+      "Set volume of Sonos (to 50%)",
+    );
+  });
+
+  it("resolves a variable bound to a number", () => {
+    const step = volumeSet("{{ siren_volume }}");
+    const at = flowVariableScopes({
+      actions: [{ variables: { siren_volume: "{{ 50 / 100 }}" } }, step],
+    });
+    const item = resolveFlowVariables(step, at(step));
+    expect(describeFlowItem(hass, item)).toBe("Set volume of Sonos (to 50%)");
+  });
+
+  it("names a variable only known at run time", () => {
+    expect(describeFlowItem(hass, volumeSet("{{ prev_volume }}"))).toBe(
+      "Set volume of Sonos (to prev_volume)",
+    );
+  });
+
+  it("omits a volume template it cannot read", () => {
+    expect(
+      describeFlowItem(hass, volumeSet("{{ states('input_number.v') }}")),
+    ).toBe("Set volume of Sonos");
   });
 });
 
