@@ -448,9 +448,10 @@ entities only say what is there now.
 - **An event id is checked before it is passed on** (`_EVENT_ID`): the panel
   builds media paths from it.
 - **The card is drawn from the stored tool calls** (`camera-events-card.js`),
-  so a reopened conversation has it. Snapshots and clips come from the Frigate
-  integration's own views (`/api/frigate/snapshot/<id>`,
-  `/api/frigate/recording/<camera>/start/<s>/end/<e>`), signed with
+  so a reopened conversation has it. Snapshots come from the Frigate
+  integration's own view (`/api/frigate/snapshot/<id>`), clips from ours
+  (`frigate/media.py`, see below: the integration's recording view passes on
+  Frigate's range-less stream, which WebKit will not play), all signed with
   `auth/sign_path` because an `<img>` cannot carry the panel's token. An event
   without a snapshot (snapshots are off on a camera added from chat) is drawn
   from its thumbnail, `/api/frigate/<instance>/thumbnail/<id>`: that route has
@@ -510,10 +511,20 @@ the card does.
   - **The view takes a signed link or an admin**, nothing else. A request with
     no `Authorization` header can only have been authenticated by the
     signature; a non-admin's own token is refused, as the MCP tools refuse it.
-  - **Streamed from Frigate, never redirected to it**, so Frigate's address and
-    login stay on the hub whichever way it is connected. `Range` is forwarded
-    and the range headers passed back: a browser fetches a video in ranges,
-    and Safari plays nothing without them. Frigate's cookies are not passed.
+  - **Fetched from Frigate, never redirected to it**, so Frigate's address and
+    login stay on the hub whichever way it is connected. Frigate's cookies are
+    not passed. A snapshot is streamed through.
+  - **A clip is kept on the hub and served with ranges.** Frigate builds it as
+    it sends it: chunked, no length, `Range` ignored (both `/api/events/<id>/clip.mp4`
+    and the recording span). Chrome plays that; Safari and every WebKit view
+    (the iOS and macOS apps) open with `bytes=0-1`, want a 206, and otherwise
+    show a struck-out play button. So the clip is fetched once (requests
+    arriving together share the fetch) into the system temp dir, never the
+    config dir that backups carry, and reused for 5 minutes. The disk is
+    bounded: 2 fetches at once, each at most 128 MB, finished clips pruned to
+    the latest 8 and 512 MB. Frigate sends no length, so a clip past 128 MB is
+    learned by reaching it: that request and the event's later ones are
+    streamed through instead, playable in Chrome only.
   - **At the hub's remote address, else the local one** (`async_link_base`).
     Connect's remote access for Home Assistant, behind its login, which Selora
     OS writes to `<config>/.selora/remote_url.json` (`{"remote_url": ...}`,

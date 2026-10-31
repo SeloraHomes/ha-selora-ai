@@ -3,10 +3,13 @@ the user, and the view that streams them from Frigate."""
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 import json
+import os
 from pathlib import Path
+import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -55,10 +58,13 @@ class _Frigate:
 
 
 @pytest.fixture
-async def view(hass: HomeAssistant) -> None:
+async def view(hass: HomeAssistant, tmp_path: Path) -> AsyncIterator[None]:
     assert await async_setup_component(hass, "homeassistant", {})
     assert await async_setup_component(hass, "http", {})
     media.async_register_view(hass)
+    # Fetched clips land in this test's own directory.
+    with patch.object(media.tempfile, "gettempdir", return_value=str(tmp_path)):
+        yield
 
 
 def _frigate(responses: dict[str, _Upstream]) -> Any:
@@ -105,27 +111,125 @@ async def test_without_a_snapshot_the_thumbnail_is_sent(
     assert await resp.read() == b"\xff\xd8jpeg"
 
 
+# Frigate builds a clip as it sends it: chunked, no length, Range ignored.
+_CLIP_BODY = bytes(range(256)) * 4
+_CLIP = _Upstream(200, _CLIP_BODY, {"Content-Type": "video/mp4"})
+
+
 @pytest.mark.usefixtures("view")
-async def test_a_clip_seeks(hass: HomeAssistant, hass_client_no_auth: Any) -> None:
-    """Browsers fetch a video in ranges, and Safari plays nothing without them."""
+async def test_a_clip_answers_ranges(hass: HomeAssistant, hass_client_no_auth: Any) -> None:
+    """Safari and the apps' WebKit play nothing without a 206 to their first
+    ``bytes=0-1``, which Frigate never gives."""
     link = media.event_links(hass, "", EVENT, has_clip=True)["clip_url"]
-    partial = _Upstream(
-        206,
-        b"0123",
-        {
-            "Content-Type": "video/mp4",
-            "Content-Range": "bytes 0-3/1000",
-            "Accept-Ranges": "bytes",
-        },
-    )
-    frigate, patched = _frigate({f"/api/events/{EVENT}/clip.mp4": partial})
+    frigate, patched = _frigate({f"/api/events/{EVENT}/clip.mp4": _CLIP})
     client = await hass_client_no_auth()
     with patched:
-        resp = await client.get(link, headers={"Range": "bytes=0-3"})
+        probe = await client.get(link, headers={"Range": "bytes=0-1"})
+        seek = await client.get(link, headers={"Range": "bytes=512-"})
+        whole = await client.get(link)
 
-    assert resp.status == 206
-    assert resp.headers["Content-Range"] == "bytes 0-3/1000"
-    assert frigate.asked == [(f"/api/events/{EVENT}/clip.mp4", {"Range": "bytes=0-3"})]
+    assert probe.status == 206
+    assert probe.headers["Content-Range"] == f"bytes 0-1/{len(_CLIP_BODY)}"
+    assert probe.headers["Content-Type"] == "video/mp4"
+    assert await probe.read() == _CLIP_BODY[:2]
+    assert seek.status == 206
+    assert await seek.read() == _CLIP_BODY[512:]
+    assert whole.status == 200
+    assert await whole.read() == _CLIP_BODY
+    # Fetched once, whole: a range sent on would be ignored anyway.
+    assert frigate.asked == [(f"/api/events/{EVENT}/clip.mp4", {})]
+
+
+@pytest.mark.usefixtures("view")
+async def test_ranges_asked_at_once_share_one_fetch(
+    hass: HomeAssistant, hass_client_no_auth: Any
+) -> None:
+    link = media.event_links(hass, "", EVENT, has_clip=True)["clip_url"]
+    frigate, patched = _frigate({f"/api/events/{EVENT}/clip.mp4": _CLIP})
+    client = await hass_client_no_auth()
+    with patched:
+        first, second = await asyncio.gather(
+            client.get(link, headers={"Range": "bytes=0-1"}),
+            client.get(link, headers={"Range": "bytes=2-3"}),
+        )
+
+    assert (first.status, second.status) == (206, 206)
+    assert await second.read() == _CLIP_BODY[2:4]
+    assert len(frigate.asked) == 1
+
+
+@pytest.mark.usefixtures("view")
+async def test_an_event_without_a_clip_is_not_found(
+    hass: HomeAssistant, hass_client_no_auth: Any
+) -> None:
+    link = media.event_links(hass, "", EVENT, has_clip=True)["clip_url"]
+    _, patched = _frigate({})
+    client = await hass_client_no_auth()
+    with patched:
+        resp = await client.get(link)
+
+    assert resp.status == 404
+
+
+@pytest.mark.usefixtures("view")
+async def test_an_oversized_clip_is_streamed_through(
+    hass: HomeAssistant, hass_client_no_auth: Any, tmp_path: Path
+) -> None:
+    """Too large to keep on the hub: Chrome still plays it as it arrives."""
+    link = media.event_links(hass, "", EVENT, has_clip=True)["clip_url"]
+    frigate, patched = _frigate({f"/api/events/{EVENT}/clip.mp4": _CLIP})
+    client = await hass_client_no_auth()
+    with patched, patch.object(media, "_CLIP_MAX_BYTES", 100), patch.object(media, "_CHUNK", 64):
+        resp = await client.get(link)
+        again = await client.get(link, headers={"Range": "bytes=0-1"})
+
+    assert resp.status == 200
+    assert await resp.read() == _CLIP_BODY
+    assert not list((tmp_path / media._CLIP_DIR).iterdir())
+    # Learned once: the next request streams at once, without buffering it again.
+    assert again.status == 200
+    assert len(frigate.asked) == 3
+    assert frigate.asked[-1] == (f"/api/events/{EVENT}/clip.mp4", {"Range": "bytes=0-1"})
+
+
+def test_only_the_latest_clips_are_kept(tmp_path: Path) -> None:
+    directory = tmp_path / media._CLIP_DIR
+    directory.mkdir()
+    now = time.time()
+    for index in range(media._CLIPS_KEPT + 2):
+        old = directory / f"{index}.mp4"
+        old.write_bytes(b"x")
+        os.utime(old, (now - index, now - index))
+    stale = directory / "stale.mp4"
+    stale.write_bytes(b"x")
+    os.utime(stale, (now - media._CLIP_REUSE_SECONDS - 1,) * 2)
+    arriving = directory / "arriving.part"
+    arriving.write_bytes(b"x")
+    partial = directory / "new.part"
+    partial.write_bytes(b"clip")
+
+    media._keep(partial.open("ab"), partial, directory / "new.mp4")
+
+    names = {entry.name for entry in directory.iterdir()}
+    kept = {f"{index}.mp4" for index in range(media._CLIPS_KEPT - 1)}
+    assert names == kept | {"new.mp4", "arriving.part"}
+
+
+def test_kept_clips_stay_under_a_total(tmp_path: Path) -> None:
+    directory = tmp_path / media._CLIP_DIR
+    directory.mkdir()
+    now = time.time()
+    for index in range(3):
+        old = directory / f"{index}.mp4"
+        old.write_bytes(b"x" * 40)
+        os.utime(old, (now - index - 1, now - index - 1))
+    partial = directory / "new.part"
+    partial.write_bytes(b"x" * 40)
+
+    with patch.object(media, "_CLIPS_MAX_TOTAL", 100):
+        media._keep(partial.open("ab"), partial, directory / "new.mp4")
+
+    assert {entry.name for entry in directory.iterdir()} == {"new.mp4", "0.mp4"}
 
 
 @pytest.mark.usefixtures("view")

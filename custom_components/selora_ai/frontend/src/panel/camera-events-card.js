@@ -2,8 +2,9 @@
 // snapshots under the reply. Rendered from the reply's stored tool calls, so a
 // reopened conversation shows it too.
 //
-// The tool result holds ids, never media URLs. The images and clips come from
-// the Frigate integration's own views, which need Home Assistant's login: each
+// The tool result holds ids, never media URLs. The images come from the
+// Frigate integration's own views, the clips from Selora AI's (see clipPath);
+// both need Home Assistant's login: each
 // path is signed with `auth/sign_path` once and reused until shortly before it
 // expires, since an <img> cannot send the panel's token.
 import { html } from "lit";
@@ -51,12 +52,6 @@ function searchesOf(msg) {
   return searches;
 }
 
-// The event's start, in seconds since the epoch: its id begins with it.
-function startOf(event) {
-  const start = parseFloat(String(event.id).split("-")[0]);
-  return Number.isFinite(start) ? start : null;
-}
-
 // Mirrors _INSTANCE in frigate/events.py.
 const INSTANCE = /^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$/;
 
@@ -78,12 +73,13 @@ function picturePath(event, height) {
     : `/api/frigate/snapshot/${id}`;
 }
 
+// The clip comes from Selora AI's own view (frigate/media.py), not the Frigate
+// integration's: Frigate sends a clip chunked and ignores Range, and WebKit
+// (Safari, the iOS and macOS apps) plays no video without ranges. The view
+// keeps the clip on the hub and answers them.
 function clipPath(event) {
-  const start = startOf(event);
-  if (start === null || event.in_progress || !event.has_clip) return null;
-  const end = start + (event.seconds || 0);
-  const camera = encodeURIComponent(event.camera);
-  return `/api/frigate/recording/${camera}/start/${Math.floor(start)}/end/${Math.ceil(end + 1)}`;
+  if (event.in_progress || !event.has_clip) return null;
+  return `/api/selora_ai/frigate/events/${encodeURIComponent(event.id)}/clip.mp4`;
 }
 
 async function sign(host, path) {

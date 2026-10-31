@@ -10,15 +10,26 @@ Home Assistant's login is replaced by a signature: ``async_sign_path`` makes the
 link valid for a few minutes, for this one path, with no token in it. The view
 streams the media from Frigate, so Frigate's own address and login never leave
 the hub, whichever way Frigate is connected.
+
+A clip is not streamed straight through: Frigate builds it on the fly and sends
+it chunked, with no length, ignoring ``Range``. Chrome plays that; Safari and
+every WebKit view (the iOS and macOS apps) ask for ``bytes=0-1``, want a 206,
+and show a struck-out play button otherwise. So the clip is fetched once into a
+short-lived file and served from there, ranges and all.
 """
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from http import HTTPStatus
 import json
 import logging
-from typing import TYPE_CHECKING, Final
+import os
+from pathlib import Path
+import tempfile
+import time
+from typing import TYPE_CHECKING, BinaryIO, Final
 from urllib.parse import urlsplit
 
 from aiohttp import hdrs, web
@@ -62,6 +73,22 @@ _PASSED_HEADERS: Final = (
     hdrs.LAST_MODIFIED,
     hdrs.ETAG,
 )
+# Fetched clips, in the system's temp dir: never the config dir, which backups
+# carry. Reused for a few minutes (a browser asks for many ranges of one video,
+# and a clip of an event still running grows). The disk they take is bounded:
+# a few fetches at once, each at most _CLIP_MAX_BYTES, and finished clips kept
+# up to a count and a total, newest first.
+_CLIP_DIR: Final = "selora_ai_frigate_clips"
+_CLIP_REUSE_SECONDS: Final = 5 * 60
+_CLIPS_KEPT: Final = 8
+_CLIPS_MAX_TOTAL: Final = 512 * 1024 * 1024
+_FETCHES_AT_ONCE: Final = 2
+# A clip larger than this is streamed through as it comes (Chrome still plays
+# it). Frigate sends no length, so that is learned only by reaching it: the
+# event is remembered, and its later requests stream at once.
+_CLIP_MAX_BYTES: Final = 128 * 1024 * 1024
+_TOO_LARGE_REMEMBERED: Final = 64
+_CHUNK: Final = 1024 * 1024
 
 
 async def async_link_base(hass: HomeAssistant) -> str | None:
@@ -135,6 +162,9 @@ class FrigateEventMediaView(HomeAssistantView):
     url = MEDIA_URL
     requires_auth = True
 
+    def __init__(self) -> None:
+        self._clips = _ClipCache()
+
     async def get(self, request: web.Request, event_id: str, kind: str) -> web.StreamResponse:
         """Answer a signed link, or an admin's own request."""
         if not _allowed(request):
@@ -145,6 +175,29 @@ class FrigateEventMediaView(HomeAssistantView):
         client = FrigateClient.from_hass(hass)
         if client is None:
             return web.Response(status=HTTPStatus.NOT_FOUND, text="Frigate is not set up.")
+        if kind == _CLIP:
+            try:
+                file = await self._clips.file(hass, client, event_id)
+            except _ClipTooLarge:
+                return await self._stream(request, client, event_id, kind)
+            except (FrigateError, OSError) as exc:
+                _LOGGER.debug("Frigate clip for %s failed: %s", event_id, exc)
+                return web.Response(status=HTTPStatus.BAD_GATEWAY)
+            if file is None:
+                return web.Response(status=HTTPStatus.NOT_FOUND)
+            return web.FileResponse(
+                file,
+                headers={
+                    hdrs.CONTENT_TYPE: "video/mp4",
+                    hdrs.CACHE_CONTROL: "private, no-store",
+                },
+            )
+        return await self._stream(request, client, event_id, kind)
+
+    async def _stream(
+        self, request: web.Request, client: FrigateClient, event_id: str, kind: str
+    ) -> web.StreamResponse:
+        """Pass Frigate's response through as it arrives."""
         forwarded = (
             {hdrs.RANGE: request.headers[hdrs.RANGE]} if hdrs.RANGE in request.headers else {}
         )
@@ -169,6 +222,137 @@ class FrigateEventMediaView(HomeAssistantView):
             _LOGGER.debug("Frigate media for %s failed: %s", event_id, exc)
             return web.Response(status=HTTPStatus.BAD_GATEWAY)
         return web.Response(status=HTTPStatus.NOT_FOUND)
+
+
+class _ClipTooLarge(Exception):
+    """The clip outgrew ``_CLIP_MAX_BYTES``: stream it through instead."""
+
+
+class _ClipCache:
+    """Event clips fetched whole from Frigate, so a browser can ask for ranges."""
+
+    def __init__(self) -> None:
+        # One fetch per clip: a browser opens several ranges of a video at once.
+        self._fetching: dict[str, asyncio.Task[Path | None]] = {}
+        self._fetch_slots = asyncio.Semaphore(_FETCHES_AT_ONCE)
+        # Insertion-ordered, so the oldest is forgotten first.
+        self._too_large: dict[str, None] = {}
+
+    async def file(self, hass: HomeAssistant, client: FrigateClient, event_id: str) -> Path | None:
+        """The clip's file, fetched unless a recent one is on disk; None when
+        Frigate has no clip for the event. Raises _ClipTooLarge for one past
+        _CLIP_MAX_BYTES."""
+        if event_id in self._too_large:
+            raise _ClipTooLarge
+        if (fetching := self._fetching.get(event_id)) is None:
+            # Registered before any await, and in the background, so requests
+            # arriving together share it and one giving up cancels nothing.
+            fetching = hass.async_create_background_task(
+                self._fetch(hass, client, event_id), f"selora_ai frigate clip {event_id}"
+            )
+            self._fetching[event_id] = fetching
+            fetching.add_done_callback(lambda _: self._fetching.pop(event_id, None))
+        return await asyncio.shield(fetching)
+
+    async def _fetch(
+        self, hass: HomeAssistant, client: FrigateClient, event_id: str
+    ) -> Path | None:
+        """The clip's recent file, else Frigate's clip written to it."""
+        file = await hass.async_add_executor_job(_clip_file, event_id)
+        if await hass.async_add_executor_job(_recent, file):
+            return file
+        async with self._fetch_slots:
+            try:
+                return await _download(hass, client, event_id, file)
+            except _ClipTooLarge:
+                self._too_large[event_id] = None
+                if len(self._too_large) > _TOO_LARGE_REMEMBERED:
+                    del self._too_large[next(iter(self._too_large))]
+                raise
+
+
+async def _download(
+    hass: HomeAssistant, client: FrigateClient, event_id: str, file: Path
+) -> Path | None:
+    """Write Frigate's clip to ``file``; None when Frigate has none."""
+    path = _FRIGATE_PATHS[_CLIP][0].format(id=event_id)
+    async with client.media(path) as upstream:
+        if upstream.status == HTTPStatus.NOT_FOUND:
+            return None
+        if upstream.status >= HTTPStatus.BAD_REQUEST:
+            raise FrigateError(f"Frigate answered {upstream.status}")
+        partial = file.with_suffix(".part")
+        handle = await hass.async_add_executor_job(partial.open, "wb")
+        kept = False
+        try:
+            size = 0
+            async for chunk in upstream.content.iter_chunked(_CHUNK):
+                size += len(chunk)
+                if size > _CLIP_MAX_BYTES:
+                    raise _ClipTooLarge
+                await hass.async_add_executor_job(handle.write, chunk)
+            await hass.async_add_executor_job(_keep, handle, partial, file)
+            kept = True
+        finally:
+            if not kept:
+                await hass.async_add_executor_job(_discard, handle, partial)
+    return file
+
+
+def _clip_file(event_id: str) -> Path:
+    """Where the event's clip is kept. Blocking: use an executor."""
+    directory = Path(tempfile.gettempdir()) / _CLIP_DIR
+    directory.mkdir(mode=0o700, exist_ok=True)
+    return directory / f"{event_id}.mp4"
+
+
+def _recent(file: Path) -> bool:
+    """Whether ``file`` was fetched recently enough to reuse. Blocking."""
+    try:
+        return time.time() - file.stat().st_mtime < _CLIP_REUSE_SECONDS
+    except FileNotFoundError:
+        return False
+
+
+def _discard(handle: BinaryIO, partial: Path) -> None:
+    """Drop a fetch that did not finish. Blocking."""
+    handle.close()
+    partial.unlink(missing_ok=True)
+
+
+def _keep(handle: BinaryIO, partial: Path, file: Path) -> None:
+    """Put a finished fetch in place, and drop clips past their reuse or
+    beyond the latest few. Blocking."""
+    handle.close()
+    os.replace(partial, file)
+    now = time.time()
+    ages: list[tuple[float, int, Path]] = []
+    for entry in file.parent.iterdir():
+        try:
+            stat = entry.stat()
+        except FileNotFoundError:
+            continue
+        ages.append((now - stat.st_mtime, stat.st_size, entry))
+    ages.sort(key=lambda age: age[0])
+    # A ``.part`` is another clip still arriving: dropped only once abandoned.
+    # The clip just fetched is kept whatever the others take.
+    kept = 0
+    total = file.stat().st_size
+    for age, size, entry in ages:
+        if entry == file:
+            continue
+        if entry.suffix == ".mp4":
+            if (
+                age < _CLIP_REUSE_SECONDS
+                and kept + 1 < _CLIPS_KEPT
+                and total + size <= _CLIPS_MAX_TOTAL
+            ):
+                kept += 1
+                total += size
+                continue
+        elif age < _CLIP_REUSE_SECONDS:
+            continue
+        entry.unlink(missing_ok=True)
 
 
 def _allowed(request: web.Request) -> bool:
