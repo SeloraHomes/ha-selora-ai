@@ -187,7 +187,7 @@
     "chat_suggest_thinking": "思考中…",
     "chat_suggest_one_for_me": "为我推荐一个",
     "chat_jump_to_latest": "前往最新消息",
-    "chat_autocomplete_hint": "↑↓ 导航 · ↵ 插入 · Esc 关闭",
+    "chat_autocomplete_hint": "↑↓ 导航 · Tab 插入 · Esc 关闭",
     "chat_selection_remove": "移除",
     "chat_stop_generating": "停止生成",
     "chat_send": "发送",

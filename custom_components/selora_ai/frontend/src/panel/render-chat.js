@@ -874,7 +874,7 @@ function _renderAutocomplete(host) {
       <div class="composer-autocomplete-hint">
         ${host._t(
           "chat_autocomplete_hint",
-          "↑↓ navigate · ↵ insert · Esc dismiss",
+          "↑↓ navigate · Tab insert · Esc dismiss",
         )}
       </div>
     </div>
@@ -1023,6 +1023,7 @@ function _renderComposer(host, opts = {}) {
                     host._autocomplete = {
                       ...ac,
                       activeIndex: (ac.activeIndex + 1) % ac.items.length,
+                      picked: true,
                     };
                     _scrollActiveItemIntoView(host);
                     return;
@@ -1034,11 +1035,19 @@ function _renderComposer(host, opts = {}) {
                       activeIndex:
                         (ac.activeIndex - 1 + ac.items.length) %
                         ac.items.length,
+                      picked: true,
                     };
                     _scrollActiveItemIntoView(host);
                     return;
                   }
-                  if (e.key === "Enter" || e.key === "Tab") {
+                  // Tab takes the highlighted row. Enter takes it only once
+                  // ↑↓ moved to it: a list that merely opened (often on the
+                  // last word of a finished sentence) must never stand
+                  // between Enter and sending what was typed.
+                  if (
+                    (e.key === "Tab" && !e.shiftKey) ||
+                    (e.key === "Enter" && !e.shiftKey && ac.picked)
+                  ) {
                     e.preventDefault();
                     _selectAutocompleteItem(
                       host,
@@ -1055,6 +1064,7 @@ function _renderComposer(host, opts = {}) {
                 }
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
+                  _closeAutocomplete(host);
                   host._sendMessage();
                   return;
                 }
