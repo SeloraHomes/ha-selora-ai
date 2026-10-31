@@ -7,6 +7,7 @@ import {
   resolveFlowVariables,
   displayTriggers,
   normalizeCondition,
+  splitTemplateCondition,
   asArray,
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
@@ -90,16 +91,16 @@ function renderFlowDeviceLink(host, deviceId, name, domain) {
 }
 
 // Match the compact durations that `fmtDuration` emits ("10m", "1h 30m",
-// "45s", "1h 5m 30s"). Anchored on word boundary so "5m" inside a
+// "45s", "0.5s", "1h 5m 30s"). Anchored on word boundary so "5m" inside a
 // friendly name like "AM5m" can't accidentally chip itself.
 const DURATION_RE =
-  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
+  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+(?:\.\d+)?\s*s)?|\d+\s*m(?:\s+\d+(?:\.\d+)?\s*s)?|\d+(?:\.\d+)?\s*s)\b/g;
 
 function expandDurationAbbrev(s) {
   return s
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
-    .replace(/(\d+)\s*s\b/g, "$1 sec");
+    .replace(/(\d+(?:\.\d+)?)\s*s\b/g, "$1 sec");
 }
 
 function renderFlowDuration(raw) {
@@ -305,6 +306,10 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
   // and-or-not lists; expand them so they get the template description and
   // clickable entities instead of raw Jinja.
   const cond = normalizeCondition(rawCond);
+  // `{{ a and b }}` is two checks; drawn as one node it could only say
+  // "Template evaluates to true".
+  const split = splitTemplateCondition(cond);
+  if (split) return renderConditionItem(host, split, ctx, implicitAll);
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
@@ -393,6 +398,19 @@ function _shownSteps(steps) {
   );
 }
 
+// Steps that run one after another, joined by arrows so a step after a
+// branch reads as coming next rather than as one more alternative.
+function renderSteps(host, steps, ctx) {
+  return _shownSteps(steps).map(
+    (s, i) =>
+      html`${i ? html`<div class="flow-arrow-sm">↓</div>` : ""}${renderActionItem(
+        host,
+        s,
+        ctx,
+      )}`,
+  );
+}
+
 // Only block forms need the wrapper; leaf actions are marked by renderFlowNode.
 function _isBlockAction(action) {
   return (
@@ -425,7 +443,7 @@ function renderActionItemBody(host, action, ctx) {
             ? html`<div class="flow-arrow-sm">↓</div>`
             : ""
         }
-        ${thenSteps.map((s) => renderActionItem(host, s, ctx))}
+        ${renderSteps(host, thenSteps, ctx)}
       </div>
       ${
         elseSteps.length
@@ -433,7 +451,7 @@ function renderActionItemBody(host, action, ctx) {
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${elseSteps.map((s) => renderActionItem(host, s, ctx))}
+              ${renderSteps(host, elseSteps, ctx)}
             </div>`
           : ""
       }
@@ -460,9 +478,7 @@ function renderActionItemBody(host, action, ctx) {
                 ? html`<div class="flow-arrow-sm">↓</div>`
                 : ""
             }
-            ${_shownSteps(branch?.sequence).map((s) =>
-              renderActionItem(host, s, ctx),
-            )}
+            ${renderSteps(host, branch?.sequence, ctx)}
           </div>
         `,
       )}
@@ -472,7 +488,7 @@ function renderActionItemBody(host, action, ctx) {
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${_shownSteps(action.default).map((s) => renderActionItem(host, s, ctx))}
+              ${renderSteps(host, action.default, ctx)}
             </div>`
           : ""
       }
@@ -491,7 +507,7 @@ function renderActionItemBody(host, action, ctx) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${_shownSteps(action.sequence).map((s) => renderActionItem(host, s, ctx))}
+      ${renderSteps(host, action.sequence, ctx)}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -553,7 +569,7 @@ function renderActionItemBody(host, action, ctx) {
       </div>
       <div class="flow-loop-body">
         ${conds(whileConds)}${whileConds.length && inner.length ? arrow : ""}
-        ${inner.map((s) => renderActionItem(host, s, ctx))}
+        ${renderSteps(host, inner, ctx)}
         ${untilConds.length && inner.length ? arrow : ""}${conds(untilConds)}
         <div class="flow-loop-return" aria-hidden="true">
           <svg viewBox="0 0 6 8" class="flow-loop-head">
@@ -712,7 +728,7 @@ export function renderAutomationFlowchart(host, auto, opts = {}) {
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${_shownSteps(actions).map((a) => renderActionItem(host, a, ctx))}
+        ${renderSteps(host, actions, ctx)}
       </div>
     </div>
   `;

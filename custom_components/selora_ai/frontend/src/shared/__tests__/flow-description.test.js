@@ -408,9 +408,8 @@ describe("Conditions", () => {
     expect(result).toBe("Blinds current position between 45 and 55");
   });
 
-  it("stays generic for a strict two-sided range", () => {
-    // "between" reads inclusive, so a `> … <` range would misstate the
-    // boundary — fall back rather than claim an inclusivity it lacks.
+  it("states each bound of a strict two-sided range", () => {
+    // "between" reads inclusive, so a `> … <` range keeps its two bounds.
     const tmpl =
       "{{ states('sensor.temperature') | float > 45 and " +
       "states('sensor.temperature') | float < 55 }}";
@@ -418,10 +417,12 @@ describe("Conditions", () => {
       condition: "template",
       value_template: tmpl,
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe(
+      "Temperature Sensor above 45 and Temperature Sensor below 55",
+    );
   });
 
-  it("stays generic for a mixed-inclusivity two-sided range", () => {
+  it("states each bound of a mixed-inclusivity range", () => {
     const tmpl =
       "{{ states('sensor.temperature') | float >= 45 and " +
       "states('sensor.temperature') | float < 55 }}";
@@ -429,7 +430,9 @@ describe("Conditions", () => {
       condition: "template",
       value_template: tmpl,
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe(
+      "Temperature Sensor at least 45 and Temperature Sensor below 55",
+    );
   });
 
   it("describes a single-bound comparison template on states()", () => {
@@ -466,22 +469,22 @@ describe("Conditions", () => {
     expect(result).toBe("Temperature Sensor below 20");
   });
 
-  it("stays generic when a value-transforming filter is applied", () => {
+  it("names the entity when a value-transforming filter is applied", () => {
     // Regression: `| abs` was discarded, so -30 (which satisfies the real
     // template) would be described as "above 20". Only int/float convert.
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template: "{{ states('sensor.temperature') | float | abs > 20 }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Custom check on Temperature Sensor");
   });
 
-  it("stays generic for a rounding filter", () => {
+  it("names the entity behind a rounding filter", () => {
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template: "{{ states('sensor.temperature') | round(1) > 20 }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Custom check on Temperature Sensor");
   });
 
   it("describes an is_state template like a state condition", () => {
@@ -514,55 +517,57 @@ describe("Conditions", () => {
     expect(result).toBe("Template evaluates to true");
   });
 
-  it("does not invert a negated is_state template", () => {
+  it("describes a negated is_state template as negated", () => {
     // Regression: an unanchored match reported "Living Room Light is on"
-    // for the opposite condition. A negated template must stay generic.
+    // for the opposite condition.
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template: "{{ not is_state('light.living_room', 'on') }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Living Room Light is not on");
   });
 
-  it("does not drop clauses from a compound is_state template", () => {
+  it("describes every clause of a compound is_state template", () => {
     // Regression: only the first is_state() was described, silently
-    // omitting the second — the full expression must stay generic.
+    // omitting the second.
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template:
         "{{ is_state('light.living_room', 'on') and " +
         "is_state('cover.blinds', 'open') }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Living Room Light is on and Blinds is open");
   });
 
-  it("stays generic for a disjunctive comparison template", () => {
+  it("only names the entity of a disjunctive comparison template", () => {
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template:
         "{{ states('sensor.temperature') | float > 30 or " +
         "states('sensor.temperature') | float < 5 }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Custom check on Temperature Sensor");
   });
 
-  it("stays generic when a range spans two different entities", () => {
+  it("describes a range over two entities clause by clause", () => {
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template:
         "{{ states('sensor.temperature') | float > 20 and " +
         "states('cover.blinds') | float < 55 }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe("Temperature Sensor above 20 and Blinds below 55");
   });
 
-  it("stays generic when a template mixes a comparison with extra logic", () => {
+  it("describes a comparison joined to an is_state check", () => {
     const result = describeFlowItem(mockHass, {
       condition: "template",
       value_template:
         "{{ states('sensor.temperature') | float > 20 and is_state('light.living_room', 'on') }}",
     });
-    expect(result).toBe("Template evaluates to true");
+    expect(result).toBe(
+      "Temperature Sensor above 20 and Living Room Light is on",
+    );
   });
 });
 
@@ -830,7 +835,7 @@ describe("Actions", () => {
     const result = describeFlowItem(mockHass, {
       delay: "00:05:00",
     });
-    expect(result).toBe("Wait 00:05:00");
+    expect(result).toBe("Wait 5m");
   });
 
   it("describes delay action (object)", () => {
@@ -1406,12 +1411,12 @@ describe("displayTriggers", () => {
   });
 
   it("keeps a trigger when the shorthand template stays opaque", () => {
-    // A negated template renders as "Template evaluates to true" with no
-    // entity visible, so the trigger is the only place light.a appears.
+    // A template the chart cannot phrase shows no condition on light.a, so
+    // the trigger is the only place its role appears.
     const triggers = [{ trigger: "state", entity_id: "light.a" }];
     const actions = [
       {
-        if: "{{ not is_state('light.a', 'on') }}",
+        if: "{{ states('light.a') | length > 2 }}",
         then: [{ service: "light.turn_on" }],
       },
     ];
@@ -1653,7 +1658,7 @@ describe("state filter accuracy", () => {
       for: "00:10:00",
     });
     expect(out).toContain("25");
-    expect(out).toContain("00:10:00");
+    expect(out).toContain("for 10m");
   });
 
   it("keeps `for:` on a state condition", () => {

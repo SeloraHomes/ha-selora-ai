@@ -86,7 +86,7 @@ describe("refineSuggestions", () => {
     };
     expect(labels(automation)).toEqual([
       "Change the threshold (15)",
-      "Change the delay (00:05:00)",
+      "Change the delay (5m)",
       "Change the brightness (50%)",
       "Only between certain hours",
     ]);
