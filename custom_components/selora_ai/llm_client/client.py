@@ -1190,6 +1190,7 @@ class LLMClient:
                     automation_context=automation_context,
                     areas=areas,
                     attachments=attachments,
+                    camera_names=await self._camera_names(tool_executor),
                     tool_tokens=(
                         self._estimate_tool_tokens(intent_hint=cloud_intent_hint)
                         if tool_executor is not None
@@ -1502,6 +1503,7 @@ class LLMClient:
                     automation_context=automation_context,
                     areas=areas,
                     attachments=attachments,
+                    camera_names=await self._camera_names(tool_executor),
                     tool_tokens=(
                         self._estimate_tool_tokens(intent_hint=cloud_intent_hint)
                         if tool_executor is not None
@@ -2634,6 +2636,14 @@ class LLMClient:
             ),
         )
 
+    async def _camera_names(self, tool_executor: ToolExecutor | None) -> list[str]:
+        """The names find_camera_events can search by, on a turn that has tools."""
+        if tool_executor is None:
+            return []
+        from ..frigate.events import async_known_names
+
+        return await async_known_names(self._hass)
+
     def _build_chat_messages(
         self,
         user_message: str,
@@ -2649,6 +2659,7 @@ class LLMClient:
         areas: list[str] | None = None,
         attachments: list[ImageAttachment] | None = None,
         tool_tokens: int = 0,
+        camera_names: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Build the message list for architect chat / stream.
 
@@ -2802,6 +2813,15 @@ class LLMClient:
         if areas:
             sanitized = [_format_untrusted_text(a) for a in areas]
             area_section = "\nAVAILABLE AREAS:\n" + "\n".join(f"  - {a}" for a in sanitized) + "\n"
+        if camera_names:
+            # A fact, not a rule: told the cameras know Sam's face, the model
+            # asks them when Sam was seen; told to prefer the camera tool for
+            # sightings, it still read person.sam's home/away history.
+            area_section += (
+                "\nNAMES THE CAMERAS RECOGNISE (faces and plates; find_camera_events names):\n"
+                + "\n".join(f"  - {_format_untrusted_text(n)}" for n in camera_names)
+                + "\n"
+            )
 
         # For "which <category> are <state>?" status questions, pin the
         # answer set + count deterministically from live state. The model

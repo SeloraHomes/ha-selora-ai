@@ -13,24 +13,32 @@ integration's own authenticated views.
 
 from __future__ import annotations
 
+import asyncio
 from collections import Counter
 from datetime import UTC, datetime
 import itertools
+import logging
 import re
+import time
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
+from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
 from ..history_reader import _BadRequest, _window
 from .cameras import FOLDED_LABELS, OBJECT_LABEL, model_labels, unsupported_labels
 from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError
 from .descriptions import async_budget, described_by, selora_describes
+from .faces import _enabled as _faces_enabled
+from .faces import _people
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
 
 DEFAULT_HOURS: Final = 24.0
 MAX_DAYS: Final = 31
@@ -73,6 +81,12 @@ _NOT_YET: Final = (
     "Frigate writes a description once the object has left; one that just "
     "ended may still be coming."
 )
+# The names Frigate can put on an event, read once per TTL: every chat turn
+# asks, and a Frigate that is slow or restarting must not hold the turn up.
+_NAMES_CACHE: Final = "_frigate_known_names"
+_NAMES_TTL: Final = 300
+_NAMES_WAIT: Final = 2.0
+_MAX_NAMES: Final = 50
 # How long after an object leaves its description can still be on its way.
 _STILL_COMING_S: Final = 600
 _NO_REASON: Final = (
@@ -461,3 +475,35 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
             Counter(sanitize_untrusted_text(str(e.get("camera") or ""), 64) for e in found)
         )
     return result
+
+
+async def async_known_names(hass: HomeAssistant) -> list[str]:
+    """The faces and plates Frigate recognises: the values ``names`` takes.
+
+    For the chat context. A person the cameras know by face is also a
+    ``person`` entity, a tracker, a last-camera sensor; told nothing else, a
+    model asked when they were last seen reads where their phone was. Knowing
+    the cameras recognise the name is what lets it ask the cameras.
+    Empty without Frigate or when it does not answer in time.
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    cached = domain_data.get(_NAMES_CACHE)
+    if cached is not None and time.monotonic() - cached[0] < _NAMES_TTL:
+        return list(cached[1])
+    client = FrigateClient.from_hass(hass)
+    if client is None:
+        return []
+    names: list[str] = []
+    try:
+        async with asyncio.timeout(_NAMES_WAIT):
+            config = await client.get_config()
+            if _faces_enabled(config):
+                names += [p["name"] for p in _people(await client.get_faces())]
+            plates = (config.get("lpr") or {}).get("known_plates")
+            if isinstance(plates, dict):
+                names += [sanitize_untrusted_text(str(n), 60) for n in plates]
+    except (FrigateError, TimeoutError) as exc:
+        _LOGGER.debug("Frigate's known names unavailable: %s", exc)
+    names = list(dict.fromkeys(n for n in names if n))[:_MAX_NAMES]
+    domain_data[_NAMES_CACHE] = (time.monotonic(), names)
+    return names

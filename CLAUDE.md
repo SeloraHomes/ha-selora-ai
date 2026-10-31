@@ -194,6 +194,11 @@ second = await harness.chat("change the time to 7am", reply=_proposal())
 assert second.done["refining_automation_id"] == "selora_ai_aaa"
 ```
 
+**Chat evals** (`tests/evals/`, `just eval`) ask a real model about a home
+whose names collide and check the tools, tiles and services of each turn. A
+prompt change is judged there, over a few runs, not on a hub; a failure seen
+on a hub becomes a case first. See `docs/dev/chat-evals.md`.
+
 **Deploy skew.** A deploy without a restart leaves Python modules loaded while the
 panel bundle is served fresh, so the panel calls old websocket schemas and new
 keys fail with `extra keys not allowed`. `code_stamp.py` hashes every `*.py`

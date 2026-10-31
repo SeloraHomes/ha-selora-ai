@@ -26,7 +26,8 @@ Usage::
 
 The two entry points mirror each other: :meth:`chat` scripts the parsed reply
 `architect_chat` returns; :meth:`stream` scripts the raw text the provider
-streams and lets the real parser derive the reply from it.
+streams and lets the real parser derive the reply from it. :meth:`live` stubs
+nothing and asks a real model — the chat evals (`tests/evals/`) use it.
 """
 
 from __future__ import annotations
@@ -101,6 +102,9 @@ class ChatTurn:
     connection: FakeConnection
     architect_calls: list[dict[str, Any]] = field(default_factory=list)
     tool_results: list[dict[str, Any]] = field(default_factory=list)
+    # What the model called in a :meth:`ChatHarness.live` turn, as the
+    # executor logged it: tool, arguments, result.
+    tool_calls: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def asked(self) -> dict[str, Any]:
@@ -157,6 +161,7 @@ class ChatHarness:
         *,
         provider: str = "anthropic",
         automations: Iterable[dict[str, Any]] | None = None,
+        **provider_options: Any,
     ) -> ChatHarness:
         """Wire up the pieces the handlers look for in ``hass``.
 
@@ -174,7 +179,12 @@ class ChatHarness:
         config_dir = tempfile.mkdtemp(prefix="selora-chat-harness-")
         hass.config.config_dir = config_dir
 
-        llm = LLMClient(hass, provider=create_provider(provider, hass, api_key="test-key"))
+        llm = LLMClient(
+            hass,
+            provider=create_provider(
+                provider, hass, **({"api_key": "test-key"} | provider_options)
+            ),
+        )
         store = ConversationStore(hass)
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["_conv_store"] = store
@@ -324,6 +334,39 @@ class ChatHarness:
             patch.object(LLMClient, "architect_chat_stream", autospec=True, side_effect=_stream),
             patch.object(LLMClient, "architect_chat", autospec=True, side_effect=_architect),
             # The title round trip is a background task on a real provider.
+            patch.object(LLMClient, "generate_session_title", autospec=True, return_value="Title"),
+        ):
+            await self._invoke(_CHAT_STREAM, message, turn, extra)
+        return turn
+
+    async def live(self, message: str, *, is_admin: bool = True, **extra: Any) -> ChatTurn:
+        """Drive ``selora_ai/chat_stream`` against the real provider.
+
+        Nothing in the turn is scripted: the model picks the tools, they run
+        against this hass, and what the executor logged is on
+        ``turn.tool_calls``. Only the session title is stubbed — a second paid
+        round trip that the turn's answer does not depend on.
+        """
+        from custom_components.selora_ai.device_manager import DeviceManager
+        from custom_components.selora_ai.tool_executor import ToolExecutor
+
+        turn = self._new_turn(None, is_admin)
+
+        def _executor(
+            hass: HomeAssistant, connection: Any, *, session_id: str | None = None
+        ) -> ToolExecutor:
+            executor = ToolExecutor(
+                hass,
+                DeviceManager(hass),
+                is_admin=connection.user.is_admin,
+                session_id=session_id,
+            )
+            # The handler's own list, so the calls land here as they run.
+            turn.tool_calls = executor.call_log
+            return executor
+
+        with (
+            patch("custom_components.selora_ai._create_tool_executor", side_effect=_executor),
             patch.object(LLMClient, "generate_session_title", autospec=True, return_value="Title"),
         ):
             await self._invoke(_CHAT_STREAM, message, turn, extra)

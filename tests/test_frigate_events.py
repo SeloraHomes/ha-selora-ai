@@ -12,10 +12,12 @@ from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.selora_ai.frigate.events import async_find_events
+from custom_components.selora_ai.frigate.events import async_find_events, async_known_names
+from custom_components.selora_ai.llm_client.client import LLMClient
 from custom_components.selora_ai.llm_client.prompts import _SHARED_STATE_QUERY_RULES
 from custom_components.selora_ai.mcp_server.access import _ADMIN_TOOLS
 from custom_components.selora_ai.mcp_server.names import TOOL_FIND_CAMERA_EVENTS
+from custom_components.selora_ai.providers import AnthropicProvider
 from custom_components.selora_ai.tool_executor import ToolExecutor
 
 from .chat_harness import ChatHarness
@@ -504,3 +506,52 @@ async def test_only_a_path_safe_instance_id_is_passed_on(
     result = await async_find_events(hass, {})
 
     assert ("instance" in result) is passed
+
+
+async def test_the_names_frigate_recognises_are_its_faces_and_plates(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    config = {
+        **_CONFIG,
+        "face_recognition": {"enabled": True},
+        "lpr": {"known_plates": {"Alice's car": ["AB-123-CD"]}},
+    }
+    _api(aioclient_mock, [], config)
+    aioclient_mock.get(f"{FRIGATE}/api/faces", json={"Alice": ["a.webp"], "train": ["x.webp"]})
+
+    first = await async_known_names(hass)
+    again = await async_known_names(hass)
+
+    assert first == again == ["Alice", "Alice's car"]
+    # Every chat turn asks: Frigate is read once per TTL.
+    assert aioclient_mock.call_count == 2
+
+
+async def test_faces_count_only_while_recognition_runs(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, [], {**_CONFIG, "face_recognition": {"enabled": False}})
+    aioclient_mock.get(f"{FRIGATE}/api/faces", json={"Alice": ["a.webp"]})
+
+    assert await async_known_names(hass) == []
+
+
+async def test_a_frigate_that_does_not_answer_names_nobody(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    aioclient_mock.get(f"{FRIGATE}/api/config", exc=TimeoutError)
+
+    assert await async_known_names(hass) == []
+
+
+def test_the_chat_context_says_whom_the_cameras_recognise(hass: HomeAssistant) -> None:
+    client = LLMClient(hass, AnthropicProvider(hass, api_key="k"))
+
+    told = client._build_chat_messages(
+        "when was Alice last seen?", [], None, None, camera_names=["Alice"]
+    )
+    untold = client._build_chat_messages("when was Alice last seen?", [], None, None)
+
+    assert "NAMES THE CAMERAS RECOGNISE" in told[-1]["content"]
+    assert "Alice" in told[-1]["content"].split("NAMES THE CAMERAS RECOGNISE", 1)[1]
+    assert "NAMES THE CAMERAS RECOGNISE" not in untold[-1]["content"]
