@@ -82,9 +82,52 @@ def _describe_fields(schema: vol.Schema | None) -> list[dict[str, Any]]:
     return _describe_serialized(fields)
 
 
-# A field whose value is a credential, by its name — alongside a password-type
-# text selector. Over-matching only hides a current value.
-_SENSITIVE_NAME: Final = re.compile(r"pass|token|secret|key$|code|pin$|credential", re.I)
+# A field whose value is a credential, by the parts of its name (snake_case or
+# camelCase) — alongside a password-type text selector. Whole parts, because
+# adding an integration refuses a form with one: a station_code or a bypass
+# setting is not a secret.
+_SECRET_PARTS: Final = frozenset(
+    {
+        "pass",
+        "password",
+        "passwd",
+        "passcode",
+        "passphrase",
+        "passkey",
+        "pwd",
+        "token",
+        "secret",
+        "otp",
+        "totp",
+        "mfa",
+        "2fa",
+        "pin",
+        "pincode",
+        "accesscode",
+        "authcode",
+        "credential",
+        "credentials",
+        "apikey",
+    }
+)
+# A part ending in one of these is a secret even run together with another
+# word, as a bindkey (BTHome, Xiaomi BLE) or an authtoken is.
+_SECRET_ENDINGS: Final = ("key", "token", "secret", "password", "passwd", "psk")
+# A trailing "code" is a secret alone or after one of these.
+_SECRET_CODE_AFTER: Final = frozenset(
+    {"auth", "verification", "access", "security", "pairing", "login", "activation", "sms"}
+)
+_NAME_PART: Final = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+[A-Za-z]*")
+
+
+def is_credential_name(name: str) -> bool:
+    """Whether a form field's name says it holds a credential."""
+    parts = [p.lower() for p in _NAME_PART.findall(name)]
+    if not parts:
+        return False
+    if _SECRET_PARTS.intersection(parts) or any(p.endswith(_SECRET_ENDINGS) for p in parts):
+        return True
+    return parts[-1] == "code" and (len(parts) == 1 or parts[-2] in _SECRET_CODE_AFTER)
 
 
 def _describe_serialized(fields: list[Any]) -> list[dict[str, Any]]:
@@ -95,7 +138,7 @@ def _describe_serialized(fields: list[Any]) -> list[dict[str, Any]]:
         if not isinstance(field, dict):
             continue
         entry = {k: field[k] for k in _FIELD_KEYS if k in field}
-        sensitive = bool(_SENSITIVE_NAME.search(str(field.get("name", ""))))
+        sensitive = is_credential_name(str(field.get("name", "")))
         selector = entry.get("selector")
         if isinstance(selector, dict):
             # {"select": {"options": [...], "mode": ...}} → keep the kind and

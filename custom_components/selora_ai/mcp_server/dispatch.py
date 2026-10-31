@@ -122,6 +122,7 @@ from .hacs import (
     _tool_hacs_search,
 )
 from .integrations import (
+    _tool_add_integration,
     _tool_check_system,
     _tool_fire_event,
     _tool_get_diagnostics,
@@ -142,6 +143,7 @@ from .names import (
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_ADD_FACE_PHOTO,
+    TOOL_ADD_INTEGRATION,
     TOOL_ASSIGN_AREA,
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
@@ -563,6 +565,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_SET_INTEGRATION_ENABLED: _tool_set_integration_enabled,
         TOOL_REMOVE_INTEGRATION: _tool_remove_integration,
         TOOL_SET_INTEGRATION_OPTIONS: _tool_set_integration_options,
+        TOOL_ADD_INTEGRATION: _tool_add_integration,
         TOOL_REMOVE_DEVICE: _tool_remove_device,
         TOOL_REMOVE_ENTITY: _tool_remove_entity,
         TOOL_LIST_UPDATES: _tool_list_updates,
