@@ -100,6 +100,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `on ${d}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
+    and: " and ",
+    cond_is_not: (eid, st) => `${eid} is not ${st}`,
+    cond_prev_is: (st) => `Was ${st} before the change`,
+    cond_prev_is_not: (st) => `Was not ${st} before the change`,
+    cond_new_is: (st) => `Changed to ${st}`,
+    cond_new_is_not: (st) => `Changed to anything but ${st}`,
+    cond_template_on: (list) => `Custom check on ${list}`,
     cond_after_sun: (s) => `after ${s}`,
     cond_sun_window: (a, b) => `between ${a} and ${b}`,
     cond_before_sun: (s) => `before ${s}`,
@@ -234,6 +241,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `le ${d}`,
     cond_time_window: "Fenêtre temporelle",
     cond_template_true: "Le modèle est évalué à vrai",
+    and: " et ",
+    cond_is_not: (eid, st) => `${eid} n'est pas ${st}`,
+    cond_prev_is: (st) => `Était ${st} avant le changement`,
+    cond_prev_is_not: (st) => `N'était pas ${st} avant le changement`,
+    cond_new_is: (st) => `Est passé à ${st}`,
+    cond_new_is_not: (st) => `Est passé à autre chose que ${st}`,
+    cond_template_on: (list) => `Vérification personnalisée sur ${list}`,
     cond_after_sun: (s) => `après ${s}`,
     cond_sun_window: (a, b) => `entre ${a} et ${b}`,
     cond_before_sun: (s) => `avant ${s}`,
@@ -366,6 +380,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `am ${d}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
+    and: " und ",
+    cond_is_not: (eid, st) => `${eid} ist nicht ${st}`,
+    cond_prev_is: (st) => `War vor der Änderung ${st}`,
+    cond_prev_is_not: (st) => `War vor der Änderung nicht ${st}`,
+    cond_new_is: (st) => `Wechselte zu ${st}`,
+    cond_new_is_not: (st) => `Wechselte zu etwas anderem als ${st}`,
+    cond_template_on: (list) => `Eigene Prüfung von ${list}`,
     cond_after_sun: (s) => `nach ${s}`,
     cond_sun_window: (a, b) => `zwischen ${a} und ${b}`,
     cond_before_sun: (s) => `vor ${s}`,
@@ -500,6 +521,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `el ${d}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se evalúa como verdadera",
+    and: " y ",
+    cond_is_not: (eid, st) => `${eid} no es ${st}`,
+    cond_prev_is: (st) => `Era ${st} antes del cambio`,
+    cond_prev_is_not: (st) => `No era ${st} antes del cambio`,
+    cond_new_is: (st) => `Pasó a ${st}`,
+    cond_new_is_not: (st) => `Pasó a algo distinto de ${st}`,
+    cond_template_on: (list) => `Comprobación personalizada de ${list}`,
     cond_after_sun: (s) => `después de ${s}`,
     cond_sun_window: (a, b) => `entre ${a} y ${b}`,
     cond_before_sun: (s) => `antes de ${s}`,
@@ -633,6 +661,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `il ${d}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello è valutato vero",
+    and: " e ",
+    cond_is_not: (eid, st) => `${eid} non è ${st}`,
+    cond_prev_is: (st) => `Era ${st} prima del cambio`,
+    cond_prev_is_not: (st) => `Non era ${st} prima del cambio`,
+    cond_new_is: (st) => `È passato a ${st}`,
+    cond_new_is_not: (st) => `È passato a qualcosa diverso da ${st}`,
+    cond_template_on: (list) => `Verifica personalizzata su ${list}`,
     cond_after_sun: (s) => `dopo ${s}`,
     cond_sun_window: (a, b) => `tra ${a} e ${b}`,
     cond_before_sun: (s) => `prima di ${s}`,
@@ -768,6 +803,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `op ${d}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
+    and: " en ",
+    cond_is_not: (eid, st) => `${eid} is niet ${st}`,
+    cond_prev_is: (st) => `Was ${st} vóór de wijziging`,
+    cond_prev_is_not: (st) => `Was niet ${st} vóór de wijziging`,
+    cond_new_is: (st) => `Veranderde naar ${st}`,
+    cond_new_is_not: (st) => `Veranderde naar iets anders dan ${st}`,
+    cond_template_on: (list) => `Eigen controle op ${list}`,
     cond_after_sun: (s) => `na ${s}`,
     cond_sun_window: (a, b) => `tussen ${a} en ${b}`,
     cond_before_sun: (s) => `vóór ${s}`,
@@ -902,6 +944,13 @@ const PHRASES = {
     cond_on_weekday: (d) => `${d} napokon`,
     cond_time_window: "Időablak",
     cond_template_true: "A sablon igaznak értékelődik",
+    and: " és ",
+    cond_is_not: (eid, st) => `${eid} értéke nem ${st}`,
+    cond_prev_is: (st) => `A változás előtt ${st} volt`,
+    cond_prev_is_not: (st) => `A változás előtt nem ${st} volt`,
+    cond_new_is: (st) => `${st} lett`,
+    cond_new_is_not: (st) => `${st}-tól eltérő lett`,
+    cond_template_on: (list) => `Egyéni ellenőrzés: ${list}`,
     cond_after_sun: (s) => `${s} után`,
     cond_sun_window: (a, b) => `${a} és ${b} között`,
     cond_before_sun: (s) => `${s} előtt`,
@@ -1194,8 +1243,151 @@ function _describeComparisonTemplate(hass, template, t, lang) {
 // whether a template's entities are actually shown in the chart.
 function _templateHasConcreteDescription(template) {
   return (
-    _describeComparisonTemplate(null, template, () => "x", undefined) != null
+    _describeComparisonTemplate(null, template, () => "x", undefined) != null ||
+    _templateClauses(template) != null
   );
+}
+
+function _templateInner(template) {
+  return String(template || "")
+    .replace(/^\s*\{\{-?/, "")
+    .replace(/-?\}\}\s*$/, "")
+    .trim();
+}
+
+// Split a Jinja expression on its top-level `and`s, skipping quoted text and
+// anything inside brackets. Null when a top-level `or` / `if` / `else` makes
+// the expression more than a plain conjunction.
+function _splitTopLevelAnd(expr) {
+  const parts = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i = 0; i < expr.length; i++) {
+    const c = expr[i];
+    if (quote) {
+      if (c === quote) quote = null;
+      continue;
+    }
+    if (c === "'" || c === '"') quote = c;
+    else if ("([{".includes(c)) depth++;
+    else if (")]}".includes(c)) depth--;
+    else if (depth === 0) {
+      const word = expr.slice(i).match(/^\s(and|or|if|else)\s/);
+      if (!word) continue;
+      if (word[1] !== "and") return null;
+      parts.push(expr.slice(start, i).trim());
+      i += word[0].length - 1;
+      start = i + 1;
+    }
+  }
+  if (quote || depth !== 0) return null;
+  parts.push(expr.slice(start).trim());
+  return parts;
+}
+
+const _QUOTED_RE = /['"]([^'"]*)['"]/g;
+const _CLAUSE_SHAPES = [
+  // `trigger.from_state is not none` only guards the clause after it against
+  // an entity that has just appeared; it says nothing about the home.
+  [/^trigger\.(?:from|to)_state\s+is\s+not\s+none$/, () => ({ guard: true })],
+  [
+    /^trigger\.entity_id\s*==\s*['"]([^'"]+)['"]$/,
+    (m) => ({ triggeredBy: [m[1]] }),
+  ],
+  [
+    /^trigger\.entity_id\s+in\s+[[(]((?:\s*['"][^'"]+['"]\s*,?)+)[\])]$/,
+    (m) => ({ triggeredBy: [...m[1].matchAll(_QUOTED_RE)].map((q) => q[1]) }),
+  ],
+  [
+    /^trigger\.(from|to)_state\.state\s*(==|!=)\s*['"]([^'"]*)['"]$/,
+    (m) => ({ triggerState: m[1], negated: m[2] === "!=", state: m[3] }),
+  ],
+  [
+    /^(not\s+)?is_state\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)$/,
+    (m) => ({ entity: m[2], negated: !!m[1], state: m[3] }),
+  ],
+  [
+    /^states\(\s*['"]([^'"]+)['"]\s*\)\s*(==|!=)\s*['"]([^'"]*)['"]$/,
+    (m) => ({ entity: m[1], negated: m[2] === "!=", state: m[3] }),
+  ],
+];
+
+// The checks of a template that is a conjunction of shapes the chart can
+// phrase — the trigger that fired, the state it left or reached, an entity's
+// state, a numeric comparison. Null when any clause is something else, so a
+// template is either described in full or not at all.
+function _templateClauses(template) {
+  const inner = _templateInner(template);
+  if (!inner) return null;
+  const parts = _splitTopLevelAnd(inner);
+  if (!parts) return null;
+  const clauses = [];
+  for (const part of parts) {
+    const shape = _CLAUSE_SHAPES.find(([re]) => re.test(part));
+    if (shape) {
+      const clause = shape[1](part.match(shape[0]));
+      if (!clause.guard) clauses.push(clause);
+    } else if (
+      _describeComparisonTemplate(null, `{{ ${part} }}`, () => "x") != null
+    ) {
+      clauses.push({ comparison: part });
+    } else {
+      return null;
+    }
+  }
+  return clauses.length ? clauses : null;
+}
+
+function _describeTemplateClause(hass, clause, t, lang) {
+  if (clause.comparison)
+    return _describeComparisonTemplate(
+      hass,
+      `{{ ${clause.comparison} }}`,
+      t,
+      lang,
+    );
+  if (clause.triggeredBy)
+    return t(
+      "cond_triggered_by",
+      clause.triggeredBy.map((e) => fmtEntity(hass, e)).join(t("or")),
+    );
+  const st = fmtState(clause.state, lang);
+  if (clause.triggerState === "from")
+    return t(clause.negated ? "cond_prev_is_not" : "cond_prev_is", st);
+  if (clause.triggerState === "to")
+    return t(clause.negated ? "cond_new_is_not" : "cond_new_is", st);
+  return t(
+    clause.negated ? "cond_is_not" : "cond_is",
+    fmtEntity(hass, clause.entity),
+    st,
+  );
+}
+
+/**
+ * A template condition made of several checks joined by `and`, rewritten as
+ * an `and` group of one template condition per check, so the chart draws each
+ * as its own step instead of one opaque "Template evaluates to true". Null
+ * when the template is a single check or has a part the chart cannot phrase.
+ *
+ * @param {Object} cond - an object-form condition
+ * @returns {Object|null} the equivalent `and` condition
+ */
+export function splitTemplateCondition(cond) {
+  if (cond?.condition !== "template") return null;
+  if (_describeComparisonTemplate(null, cond.value_template, () => "x"))
+    return null;
+  const parts = _splitTopLevelAnd(_templateInner(cond.value_template));
+  const clauses = _templateClauses(cond.value_template);
+  if (!parts || !clauses || clauses.length < 2) return null;
+  const { value_template: _drop, ...rest } = cond;
+  return {
+    ...rest,
+    condition: "and",
+    conditions: parts
+      .filter((p) => _templateClauses(`{{ ${p} }}`) != null)
+      .map((p) => ({ condition: "template", value_template: `{{ ${p} }}` })),
+  };
 }
 
 /**
@@ -1517,7 +1709,17 @@ export function describeFlowItem(hass, item, ctx) {
       t,
       lang,
     );
-    return parsed || t("cond_template_true");
+    if (parsed) return parsed;
+    const clauses = _templateClauses(item.value_template);
+    if (clauses)
+      return clauses
+        .map((c) => _describeTemplateClause(hass, c, t, lang))
+        .join(t("and"));
+    // Unphrasable, but naming what it reads still tells more than nothing.
+    const ids = collectFlowEntityIds(item);
+    return ids.length
+      ? t("cond_template_on", fmtEntities(hass, ids, lang))
+      : t("cond_template_true");
   }
   if (cond === "trigger") {
     // Ties a choose-branch to the trigger that fired. Time triggers get
@@ -1682,12 +1884,11 @@ export function describeFlowItem(hass, item, ctx) {
   }
   if (item.delay) {
     const d = item.delay;
-    if (typeof d === "string") return t("wait_str", d);
-    const parts = [];
-    if (d.hours) parts.push(`${d.hours}h`);
-    if (d.minutes) parts.push(`${d.minutes}m`);
-    if (d.seconds) parts.push(`${d.seconds}s`);
-    return parts.length ? t("wait_parts", parts.join(" ")) : t("wait_plain");
+    if (typeof d === "string") return t("wait_str", fmtDuration(d));
+    const label = fmtDuration(d);
+    return label && label !== String(d)
+      ? t("wait_parts", label)
+      : t("wait_plain");
   }
   if (item.wait_template) {
     const what = _describeComparisonTemplate(hass, item.wait_template, t, lang);
@@ -1836,6 +2037,8 @@ export function collectFlowEntityIds(item) {
     )) {
       push(m[1]);
     }
+    // `trigger.entity_id in ['sensor.a', 'sensor.b']` reads "Triggered by A or B".
+    for (const clause of _templateClauses(tpl) || []) push(clause.triggeredBy);
   }
   // A wait names the entities of the triggers it waits for.
   for (const tr of asArray(item.wait_for_trigger)) {

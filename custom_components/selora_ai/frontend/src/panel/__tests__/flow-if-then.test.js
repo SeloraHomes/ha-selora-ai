@@ -103,7 +103,7 @@ describe("flow chart if/then/else expansion", () => {
   it("keeps the triggers visible when an unconditional action precedes the if", () => {
     const out = flatten(renderAutomationFlowchart(host, autoOff));
     // The delay runs on every firing, so trigger timing stays load-bearing.
-    expect(out).toContain("Wait 00:10:00");
+    expect(out).toContain("10 min");
     expect(out).toContain("turns on");
   });
 
@@ -155,7 +155,7 @@ describe("flow chart if/then/else expansion", () => {
     expect(out.match(/is on/g)).toHaveLength(2);
   });
 
-  it("falls back to the generic template text for an unparseable shorthand", () => {
+  it("describes a negated shorthand template as negated", () => {
     const out = flatten(
       renderAutomationFlowchart(host, {
         triggers: [{ trigger: "time", at: "23:00:00" }],
@@ -167,9 +167,8 @@ describe("flow chart if/then/else expansion", () => {
         ],
       }),
     );
-    // A negation can't be phrased affirmatively — better opaque than inverted.
     expect(out).not.toContain("{{");
-    expect(out).toContain("Template evaluates to true");
+    expect(out).toContain("is not on");
   });
 
   it("describes a collapsed if/then instead of dumping raw keys", () => {

@@ -33692,17 +33692,38 @@ function fmtState(state, language) {
   const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
   return table[s6] || s6.replace(/_/g, " ");
 }
+function _compactDuration(hours, minutes, seconds) {
+  return [
+    hours ? `${hours}h` : "",
+    minutes ? `${minutes}m` : "",
+    seconds ? `${seconds}s` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 function fmtDuration(value) {
   if (!value) return "";
-  if (typeof value === "string") return value;
+  if (
+    typeof value === "number" ||
+    /^\s*\d+(?:\.\d+)?\s*$/.test(String(value))
+  ) {
+    const total = Number(value);
+    return (
+      _compactDuration(
+        Math.floor(total / 3600),
+        Math.floor((total % 3600) / 60),
+        Number((total % 60).toFixed(3)),
+      ) || String(value)
+    );
+  }
+  if (typeof value === "string") {
+    const m3 = value.trim().match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+    return (m3 && _compactDuration(+m3[1], +m3[2], +(m3[3] || 0))) || value;
+  }
   if (typeof value !== "object") return String(value);
-  const parts = [
-    value.hours ? `${value.hours}h` : "",
-    value.minutes ? `${value.minutes}m` : "",
-    value.seconds ? `${value.seconds}s` : "",
-  ].filter(Boolean);
-  if (parts.length) return parts.join(" ");
-  return String(value);
+  return (
+    _compactDuration(value.hours, value.minutes, value.seconds) || String(value)
+  );
 }
 var _WEEKDAYS = {
   en: {
@@ -33891,6 +33912,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `on ${d3}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
+    and: " and ",
+    cond_is_not: (eid, st) => `${eid} is not ${st}`,
+    cond_prev_is: (st) => `Was ${st} before the change`,
+    cond_prev_is_not: (st) => `Was not ${st} before the change`,
+    cond_new_is: (st) => `Changed to ${st}`,
+    cond_new_is_not: (st) => `Changed to anything but ${st}`,
+    cond_template_on: (list) => `Custom check on ${list}`,
     cond_after_sun: (s6) => `after ${s6}`,
     cond_sun_window: (a3, b3) => `between ${a3} and ${b3}`,
     cond_before_sun: (s6) => `before ${s6}`,
@@ -34027,6 +34055,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `le ${d3}`,
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
+    and: " et ",
+    cond_is_not: (eid, st) => `${eid} n'est pas ${st}`,
+    cond_prev_is: (st) => `\xC9tait ${st} avant le changement`,
+    cond_prev_is_not: (st) => `N'\xE9tait pas ${st} avant le changement`,
+    cond_new_is: (st) => `Est pass\xE9 \xE0 ${st}`,
+    cond_new_is_not: (st) => `Est pass\xE9 \xE0 autre chose que ${st}`,
+    cond_template_on: (list) => `V\xE9rification personnalis\xE9e sur ${list}`,
     cond_after_sun: (s6) => `apr\xE8s ${s6}`,
     cond_sun_window: (a3, b3) => `entre ${a3} et ${b3}`,
     cond_before_sun: (s6) => `avant ${s6}`,
@@ -34159,6 +34194,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `am ${d3}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
+    and: " und ",
+    cond_is_not: (eid, st) => `${eid} ist nicht ${st}`,
+    cond_prev_is: (st) => `War vor der \xC4nderung ${st}`,
+    cond_prev_is_not: (st) => `War vor der \xC4nderung nicht ${st}`,
+    cond_new_is: (st) => `Wechselte zu ${st}`,
+    cond_new_is_not: (st) => `Wechselte zu etwas anderem als ${st}`,
+    cond_template_on: (list) => `Eigene Pr\xFCfung von ${list}`,
     cond_after_sun: (s6) => `nach ${s6}`,
     cond_sun_window: (a3, b3) => `zwischen ${a3} und ${b3}`,
     cond_before_sun: (s6) => `vor ${s6}`,
@@ -34293,6 +34335,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `el ${d3}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
+    and: " y ",
+    cond_is_not: (eid, st) => `${eid} no es ${st}`,
+    cond_prev_is: (st) => `Era ${st} antes del cambio`,
+    cond_prev_is_not: (st) => `No era ${st} antes del cambio`,
+    cond_new_is: (st) => `Pas\xF3 a ${st}`,
+    cond_new_is_not: (st) => `Pas\xF3 a algo distinto de ${st}`,
+    cond_template_on: (list) => `Comprobaci\xF3n personalizada de ${list}`,
     cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
     cond_sun_window: (a3, b3) => `entre ${a3} y ${b3}`,
     cond_before_sun: (s6) => `antes de ${s6}`,
@@ -34429,6 +34478,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `il ${d3}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
+    and: " e ",
+    cond_is_not: (eid, st) => `${eid} non \xE8 ${st}`,
+    cond_prev_is: (st) => `Era ${st} prima del cambio`,
+    cond_prev_is_not: (st) => `Non era ${st} prima del cambio`,
+    cond_new_is: (st) => `\xC8 passato a ${st}`,
+    cond_new_is_not: (st) => `\xC8 passato a qualcosa diverso da ${st}`,
+    cond_template_on: (list) => `Verifica personalizzata su ${list}`,
     cond_after_sun: (s6) => `dopo ${s6}`,
     cond_sun_window: (a3, b3) => `tra ${a3} e ${b3}`,
     cond_before_sun: (s6) => `prima di ${s6}`,
@@ -34567,6 +34623,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `op ${d3}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
+    and: " en ",
+    cond_is_not: (eid, st) => `${eid} is niet ${st}`,
+    cond_prev_is: (st) => `Was ${st} v\xF3\xF3r de wijziging`,
+    cond_prev_is_not: (st) => `Was niet ${st} v\xF3\xF3r de wijziging`,
+    cond_new_is: (st) => `Veranderde naar ${st}`,
+    cond_new_is_not: (st) => `Veranderde naar iets anders dan ${st}`,
+    cond_template_on: (list) => `Eigen controle op ${list}`,
     cond_after_sun: (s6) => `na ${s6}`,
     cond_sun_window: (a3, b3) => `tussen ${a3} en ${b3}`,
     cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
@@ -34707,6 +34770,13 @@ var PHRASES = {
     cond_on_weekday: (d3) => `${d3} napokon`,
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
+    and: " \xE9s ",
+    cond_is_not: (eid, st) => `${eid} \xE9rt\xE9ke nem ${st}`,
+    cond_prev_is: (st) => `A v\xE1ltoz\xE1s el\u0151tt ${st} volt`,
+    cond_prev_is_not: (st) => `A v\xE1ltoz\xE1s el\u0151tt nem ${st} volt`,
+    cond_new_is: (st) => `${st} lett`,
+    cond_new_is_not: (st) => `${st}-t\xF3l elt\xE9r\u0151 lett`,
+    cond_template_on: (list) => `Egy\xE9ni ellen\u0151rz\xE9s: ${list}`,
     cond_after_sun: (s6) => `${s6} ut\xE1n`,
     cond_sun_window: (a3, b3) => `${a3} \xE9s ${b3} k\xF6z\xF6tt`,
     cond_before_sun: (s6) => `${s6} el\u0151tt`,
@@ -34921,7 +34991,130 @@ function _describeComparisonTemplate(hass, template, t5, lang) {
   return null;
 }
 function _templateHasConcreteDescription(template) {
-  return _describeComparisonTemplate(null, template, () => "x", void 0) != null;
+  return (
+    _describeComparisonTemplate(null, template, () => "x", void 0) != null ||
+    _templateClauses(template) != null
+  );
+}
+function _templateInner(template) {
+  return String(template || "")
+    .replace(/^\s*\{\{-?/, "")
+    .replace(/-?\}\}\s*$/, "")
+    .trim();
+}
+function _splitTopLevelAnd(expr) {
+  const parts = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i8 = 0; i8 < expr.length; i8++) {
+    const c6 = expr[i8];
+    if (quote) {
+      if (c6 === quote) quote = null;
+      continue;
+    }
+    if (c6 === "'" || c6 === '"') quote = c6;
+    else if ("([{".includes(c6)) depth++;
+    else if (")]}".includes(c6)) depth--;
+    else if (depth === 0) {
+      const word = expr.slice(i8).match(/^\s(and|or|if|else)\s/);
+      if (!word) continue;
+      if (word[1] !== "and") return null;
+      parts.push(expr.slice(start, i8).trim());
+      i8 += word[0].length - 1;
+      start = i8 + 1;
+    }
+  }
+  if (quote || depth !== 0) return null;
+  parts.push(expr.slice(start).trim());
+  return parts;
+}
+var _QUOTED_RE = /['"]([^'"]*)['"]/g;
+var _CLAUSE_SHAPES = [
+  // `trigger.from_state is not none` only guards the clause after it against
+  // an entity that has just appeared; it says nothing about the home.
+  [/^trigger\.(?:from|to)_state\s+is\s+not\s+none$/, () => ({ guard: true })],
+  [
+    /^trigger\.entity_id\s*==\s*['"]([^'"]+)['"]$/,
+    (m3) => ({ triggeredBy: [m3[1]] }),
+  ],
+  [
+    /^trigger\.entity_id\s+in\s+[[(]((?:\s*['"][^'"]+['"]\s*,?)+)[\])]$/,
+    (m3) => ({ triggeredBy: [...m3[1].matchAll(_QUOTED_RE)].map((q) => q[1]) }),
+  ],
+  [
+    /^trigger\.(from|to)_state\.state\s*(==|!=)\s*['"]([^'"]*)['"]$/,
+    (m3) => ({ triggerState: m3[1], negated: m3[2] === "!=", state: m3[3] }),
+  ],
+  [
+    /^(not\s+)?is_state\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)$/,
+    (m3) => ({ entity: m3[2], negated: !!m3[1], state: m3[3] }),
+  ],
+  [
+    /^states\(\s*['"]([^'"]+)['"]\s*\)\s*(==|!=)\s*['"]([^'"]*)['"]$/,
+    (m3) => ({ entity: m3[1], negated: m3[2] === "!=", state: m3[3] }),
+  ],
+];
+function _templateClauses(template) {
+  const inner = _templateInner(template);
+  if (!inner) return null;
+  const parts = _splitTopLevelAnd(inner);
+  if (!parts) return null;
+  const clauses = [];
+  for (const part of parts) {
+    const shape = _CLAUSE_SHAPES.find(([re]) => re.test(part));
+    if (shape) {
+      const clause = shape[1](part.match(shape[0]));
+      if (!clause.guard) clauses.push(clause);
+    } else if (
+      _describeComparisonTemplate(null, `{{ ${part} }}`, () => "x") != null
+    ) {
+      clauses.push({ comparison: part });
+    } else {
+      return null;
+    }
+  }
+  return clauses.length ? clauses : null;
+}
+function _describeTemplateClause(hass, clause, t5, lang) {
+  if (clause.comparison)
+    return _describeComparisonTemplate(
+      hass,
+      `{{ ${clause.comparison} }}`,
+      t5,
+      lang,
+    );
+  if (clause.triggeredBy)
+    return t5(
+      "cond_triggered_by",
+      clause.triggeredBy.map((e6) => fmtEntity(hass, e6)).join(t5("or")),
+    );
+  const st = fmtState(clause.state, lang);
+  if (clause.triggerState === "from")
+    return t5(clause.negated ? "cond_prev_is_not" : "cond_prev_is", st);
+  if (clause.triggerState === "to")
+    return t5(clause.negated ? "cond_new_is_not" : "cond_new_is", st);
+  return t5(
+    clause.negated ? "cond_is_not" : "cond_is",
+    fmtEntity(hass, clause.entity),
+    st,
+  );
+}
+function splitTemplateCondition(cond) {
+  if (cond?.condition !== "template") return null;
+  if (_describeComparisonTemplate(null, cond.value_template, () => "x"))
+    return null;
+  const parts = _splitTopLevelAnd(_templateInner(cond.value_template));
+  const clauses = _templateClauses(cond.value_template);
+  if (!parts || !clauses || clauses.length < 2) return null;
+  const { value_template: _drop, ...rest } = cond;
+  return {
+    ...rest,
+    condition: "and",
+    conditions: parts
+      .filter((p4) => _templateClauses(`{{ ${p4} }}`) != null)
+      .map((p4) => ({ condition: "template", value_template: `{{ ${p4} }}` })),
+  };
 }
 function normalizeCondition(cond) {
   return typeof cond === "string"
@@ -35158,7 +35351,16 @@ function describeFlowItem(hass, item, ctx) {
       t5,
       lang,
     );
-    return parsed || t5("cond_template_true");
+    if (parsed) return parsed;
+    const clauses = _templateClauses(item.value_template);
+    if (clauses)
+      return clauses
+        .map((c6) => _describeTemplateClause(hass, c6, t5, lang))
+        .join(t5("and"));
+    const ids2 = collectFlowEntityIds(item);
+    return ids2.length
+      ? t5("cond_template_on", fmtEntities(hass, ids2, lang))
+      : t5("cond_template_true");
   }
   if (cond === "trigger") {
     const ids2 = asArray(item.id).map(String);
@@ -35304,12 +35506,11 @@ function describeFlowItem(hass, item, ctx) {
   }
   if (item.delay) {
     const d3 = item.delay;
-    if (typeof d3 === "string") return t5("wait_str", d3);
-    const parts = [];
-    if (d3.hours) parts.push(`${d3.hours}h`);
-    if (d3.minutes) parts.push(`${d3.minutes}m`);
-    if (d3.seconds) parts.push(`${d3.seconds}s`);
-    return parts.length ? t5("wait_parts", parts.join(" ")) : t5("wait_plain");
+    if (typeof d3 === "string") return t5("wait_str", fmtDuration(d3));
+    const label = fmtDuration(d3);
+    return label && label !== String(d3)
+      ? t5("wait_parts", label)
+      : t5("wait_plain");
   }
   if (item.wait_template) {
     const what = _describeComparisonTemplate(
@@ -35439,6 +35640,7 @@ function collectFlowEntityIds(item) {
     )) {
       push(m3[1]);
     }
+    for (const clause of _templateClauses(tpl) || []) push(clause.triggeredBy);
   }
   for (const tr of asArray(item.wait_for_trigger)) {
     push(collectFlowEntityIds(tr));
@@ -39729,12 +39931,12 @@ function renderFlowDeviceLink(host2, deviceId, name, domain) {
   </button>`;
 }
 var DURATION_RE =
-  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
+  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+(?:\.\d+)?\s*s)?|\d+\s*m(?:\s+\d+(?:\.\d+)?\s*s)?|\d+(?:\.\d+)?\s*s)\b/g;
 function expandDurationAbbrev(s6) {
   return s6
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
-    .replace(/(\d+)\s*s\b/g, "$1 sec");
+    .replace(/(\d+(?:\.\d+)?)\s*s\b/g, "$1 sec");
 }
 function renderFlowDuration(raw) {
   return b2`<span class="flow-duration"
@@ -39877,6 +40079,8 @@ function renderConditionItem(host2, rawCond, ctx, implicitAll = true) {
     );
   }
   const cond = normalizeCondition(rawCond);
+  const split = splitTemplateCondition(cond);
+  if (split) return renderConditionItem(host2, split, ctx, implicitAll);
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
@@ -39947,6 +40151,16 @@ function _shownSteps(steps) {
       ),
   );
 }
+function renderSteps(host2, steps, ctx) {
+  return _shownSteps(steps).map(
+    (s6, i8) =>
+      b2`${i8 ? b2`<div class="flow-arrow-sm">↓</div>` : ""}${renderActionItem(
+        host2,
+        s6,
+        ctx,
+      )}`,
+  );
+}
 function _isBlockAction(action) {
   return (
     action.if != null ||
@@ -39974,7 +40188,7 @@ function renderActionItemBody(host2, action, ctx) {
             ? b2`<div class="flow-arrow-sm">↓</div>`
             : ""
         }
-        ${thenSteps.map((s6) => renderActionItem(host2, s6, ctx))}
+        ${renderSteps(host2, thenSteps, ctx)}
       </div>
       ${
         elseSteps.length
@@ -39982,7 +40196,7 @@ function renderActionItemBody(host2, action, ctx) {
               <div class="flow-branch-label">
                 ${host2._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${elseSteps.map((s6) => renderActionItem(host2, s6, ctx))}
+              ${renderSteps(host2, elseSteps, ctx)}
             </div>`
           : ""
       }
@@ -40000,9 +40214,7 @@ function renderActionItemBody(host2, action, ctx) {
               renderConditionItem(host2, c6, ctx),
             )}
             ${asArray(branch?.conditions).length && _shownSteps(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
-            ${_shownSteps(branch?.sequence).map((s6) =>
-              renderActionItem(host2, s6, ctx),
-            )}
+            ${renderSteps(host2, branch?.sequence, ctx)}
           </div>
         `,
       )}
@@ -40012,7 +40224,7 @@ function renderActionItemBody(host2, action, ctx) {
               <div class="flow-branch-label">
                 ${host2._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${_shownSteps(action.default).map((s6) => renderActionItem(host2, s6, ctx))}
+              ${renderSteps(host2, action.default, ctx)}
             </div>`
           : ""
       }
@@ -40031,7 +40243,7 @@ function renderActionItemBody(host2, action, ctx) {
       <div class="flow-branch-label">
         ${host2._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${_shownSteps(action.sequence).map((s6) => renderActionItem(host2, s6, ctx))}
+      ${renderSteps(host2, action.sequence, ctx)}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -40086,7 +40298,7 @@ function renderActionItemBody(host2, action, ctx) {
       </div>
       <div class="flow-loop-body">
         ${conds(whileConds)}${whileConds.length && inner.length ? arrow : ""}
-        ${inner.map((s6) => renderActionItem(host2, s6, ctx))}
+        ${renderSteps(host2, inner, ctx)}
         ${untilConds.length && inner.length ? arrow : ""}${conds(untilConds)}
         <div class="flow-loop-return" aria-hidden="true">
           <svg viewBox="0 0 6 8" class="flow-loop-head">
@@ -40218,7 +40430,7 @@ function renderAutomationFlowchart(host2, auto, opts = {}) {
         <div class="flow-label">
           ${host2._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${_shownSteps(actions).map((a3) => renderActionItem(host2, a3, ctx))}
+        ${renderSteps(host2, actions, ctx)}
       </div>
     </div>
   `;
@@ -58801,7 +59013,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "aaec074f3791" : "";
+var PANEL_BUILD = true ? "dcd2a3932e04" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

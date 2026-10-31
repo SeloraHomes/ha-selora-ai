@@ -187,18 +187,44 @@ export function fmtState(state, language) {
   return table[s] || s.replace(/_/g, " ");
 }
 
+function _compactDuration(hours, minutes, seconds) {
+  return [
+    hours ? `${hours}h` : "",
+    minutes ? `${minutes}m` : "",
+    seconds ? `${seconds}s` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+// HA writes a duration as "HH:MM[:SS]", seconds, or a mapping; all of them
+// read as the compact "1h 30m" form the flow chart lifts into a clock chip.
+// Anything else (a template, an unknown shape) is shown as written.
 /** @param {string|{hours?:number,minutes?:number,seconds?:number}|*} value @returns {string} e.g. "1h 30m" */
 export function fmtDuration(value) {
   if (!value) return "";
-  if (typeof value === "string") return value;
+  if (
+    typeof value === "number" ||
+    /^\s*\d+(?:\.\d+)?\s*$/.test(String(value))
+  ) {
+    // A delay can be sub-second, so the seconds keep their fraction.
+    const total = Number(value);
+    return (
+      _compactDuration(
+        Math.floor(total / 3600),
+        Math.floor((total % 3600) / 60),
+        Number((total % 60).toFixed(3)),
+      ) || String(value)
+    );
+  }
+  if (typeof value === "string") {
+    const m = value.trim().match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+    return (m && _compactDuration(+m[1], +m[2], +(m[3] || 0))) || value;
+  }
   if (typeof value !== "object") return String(value);
-  const parts = [
-    value.hours ? `${value.hours}h` : "",
-    value.minutes ? `${value.minutes}m` : "",
-    value.seconds ? `${value.seconds}s` : "",
-  ].filter(Boolean);
-  if (parts.length) return parts.join(" ");
-  return String(value);
+  return (
+    _compactDuration(value.hours, value.minutes, value.seconds) || String(value)
+  );
 }
 
 // Per-locale weekday abbreviations. Keep short — these render in

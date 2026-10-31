@@ -122,8 +122,15 @@ describe("fmtDuration", () => {
     expect(fmtDuration("")).toBe("");
   });
 
-  it("returns string as-is", () => {
-    expect(fmtDuration("00:05:00")).toBe("00:05:00");
+  it("reads an HH:MM:SS string", () => {
+    expect(fmtDuration("00:05:00")).toBe("5m");
+    expect(fmtDuration("01:30")).toBe("1h 30m");
+    expect(fmtDuration("00:00:30")).toBe("30s");
+  });
+
+  it("returns any other string as-is", () => {
+    expect(fmtDuration("{{ wait }}")).toBe("{{ wait }}");
+    expect(fmtDuration("00:00:00")).toBe("00:00:00");
   });
 
   it("formats object with hours, minutes, seconds", () => {
@@ -134,8 +141,15 @@ describe("fmtDuration", () => {
     expect(fmtDuration({ seconds: 45 })).toBe("45s");
   });
 
-  it("returns stringified value for non-object, non-string", () => {
-    expect(fmtDuration(42)).toBe("42");
+  it("reads a number as seconds", () => {
+    expect(fmtDuration(42)).toBe("42s");
+    expect(fmtDuration(3660)).toBe("1h 1m");
+  });
+
+  it("keeps a sub-second fraction", () => {
+    expect(fmtDuration(0.4)).toBe("0.4s");
+    expect(fmtDuration(90.5)).toBe("1m 30.5s");
+    expect(fmtDuration("0.25")).toBe("0.25s");
   });
 });
 
