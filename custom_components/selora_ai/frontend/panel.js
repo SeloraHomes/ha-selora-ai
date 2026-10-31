@@ -6099,6 +6099,55 @@ var proposalStyles = i`
   .flow-branch .flow-branch {
     background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
   }
+  /* A repeat block: a bracket down the right of its body leaves the last
+     step and comes back in at the first, so the box reads as a loop. Its
+     ends sit at the middle of a one-line step (10px padding + 21px line +
+     1px border, halved); the body is padded on both sides alike so the steps
+     stay centred under the label. */
+  .flow-loop-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .flow-loop-label ha-icon {
+    --mdc-icon-size: 14px;
+    display: flex;
+  }
+  .flow-loop-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 28px;
+  }
+  .flow-loop-return {
+    position: absolute;
+    top: 21px;
+    bottom: 21px;
+    right: 6px;
+    width: 14px;
+    border: 1.5px solid currentColor;
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  /* Offsets are from the padding edge, which the 1.5px top border pushes
+     down: the line's centre is 0.75px above it. The head ends where the line
+     starts and is centred on it. */
+  .flow-loop-head {
+    position: absolute;
+    top: -0.75px;
+    left: -7px;
+    width: 7px;
+    height: 9px;
+    transform: translateY(-50%);
+    fill: currentColor;
+    overflow: visible;
+  }
   .flow-arrow {
     font-size: 18px;
     line-height: 1;
@@ -33374,6 +33423,7 @@ function fmtEntity(hass, id) {
   const stateObj = hass?.states?.[eid];
   if (stateObj?.attributes?.friendly_name)
     return stateObj.attributes.friendly_name;
+  if (eid.includes("{{") || eid.includes("{%")) return eid.trim();
   const parts = eid.split(".");
   const raw = (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(
     /_/g,
@@ -33756,12 +33806,17 @@ var PHRASES = {
     action_reload: "Reload",
     extra_brightness: (v3) => `at ${v3}%`,
     extra_temp: (v3) => `to ${v3}\xB0`,
+    action_volume_set: "Set volume of",
+    extra_volume: (v3) => `to ${v3}`,
     extra_color_temp: (v3) => `color temp ${v3}`,
     wait_str: (d3) => `Wait ${d3}`,
     wait_parts: (p4) => `Wait ${p4}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
+    wait_until_event: (what, limit) => `Wait${limit} until ${what}`,
+    wait_limit: (d3) => ` up to ${d3}`,
+    when_prefix: "When ",
     activate_scene: (e6) => `Activate scene: ${e6}`,
     choose_between: (n6) => `Choose between ${n6} option${n6 !== 1 ? "s" : ""}`,
     if_then: (n6) =>
@@ -33775,6 +33830,7 @@ var PHRASES = {
     parallel: (n6) => `Run ${n6} actions in parallel`,
     sequence: (n6) => `Run a sequence of ${n6} steps`,
     set_variables: "Set variables",
+    set_variables_list: (list) => `Set ${list}`,
     stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Fire event: ${e6}`,
     automation_step: "Automation step",
@@ -33886,12 +33942,17 @@ var PHRASES = {
     action_reload: "Recharger",
     extra_brightness: (v3) => `\xE0 ${v3}%`,
     extra_temp: (v3) => `\xE0 ${v3}\xB0`,
+    action_volume_set: "R\xE9gler le volume de",
+    extra_volume: (v3) => `\xE0 ${v3}`,
     extra_color_temp: (v3) => `temp. de couleur ${v3}`,
     wait_str: (d3) => `Attendre ${d3}`,
     wait_parts: (p4) => `Attendre ${p4}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un d\xE9clencheur",
+    wait_until_event: (what, limit) => `Attendre${limit} que ${what}`,
+    wait_limit: (d3) => ` jusqu'\xE0 ${d3}`,
+    when_prefix: "Quand ",
     activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
     choose_between: (n6) => `Choisir parmi ${n6} option${n6 !== 1 ? "s" : ""}`,
     if_then: (n6) =>
@@ -33905,6 +33966,7 @@ var PHRASES = {
     parallel: (n6) => `Ex\xE9cuter ${n6} actions en parall\xE8le`,
     sequence: (n6) => `Ex\xE9cuter une s\xE9quence de ${n6} \xE9tapes`,
     set_variables: "D\xE9finir des variables",
+    set_variables_list: (list) => `D\xE9finir ${list}`,
     stop_label: (s6) => `Arr\xEAter : ${s6}`,
     fire_event: (e6) => `D\xE9clencher l'\xE9v\xE9nement : ${e6}`,
     automation_step: "\xC9tape d'automatisation",
@@ -34012,12 +34074,17 @@ var PHRASES = {
     action_reload: "Neu laden",
     extra_brightness: (v3) => `auf ${v3}%`,
     extra_temp: (v3) => `auf ${v3}\xB0`,
+    action_volume_set: "Lautst\xE4rke einstellen f\xFCr",
+    extra_volume: (v3) => `auf ${v3}`,
     extra_color_temp: (v3) => `Farbtemp. ${v3}`,
     wait_str: (d3) => `${d3} warten`,
     wait_parts: (p4) => `${p4} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erf\xFCllt ist",
     wait_for_trigger: "Auf Ausl\xF6ser warten",
+    wait_until_event: (what, limit) => `Warten${limit}, bis ${what}`,
+    wait_limit: (d3) => ` bis zu ${d3}`,
+    when_prefix: "Wenn ",
     activate_scene: (e6) => `Szene aktivieren: ${e6}`,
     choose_between: (n6) => `Aus ${n6} Optionen w\xE4hlen`,
     if_then: (n6) =>
@@ -34031,6 +34098,7 @@ var PHRASES = {
     parallel: (n6) => `${n6} Aktionen parallel ausf\xFChren`,
     sequence: (n6) => `Eine Sequenz von ${n6} Schritten ausf\xFChren`,
     set_variables: "Variablen setzen",
+    set_variables_list: (list) => `Setzen: ${list}`,
     stop_label: (s6) => `Stoppen: ${s6}`,
     fire_event: (e6) => `Ereignis ausl\xF6sen: ${e6}`,
     automation_step: "Automatisierungsschritt",
@@ -34135,6 +34203,8 @@ var PHRASES = {
     action_open_cover: "Abrir",
     action_close_cover: "Cerrar",
     action_set_temperature: "Establecer temperatura para",
+    action_volume_set: "Establecer volumen para",
+    extra_volume: (v3) => `a ${v3}`,
     action_set_value: "Establecer valor para",
     action_send_command: "Enviar comando a",
     action_reload: "Recargar",
@@ -34146,6 +34216,9 @@ var PHRASES = {
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condici\xF3n",
     wait_for_trigger: "Esperar un disparador",
+    wait_until_event: (what, limit) => `Esperar${limit} hasta que ${what}`,
+    wait_limit: (d3) => ` como m\xE1ximo ${d3}`,
+    when_prefix: "Cuando ",
     activate_scene: (e6) => `Activar escena: ${e6}`,
     choose_between: (n6) =>
       `Elegir entre ${n6} opci${n6 !== 1 ? "ones" : "\xF3n"}`,
@@ -34160,6 +34233,7 @@ var PHRASES = {
     parallel: (n6) => `Ejecutar ${n6} acciones en paralelo`,
     sequence: (n6) => `Ejecutar una secuencia de ${n6} pasos`,
     set_variables: "Establecer variables",
+    set_variables_list: (list) => `Establecer ${list}`,
     stop_label: (s6) => `Detener: ${s6}`,
     fire_event: (e6) => `Disparar evento: ${e6}`,
     automation_step: "Paso de automatizaci\xF3n",
@@ -34265,6 +34339,8 @@ var PHRASES = {
     action_open_cover: "Apri",
     action_close_cover: "Chiudi",
     action_set_temperature: "Imposta temperatura per",
+    action_volume_set: "Imposta volume per",
+    extra_volume: (v3) => `a ${v3}`,
     action_set_value: "Imposta valore per",
     action_send_command: "Invia comando a",
     action_reload: "Ricarica",
@@ -34276,6 +34352,9 @@ var PHRASES = {
     wait_plain: "Attendi",
     wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
     wait_for_trigger: "Attendi un trigger",
+    wait_until_event: (what, limit) => `Attendi${limit} finch\xE9 ${what}`,
+    wait_limit: (d3) => ` al massimo ${d3}`,
+    when_prefix: "Quando ",
     activate_scene: (e6) => `Attiva scena: ${e6}`,
     choose_between: (n6) => `Scegli tra ${n6} opzion${n6 !== 1 ? "i" : "e"}`,
     if_then: (n6) =>
@@ -34289,6 +34368,7 @@ var PHRASES = {
     parallel: (n6) => `Esegui ${n6} azioni in parallelo`,
     sequence: (n6) => `Esegui una sequenza di ${n6} passaggi`,
     set_variables: "Imposta variabili",
+    set_variables_list: (list) => `Imposta ${list}`,
     stop_label: (s6) => `Ferma: ${s6}`,
     fire_event: (e6) => `Lancia evento: ${e6}`,
     automation_step: "Passo di automazione",
@@ -34402,12 +34482,17 @@ var PHRASES = {
     action_reload: "Opnieuw laden",
     extra_brightness: (v3) => `op ${v3}%`,
     extra_temp: (v3) => `naar ${v3}\xB0`,
+    action_volume_set: "Volume instellen voor",
+    extra_volume: (v3) => `naar ${v3}`,
     extra_color_temp: (v3) => `kleurtemp. ${v3}`,
     wait_str: (d3) => `Wacht ${d3}`,
     wait_parts: (p4) => `Wacht ${p4}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
+    wait_until_event: (what, limit) => `Wacht${limit} tot ${what}`,
+    wait_limit: (d3) => ` maximaal ${d3}`,
+    when_prefix: "Wanneer ",
     activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
     choose_between: (n6) =>
       `Kies tussen ${n6} ${n6 !== 1 ? "opties" : "optie"}`,
@@ -34422,6 +34507,7 @@ var PHRASES = {
     parallel: (n6) => `Voer ${n6} acties parallel uit`,
     sequence: (n6) => `Voer een reeks van ${n6} stappen uit`,
     set_variables: "Variabelen instellen",
+    set_variables_list: (list) => `Instellen: ${list}`,
     stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Gebeurtenis afvuren: ${e6}`,
     automation_step: "Automatiseringsstap",
@@ -34536,12 +34622,18 @@ var PHRASES = {
     action_reload: "\xDAjrat\xF6lt\xE9s",
     extra_brightness: (v3) => `${v3}%-on`,
     extra_temp: (v3) => `${v3}\xB0-ra`,
+    action_volume_set: "Hanger\u0151 be\xE1ll\xEDt\xE1sa:",
+    extra_volume: (v3) => `${v3}`,
     extra_color_temp: (v3) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v3}`,
     wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
     wait_parts: (p4) => `V\xE1rakoz\xE1s: ${p4}`,
     wait_plain: "V\xE1rakoz\xE1s",
     wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
+    wait_until_event: (what, limit) =>
+      `V\xE1rakoz\xE1s${limit}, am\xEDg ${what}`,
+    wait_limit: (d3) => ` legfeljebb ${d3}`,
+    when_prefix: "Amikor ",
     activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
     choose_between: (n6) => `V\xE1laszt\xE1s ${n6} opci\xF3 k\xF6z\xFCl`,
     if_then: (n6) =>
@@ -34555,6 +34647,7 @@ var PHRASES = {
     parallel: (n6) => `${n6} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
     sequence: (n6) => `${n6} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
     set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
+    set_variables_list: (list) => `Be\xE1ll\xEDt\xE1s: ${list}`,
     stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
     fire_event: (e6) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e6}`,
     automation_step: "Automatizmus l\xE9p\xE9se",
@@ -34757,6 +34850,19 @@ function _sunOffset(offset) {
   const label = parts.join(" ");
   if (!label) return /^[0:]+$/.test(raw) ? null : { label: offset, neg: false };
   return { label, neg };
+}
+function _waitLimit(timeout, t5) {
+  if (timeout == null || timeout === "") return "";
+  let value = timeout;
+  if (typeof timeout === "number") value = { seconds: timeout };
+  else if (typeof timeout === "string") {
+    const m3 = timeout.trim().match(/^(\d+):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (!m3) return "";
+    value = { hours: +m3[1], minutes: +m3[2], seconds: +(m3[3] || 0) };
+  }
+  if (typeof value !== "object") return "";
+  const label = fmtDuration(value);
+  return label && label !== String(value) ? t5("wait_limit", label) : "";
 }
 function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
@@ -35048,6 +35154,7 @@ function describeFlowItem(hass, item, ctx) {
       set_value: "action_set_value",
       send_command: "action_send_command",
       reload: "action_reload",
+      volume_set: "action_volume_set",
     };
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
@@ -35062,6 +35169,10 @@ function describeFlowItem(hass, item, ctx) {
       extras.push(t5("extra_temp", item.data.temperature));
     if (item.data?.color_temp != null)
       extras.push(t5("extra_color_temp", item.data.color_temp));
+    if (item.data?.volume_level != null) {
+      const volume = _volumeLabel(item.data.volume_level);
+      if (volume) extras.push(t5("extra_volume", volume));
+    }
     if (item.data?.message && !String(item.data.message).includes("{{")) {
       const short =
         item.data.message.length > 50
@@ -35083,8 +35194,31 @@ function describeFlowItem(hass, item, ctx) {
     if (d3.seconds) parts.push(`${d3.seconds}s`);
     return parts.length ? t5("wait_parts", parts.join(" ")) : t5("wait_plain");
   }
-  if (item.wait_template) return t5("wait_until");
-  if (item.wait_for_trigger) return t5("wait_for_trigger");
+  if (item.wait_template) {
+    const what = _describeComparisonTemplate(
+      hass,
+      item.wait_template,
+      t5,
+      lang,
+    );
+    if (!what) return t5("wait_until");
+    return t5("wait_until_event", what, _waitLimit(item.timeout, t5));
+  }
+  if (item.wait_for_trigger) {
+    const prefix = t5("when_prefix");
+    const whats = asArray(item.wait_for_trigger)
+      .filter((tr) => tr && typeof tr === "object")
+      .map((tr) => {
+        const d3 = describeFlowItem(hass, tr, ctx);
+        return d3.startsWith(prefix) ? d3.slice(prefix.length) : d3;
+      });
+    if (!whats.length) return t5("wait_for_trigger");
+    return t5(
+      "wait_until_event",
+      whats.join(t5("or")),
+      _waitLimit(item.timeout, t5),
+    );
+  }
   if (item.scene) return t5("activate_scene", fmtEntity(hass, item.scene));
   if (item.choose) return t5("choose_between", asArray(item.choose).length);
   if (item.if != null) {
@@ -35103,7 +35237,29 @@ function describeFlowItem(hass, item, ctx) {
   }
   if (item.parallel) return t5("parallel", asArray(item.parallel).length);
   if (item.sequence) return t5("sequence", asArray(item.sequence).length);
-  if (item.variables) return t5("set_variables");
+  if (item.variables) {
+    const vars =
+      typeof item.variables === "object" && !Array.isArray(item.variables)
+        ? Object.entries(item.variables)
+        : [];
+    if (!vars.length) return t5("set_variables");
+    const parts = vars.map(([name, value]) => {
+      if (_isEntityIdValue(value))
+        return `${name} = ${fmtEntities(hass, value, lang)}`;
+      if (
+        (typeof value === "string" &&
+          !value.includes("{{") &&
+          !value.includes("{%")) ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        const s6 = String(value);
+        return `${name} = ${s6.length > 40 ? s6.slice(0, 37) + "\u2026" : s6}`;
+      }
+      return name;
+    });
+    return t5("set_variables_list", parts.join(", "));
+  }
   if (item.stop) return t5("stop_label", item.stop);
   if (item.event)
     return t5("fire_event", String(item.event).replace(/_/g, " "));
@@ -35144,7 +35300,7 @@ function collectFlowEntityIds(item) {
     const arr = Array.isArray(val) ? val : [val];
     for (const v3 of arr) {
       if (typeof v3 !== "string" || !v3) continue;
-      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v3)) continue;
+      if (!_ENTITY_ID_RE.test(v3)) continue;
       if (seen.has(v3)) continue;
       seen.add(v3);
       out.push(v3);
@@ -35154,13 +35310,197 @@ function collectFlowEntityIds(item) {
   push(item.target?.entity_id);
   push(item.data?.entity_id);
   push(item.data?.media_player_entity_id);
-  if (typeof item.value_template === "string") {
-    for (const m3 of item.value_template.matchAll(
+  if (item.variables && typeof item.variables === "object") {
+    for (const v3 of Object.values(item.variables)) {
+      if (_isEntityIdValue(v3)) push(v3);
+    }
+  }
+  for (const tpl of [item.value_template, item.wait_template]) {
+    if (typeof tpl !== "string") continue;
+    for (const m3 of tpl.matchAll(
       /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
     )) {
       push(m3[1]);
     }
   }
+  for (const tr of asArray(item.wait_for_trigger)) {
+    push(collectFlowEntityIds(tr));
+  }
+  return out;
+}
+var _ENTITY_ID_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+var _VAR_REF_RE = /^\s*\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}\s*$/;
+function _isEntityIdValue(v3) {
+  if (typeof v3 === "string") return _ENTITY_ID_RE.test(v3);
+  return (
+    Array.isArray(v3) &&
+    v3.length > 0 &&
+    v3.every((x2) => typeof x2 === "string" && _ENTITY_ID_RE.test(x2))
+  );
+}
+function _evalArithmetic(src) {
+  const tokens = String(src).match(/\d+(?:\.\d+)?|[-+*/()]/g);
+  if (!tokens || tokens.join("") !== String(src).replace(/\s+/g, ""))
+    return null;
+  let i8 = 0;
+  const factor = () => {
+    const tok = tokens[i8++];
+    if (tok === "-") return -factor();
+    if (tok === "(") {
+      const v3 = expr();
+      return tokens[i8++] === ")" ? v3 : NaN;
+    }
+    return tok != null && /^\d/.test(tok) ? Number(tok) : NaN;
+  };
+  const term = () => {
+    let v3 = factor();
+    while (tokens[i8] === "*" || tokens[i8] === "/")
+      v3 = tokens[i8++] === "*" ? v3 * factor() : v3 / factor();
+    return v3;
+  };
+  const expr = () => {
+    let v3 = term();
+    while (tokens[i8] === "+" || tokens[i8] === "-")
+      v3 = tokens[i8++] === "+" ? v3 + term() : v3 - term();
+    return v3;
+  };
+  const value = expr();
+  return i8 === tokens.length && Number.isFinite(value) ? value : null;
+}
+function _literalNumber(v3) {
+  if (typeof v3 === "number") return Number.isFinite(v3) ? v3 : null;
+  if (typeof v3 !== "string") return null;
+  const m3 = v3.match(/^\s*\{\{([\s\S]*)\}\}\s*$/);
+  return _evalArithmetic(m3 ? m3[1] : v3);
+}
+function _knownValue(v3) {
+  if (_isEntityIdValue(v3)) return v3;
+  const n6 = _literalNumber(v3);
+  return n6 == null ? void 0 : n6;
+}
+function _volumeLabel(v3) {
+  const n6 = _literalNumber(v3);
+  if (n6 != null) return `${Math.round(n6 * 100)}%`;
+  const m3 = typeof v3 === "string" ? v3.match(_VAR_REF_RE) : null;
+  return m3 ? m3[1] : null;
+}
+function _bindVariables(env, vars) {
+  if (!vars || typeof vars !== "object" || Array.isArray(vars)) return env;
+  const out = { ...env };
+  for (const [name, raw] of Object.entries(vars)) {
+    const value = _knownValue(raw);
+    if (value === void 0) delete out[name];
+    else out[name] = value;
+  }
+  return out;
+}
+function _withoutNames(env, names2) {
+  if (!names2.size) return env;
+  const out = { ...env };
+  for (const name of names2) delete out[name];
+  return out;
+}
+function _nestedSequences(step) {
+  return [
+    step.then,
+    step.else,
+    step.default,
+    step.sequence,
+    step.repeat?.sequence,
+    ...asArray(step.choose).map((option) => option?.sequence),
+    ...asArray(step.parallel),
+  ];
+}
+function _assignedNames(steps, out = /* @__PURE__ */ new Set()) {
+  for (const step of asArray(steps)) {
+    if (!step || typeof step !== "object") continue;
+    if (
+      step.enabled !== false &&
+      step.variables &&
+      typeof step.variables === "object" &&
+      !Array.isArray(step.variables)
+    ) {
+      for (const name of Object.keys(step.variables)) out.add(name);
+    }
+    for (const nested of _nestedSequences(step)) _assignedNames(nested, out);
+  }
+  return out;
+}
+function flowVariableScopes(auto) {
+  const scopes = /* @__PURE__ */ new WeakMap();
+  const mark = (obj, env) => {
+    if (obj && typeof obj === "object") scopes.set(obj, env);
+  };
+  const markConditions = (conds, env) => {
+    for (const c6 of asArray(conds)) {
+      mark(c6, env);
+      if (c6 && typeof c6 === "object") markConditions(c6.conditions, env);
+    }
+  };
+  const walk = (steps, env) => {
+    for (const step of asArray(steps)) {
+      if (!step || typeof step !== "object") continue;
+      mark(step, env);
+      for (const tr of asArray(step.wait_for_trigger)) mark(tr, env);
+      if (step.variables != null) {
+        if (step.enabled !== false) env = _bindVariables(env, step.variables);
+        continue;
+      }
+      markConditions(step.if, env);
+      walk(step.then, env);
+      walk(step.else, env);
+      for (const option of asArray(step.choose)) {
+        markConditions(option?.conditions, env);
+        walk(option?.sequence, env);
+      }
+      walk(step.default, env);
+      walk(step.sequence, env);
+      for (const branch of asArray(step.parallel)) walk(branch, env);
+      if (step.repeat) {
+        const inLoop = _withoutNames(env, _assignedNames(step.repeat.sequence));
+        markConditions(step.repeat.while, inLoop);
+        markConditions(step.repeat.until, inLoop);
+        walk(step.repeat.sequence, inLoop);
+      }
+      env = _withoutNames(env, _assignedNames(_nestedSequences(step)));
+    }
+  };
+  if (!auto || typeof auto !== "object") return () => ({});
+  const base = _bindVariables({}, auto.variables);
+  const triggerEnv = _bindVariables({}, auto.trigger_variables);
+  for (const tr of asArray(auto.triggers ?? auto.trigger)) mark(tr, triggerEnv);
+  markConditions(auto.conditions ?? auto.condition, base);
+  walk(auto.actions ?? auto.action, base);
+  return (item) => scopes.get(item) ?? base;
+}
+function resolveFlowVariables(item, vars) {
+  if (!item || typeof item !== "object" || !vars) return item;
+  const lookup = (val, accept) => {
+    const m3 = typeof val === "string" ? val.match(_VAR_REF_RE) : null;
+    const v3 = m3 ? vars[m3[1]] : void 0;
+    return v3 !== void 0 && accept(v3) ? v3 : val;
+  };
+  const entity = (val) => {
+    if (!Array.isArray(val)) return lookup(val, _isEntityIdValue);
+    const resolved = val.flatMap((v3) => lookup(v3, _isEntityIdValue));
+    return resolved.length !== val.length ||
+      resolved.some((v3, i8) => v3 !== val[i8])
+      ? resolved
+      : val;
+  };
+  const number = (val) => lookup(val, (v3) => typeof v3 === "number");
+  const swap = (obj, key, resolve) => {
+    if (!obj || typeof obj !== "object" || obj[key] == null) return obj;
+    const next = resolve(obj[key]);
+    return next === obj[key] ? obj : { ...obj, [key]: next };
+  };
+  let out = swap(item, "entity_id", entity);
+  const target = swap(out.target, "entity_id", entity);
+  if (target !== out.target) out = { ...out, target };
+  let data = swap(out.data, "entity_id", entity);
+  data = swap(data, "media_player_entity_id", entity);
+  data = swap(data, "volume_level", number);
+  if (data !== out.data) out = { ...out, data };
   return out;
 }
 function collectFlowDeviceRefs(hass, item) {
@@ -39338,7 +39678,8 @@ function renderFlowDescription(host2, item, ctx) {
     return "";
   })}`;
 }
-function renderFlowNode(host2, item, kind, ctx) {
+function renderFlowNode(host2, rawItem, kind, ctx) {
+  const item = resolveFlowVariables(rawItem, ctx?.variablesAt?.(rawItem));
   const off = item?.enabled === false;
   const tag = off
     ? b2`<span class="flow-off-tag"
@@ -39442,6 +39783,24 @@ function renderActionItem(host2, action, ctx) {
   }
   return renderActionItemBody(host2, action, ctx);
 }
+var _VARIABLES_ONLY_KEYS = /* @__PURE__ */ new Set([
+  "variables",
+  "alias",
+  "enabled",
+  "id",
+  "continue_on_error",
+]);
+function _shownSteps(steps) {
+  return asArray(steps).filter(
+    (s6) =>
+      !(
+        s6 &&
+        typeof s6 === "object" &&
+        s6.variables != null &&
+        Object.keys(s6).every((k2) => _VARIABLES_ONLY_KEYS.has(k2))
+      ),
+  );
+}
 function _isBlockAction(action) {
   return (
     action.if != null ||
@@ -39453,9 +39812,9 @@ function _isBlockAction(action) {
 }
 function renderActionItemBody(host2, action, ctx) {
   if (action && typeof action === "object" && action.if != null) {
-    const elseSteps = asArray(action.else);
+    const elseSteps = _shownSteps(action.else);
     const ifConds = asArray(action.if);
-    const thenSteps = asArray(action.then);
+    const thenSteps = _shownSteps(action.then);
     return b2`<div class="flow-choose">
       <div class="flow-branch">
         <div class="flow-branch-label">
@@ -39494,20 +39853,20 @@ function renderActionItemBody(host2, action, ctx) {
             ${asArray(branch?.conditions).map((c6) =>
               renderConditionItem(host2, c6, ctx),
             )}
-            ${asArray(branch?.conditions).length && asArray(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
-            ${asArray(branch?.sequence).map((s6) =>
+            ${asArray(branch?.conditions).length && _shownSteps(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
+            ${_shownSteps(branch?.sequence).map((s6) =>
               renderActionItem(host2, s6, ctx),
             )}
           </div>
         `,
       )}
       ${
-        asArray(action.default).length
+        _shownSteps(action.default).length
           ? b2`<div class="flow-branch">
               <div class="flow-branch-label">
                 ${host2._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${asArray(action.default).map((s6) => renderActionItem(host2, s6, ctx))}
+              ${_shownSteps(action.default).map((s6) => renderActionItem(host2, s6, ctx))}
             </div>`
           : ""
       }
@@ -39518,7 +39877,7 @@ function renderActionItemBody(host2, action, ctx) {
       <div class="flow-branch-label">
         ${host2._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${asArray(action.parallel).map((s6) => renderActionItem(host2, s6, ctx))}
+      ${_shownSteps(action.parallel).map((s6) => renderActionItem(host2, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.sequence != null) {
@@ -39526,11 +39885,11 @@ function renderActionItemBody(host2, action, ctx) {
       <div class="flow-branch-label">
         ${host2._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${asArray(action.sequence).map((s6) => renderActionItem(host2, s6, ctx))}
+      ${_shownSteps(action.sequence).map((s6) => renderActionItem(host2, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
-    const inner = asArray(action.repeat.sequence ?? action.repeat.actions);
+    const inner = _shownSteps(action.repeat.sequence ?? action.repeat.actions);
     const repeatLabel = (() => {
       const r6 = action.repeat;
       if (r6.count != null) {
@@ -39570,9 +39929,25 @@ function renderActionItemBody(host2, action, ctx) {
         );
       return host2._t("automations_flow_repeat", "Repeat");
     })();
-    return b2`<div class="flow-branch">
-      <div class="flow-branch-label">${repeatLabel}</div>
-      ${inner.map((s6) => renderActionItem(host2, s6, ctx))}
+    const whileConds = asArray(action.repeat.while);
+    const untilConds = asArray(action.repeat.until);
+    const conds = (list) =>
+      list.map((c6) => renderConditionItem(host2, c6, ctx));
+    const arrow = b2`<div class="flow-arrow-sm">↓</div>`;
+    return b2`<div class="flow-branch flow-loop">
+      <div class="flow-branch-label flow-loop-label">
+        <ha-icon icon="mdi:repeat"></ha-icon><span>${repeatLabel}</span>
+      </div>
+      <div class="flow-loop-body">
+        ${conds(whileConds)}${whileConds.length && inner.length ? arrow : ""}
+        ${inner.map((s6) => renderActionItem(host2, s6, ctx))}
+        ${untilConds.length && inner.length ? arrow : ""}${conds(untilConds)}
+        <div class="flow-loop-return" aria-hidden="true">
+          <svg viewBox="0 0 6 8" class="flow-loop-head">
+            <path d="M6 0 L0 4 L6 8 Z"></path>
+          </svg>
+        </div>
+      </div>
     </div>`;
   }
   return renderFlowNode(host2, action, "action", ctx);
@@ -39654,7 +40029,11 @@ function renderAutomationFlowchart(host2, auto, opts = {}) {
     return Array.isArray(a3) ? a3 : [a3];
   })();
   if (!triggers.length && !actions.length) return b2``;
-  const ctx = { triggers, onEditStep: opts.onEditStep };
+  const ctx = {
+    triggers,
+    variablesAt: flowVariableScopes(auto),
+    onEditStep: opts.onEditStep,
+  };
   const shownTriggers = displayTriggers(triggers, conditions, actions);
   return b2`
     <div class="flow-chart">
@@ -39693,7 +40072,7 @@ function renderAutomationFlowchart(host2, auto, opts = {}) {
         <div class="flow-label">
           ${host2._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a3) => renderActionItem(host2, a3, ctx))}
+        ${_shownSteps(actions).map((a3) => renderActionItem(host2, a3, ctx))}
       </div>
     </div>
   `;
@@ -58277,7 +58656,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "9e1f79870351" : "";
+var PANEL_BUILD = true ? "c9f9b8affe2e" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

@@ -20,6 +20,8 @@ export function fmtEntity(hass, id) {
   const stateObj = hass?.states?.[eid];
   if (stateObj?.attributes?.friendly_name)
     return stateObj.attributes.friendly_name;
+  // A template is code, not a name: humanizing it gave "{{ Sonos }}".
+  if (eid.includes("{{") || eid.includes("{%")) return eid.trim();
   const parts = eid.split(".");
   const raw = (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(
     /_/g,

@@ -846,6 +846,55 @@ export const proposalStyles = css`
   .flow-branch .flow-branch {
     background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
   }
+  /* A repeat block: a bracket down the right of its body leaves the last
+     step and comes back in at the first, so the box reads as a loop. Its
+     ends sit at the middle of a one-line step (10px padding + 21px line +
+     1px border, halved); the body is padded on both sides alike so the steps
+     stay centred under the label. */
+  .flow-loop-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .flow-loop-label ha-icon {
+    --mdc-icon-size: 14px;
+    display: flex;
+  }
+  .flow-loop-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 28px;
+  }
+  .flow-loop-return {
+    position: absolute;
+    top: 21px;
+    bottom: 21px;
+    right: 6px;
+    width: 14px;
+    border: 1.5px solid currentColor;
+    border-left: none;
+    border-radius: 0 10px 10px 0;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  /* Offsets are from the padding edge, which the 1.5px top border pushes
+     down: the line's centre is 0.75px above it. The head ends where the line
+     starts and is centred on it. */
+  .flow-loop-head {
+    position: absolute;
+    top: -0.75px;
+    left: -7px;
+    width: 7px;
+    height: 9px;
+    transform: translateY(-50%);
+    fill: currentColor;
+    overflow: visible;
+  }
   .flow-arrow {
     font-size: 18px;
     line-height: 1;

@@ -3,6 +3,8 @@ import {
   describeFlowItem,
   collectFlowEntityIds,
   collectFlowDeviceRefs,
+  flowVariableScopes,
+  resolveFlowVariables,
   displayTriggers,
   normalizeCondition,
   asArray,
@@ -229,7 +231,9 @@ function renderFlowDescription(host, item, ctx) {
   })}`;
 }
 
-function renderFlowNode(host, item, kind, ctx) {
+function renderFlowNode(host, rawItem, kind, ctx) {
+  // `target: "{{ sonos }}"` reads as the entity its variable holds.
+  const item = resolveFlowVariables(rawItem, ctx?.variablesAt?.(rawItem));
   // `enabled: false` is valid on any trigger/condition/action. Rendering it as a
   // live node claimed the step runs when HA skips it entirely.
   const off = item?.enabled === false;
@@ -366,6 +370,29 @@ function renderActionItem(host, action, ctx) {
   return renderActionItemBody(host, action, ctx);
 }
 
+// A `variables` step changes nothing in the home; it only stores values for
+// later steps, which show the entity a `{{ var }}` holds themselves. Drawn as
+// a node it read "Set siren_end", meaningless outside the YAML.
+const _VARIABLES_ONLY_KEYS = new Set([
+  "variables",
+  "alias",
+  "enabled",
+  "id",
+  "continue_on_error",
+]);
+
+function _shownSteps(steps) {
+  return asArray(steps).filter(
+    (s) =>
+      !(
+        s &&
+        typeof s === "object" &&
+        s.variables != null &&
+        Object.keys(s).every((k) => _VARIABLES_ONLY_KEYS.has(k))
+      ),
+  );
+}
+
 // Only block forms need the wrapper; leaf actions are marked by renderFlowNode.
 function _isBlockAction(action) {
   return (
@@ -382,9 +409,9 @@ function renderActionItemBody(host, action, ctx) {
   // same IF/OTHERWISE panels as a `choose` so the two read alike. `if` takes
   // a condition list (or a single condition / shorthand template string).
   if (action && typeof action === "object" && action.if != null) {
-    const elseSteps = asArray(action.else);
+    const elseSteps = _shownSteps(action.else);
     const ifConds = asArray(action.if);
-    const thenSteps = asArray(action.then);
+    const thenSteps = _shownSteps(action.then);
     return html`<div class="flow-choose">
       <div class="flow-branch">
         <div class="flow-branch-label">
@@ -429,23 +456,23 @@ function renderActionItemBody(host, action, ctx) {
             )}
             ${
               asArray(branch?.conditions).length &&
-              asArray(branch?.sequence).length
+              _shownSteps(branch?.sequence).length
                 ? html`<div class="flow-arrow-sm">↓</div>`
                 : ""
             }
-            ${asArray(branch?.sequence).map((s) =>
+            ${_shownSteps(branch?.sequence).map((s) =>
               renderActionItem(host, s, ctx),
             )}
           </div>
         `,
       )}
       ${
-        asArray(action.default).length
+        _shownSteps(action.default).length
           ? html`<div class="flow-branch">
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${asArray(action.default).map((s) => renderActionItem(host, s, ctx))}
+              ${_shownSteps(action.default).map((s) => renderActionItem(host, s, ctx))}
             </div>`
           : ""
       }
@@ -456,7 +483,7 @@ function renderActionItemBody(host, action, ctx) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${asArray(action.parallel).map((s) => renderActionItem(host, s, ctx))}
+      ${_shownSteps(action.parallel).map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.sequence != null) {
@@ -464,11 +491,11 @@ function renderActionItemBody(host, action, ctx) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${asArray(action.sequence).map((s) => renderActionItem(host, s, ctx))}
+      ${_shownSteps(action.sequence).map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
-    const inner = asArray(action.repeat.sequence ?? action.repeat.actions);
+    const inner = _shownSteps(action.repeat.sequence ?? action.repeat.actions);
     const repeatLabel = (() => {
       const r = action.repeat;
       // `count` and `for_each` both accept a template resolved at runtime. Only
@@ -512,9 +539,28 @@ function renderActionItemBody(host, action, ctx) {
         );
       return host._t("automations_flow_repeat", "Repeat");
     })();
-    return html`<div class="flow-branch">
-      <div class="flow-branch-label">${repeatLabel}</div>
-      ${inner.map((s) => renderActionItem(host, s, ctx))}
+    // HA checks `while` before each pass and `until` after it, so each sits on
+    // that side of the body; the return line on the right closes the loop.
+    const whileConds = asArray(action.repeat.while);
+    const untilConds = asArray(action.repeat.until);
+    const conds = (list) => list.map((c) => renderConditionItem(host, c, ctx));
+    const arrow = html`<div class="flow-arrow-sm">↓</div>`;
+    // The return line spans the body only, so it leaves the last step and
+    // comes back in at the first one (the `while` check, when there is one).
+    return html`<div class="flow-branch flow-loop">
+      <div class="flow-branch-label flow-loop-label">
+        <ha-icon icon="mdi:repeat"></ha-icon><span>${repeatLabel}</span>
+      </div>
+      <div class="flow-loop-body">
+        ${conds(whileConds)}${whileConds.length && inner.length ? arrow : ""}
+        ${inner.map((s) => renderActionItem(host, s, ctx))}
+        ${untilConds.length && inner.length ? arrow : ""}${conds(untilConds)}
+        <div class="flow-loop-return" aria-hidden="true">
+          <svg viewBox="0 0 6 8" class="flow-loop-head">
+            <path d="M6 0 L0 4 L6 8 Z"></path>
+          </svg>
+        </div>
+      </div>
     </div>`;
   }
   return renderFlowNode(host, action, "action", ctx);
@@ -616,7 +662,11 @@ export function renderAutomationFlowchart(host, auto, opts = {}) {
   // Conditions inside the chart may reference triggers by id
   // (condition: trigger), so every node renders with the trigger list
   // in scope.
-  const ctx = { triggers, onEditStep: opts.onEditStep };
+  const ctx = {
+    triggers,
+    variablesAt: flowVariableScopes(auto),
+    onEditStep: opts.onEditStep,
+  };
   // Triggers whose only job is re-evaluating the conditions below, or that
   // a branch already quotes as "Triggered by …", add nothing — hide the
   // whole section when every trigger is such a duplicate.
@@ -662,7 +712,7 @@ export function renderAutomationFlowchart(host, auto, opts = {}) {
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a) => renderActionItem(host, a, ctx))}
+        ${_shownSteps(actions).map((a) => renderActionItem(host, a, ctx))}
       </div>
     </div>
   `;
