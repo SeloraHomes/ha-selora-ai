@@ -299,6 +299,13 @@ _STRUCTURAL_RESPONSE_KEYS = (
 )
 
 
+def _carries_payload(intent_type: str, parsed: dict[str, Any]) -> bool:
+    """Whether the turn renders something besides its prose: a card or chips."""
+    if any(parsed.get(key) for key in _STRUCTURAL_RESPONSE_KEYS):
+        return True
+    return intent_type == "command_approval" and bool(parsed.get("command_approval"))
+
+
 def _empty_response_fallback(
     intent_type: str,
     response_text: str,
@@ -327,9 +334,7 @@ def _empty_response_fallback(
     """
     if response_text and response_text.strip():
         return response_text
-    if any(parsed.get(key) for key in _STRUCTURAL_RESPONSE_KEYS):
-        return response_text
-    if intent_type == "command_approval" and parsed.get("command_approval"):
+    if _carries_payload(intent_type, parsed):
         return response_text
     _LOGGER.warning(
         "Chat stream produced an empty %s reply with no payload; substituting no-response fallback",
@@ -3271,18 +3276,29 @@ _RESUME_DIRECTIVE = (
 # and the model decides what is left of it now the proposal exists.
 #
 # The no-op case is the price. When the proposal WAS the whole request this
-# spends one round on a sentence, which is why the directive says plainly that
-# a short confirmation is the right answer then — a model told only to
-# "continue" will invent something to do.
+# spends one round, which is why the directive says plainly that stopping is
+# the right answer then — a model told only to "continue" will invent
+# something to do. It answers with `_NOTHING_LEFT` then, which is never shown.
 _RESUME_FROM_REQUEST_DIRECTIVE = (
     "The confirmation you were waiting for has been given and the action is "
     "done — it is in the conversation above, and anything it created now "
     "exists. The user's original request was: {request}\n"
     "If any part of it is still outstanding, do that part NOW with the tools. "
-    "If the request is fully satisfied, reply with one short confirmation and "
-    "nothing else. Either way: do not repeat the step that just completed, do "
-    "not ask the user to confirm again, and do not propose another card."
+    "If nothing is outstanding, reply with exactly {nothing_left} and nothing "
+    "else — the user already sees the outcome. Either way: do not repeat the "
+    "step that just completed, do not ask the user to confirm again, and do not "
+    "propose another card."
 )
+
+# The model's own word that nothing is left. Asked for rather than inferred:
+# a reply's shape cannot tell "Done." from a question, a failure or a blocked
+# command once the command policy has had its say, and every rule that tried
+# to dropped one of them. Held back with the rest of a resumed turn's prose,
+# so it never reaches the screen.
+_NOTHING_LEFT = "NOTHING_LEFT"
+# Only as the reply's last word: the request may legitimately put the text
+# itself somewhere ("…NOTHING_LEFTOVER", a dashboard card).
+_NOTHING_LEFT_TAIL = re.compile(rf"\s*\b{_NOTHING_LEFT}\b\s*$")
 
 
 def _proposal_remaining_intent(parsed: dict[str, Any]) -> str | None:
@@ -3374,7 +3390,9 @@ def _resume_request(
             request = _request_behind(stored_messages, index)
             if not request:
                 return None, "There is no request to continue."
-            return _RESUME_FROM_REQUEST_DIRECTIVE.format(request=request), None
+            return _RESUME_FROM_REQUEST_DIRECTIVE.format(
+                request=request, nothing_left=_NOTHING_LEFT
+            ), None
         approval = message.get("command_approval")
         if not isinstance(approval, dict) or approval.get("proposal_id") != proposal_id:
             continue
@@ -3411,7 +3429,9 @@ def _resume_request(
         request = _request_behind(stored_messages, index)
         if not request:
             return None, "There is no request to continue."
-        return _RESUME_FROM_REQUEST_DIRECTIVE.format(request=request), None
+        return _RESUME_FROM_REQUEST_DIRECTIVE.format(
+            request=request, nothing_left=_NOTHING_LEFT
+        ), None
     return None, "No such proposal in this conversation."
 
 
@@ -3728,8 +3748,13 @@ async def _handle_websocket_chat_stream(
         # provider is low-context (avoids double-sentinel).
         from .llm_client import _is_definite_automation  # noqa: PLC0415
 
+        # A resumed turn's message is the server's directive, whose
+        # "If … do that part" reads as a conditional rule to the predicate.
+        # Should it go on to propose an automation, the mid-stream opener
+        # check below still raises the spinner.
         is_cloud_automation = (
-            not refining
+            not resuming
+            and not refining
             and not refining_scene
             and not getattr(llm.provider, "is_low_context", False)
             and _is_definite_automation(user_message)
@@ -3768,7 +3793,10 @@ async def _handle_websocket_chat_stream(
         # real first-token latency before any keepalive, so give them a
         # looser non-automation floor.
         is_cloud_provider = not getattr(llm.provider, "is_local", False)
-        if is_cloud_automation:
+        # A resumed turn cannot be classified from its message (it is the
+        # directive), and what remains is often an automation: give it the
+        # automation budget rather than guess.
+        if is_cloud_automation or (resuming and is_cloud_provider):
             effective_idle_timeout = STREAM_AUTOMATION_IDLE_TIMEOUT_S
         elif is_cloud_provider:
             effective_idle_timeout = STREAM_CLOUD_IDLE_TIMEOUT_S
@@ -3882,6 +3910,17 @@ async def _handle_websocket_chat_stream(
                         if opener_idx < 0 or bare_idx < opener_idx:
                             opener_idx = bare_idx
                         break
+                # A resumed turn's prose is not streamed: it may carry
+                # `_NOTHING_LEFT`, split across chunks or after a tool step,
+                # and it is a short follow-up. Its steps still stream; the
+                # text arrives with `done`. A heartbeat stands in for each held
+                # chunk, or the panel's watchdog cancels a slow, healthy turn.
+                holding = resuming
+                if holding and not _safe_send_message(
+                    connection,
+                    websocket_api.event_message(msg["id"], {"type": "heartbeat"}),
+                ):
+                    return
                 if opener_idx >= 0:
                     looks_like_json = True
                     # Stream the confirmed-prose portion up to the opener;
@@ -3889,7 +3928,7 @@ async def _handle_websocket_chat_stream(
                     # see. Position-based (absolute) so any fragment held
                     # back on a prior chunk is included.
                     prose = full_text[sent_chars:opener_idx]
-                    if prose:
+                    if prose and not holding:
                         if not _safe_send_message(
                             connection,
                             websocket_api.event_message(
@@ -3938,7 +3977,7 @@ async def _handle_websocket_chat_stream(
                     hold = _pending_opener_start(full_text)
                     send_to = hold if hold >= 0 else len(full_text)
                     prose = full_text[sent_chars:send_to]
-                    if prose:
+                    if prose and not holding:
                         if not _safe_send_message(
                             connection,
                             websocket_api.event_message(
@@ -3977,6 +4016,36 @@ async def _handle_websocket_chat_stream(
             language=msg.get("language"),
             refining=refining is not None,
         )
+
+        # On the PARSED reply: a JSON-enveloped provider wraps it in braces.
+        said_nothing_left = resuming and bool(
+            _NOTHING_LEFT_TAIL.search(str(parsed.get("response") or ""))
+        )
+        if said_nothing_left:
+            parsed["response"] = _NOTHING_LEFT_TAIL.sub("", str(parsed.get("response") or ""))
+        if (
+            said_nothing_left
+            # Plain text by the parser's own verdict: a command, a delayed one,
+            # an automation or a scene still has to run or be shown.
+            and parsed.get("intent", "answer") == "answer"
+            and not str(parsed.get("response") or "").strip()
+            and not _carries_payload("answer", parsed)
+            # Every attempted call streams a step (execute_command excepted,
+            # which always reaches the log). A turn that ran tools is kept,
+            # read or write alike: what it did must stay on the record.
+            and not (steps or (tool_executor and tool_executor.call_log))
+        ):
+            # The model says nothing is left and did nothing. Anything more
+            # would restate the outcome line the confirmation already wrote.
+            # Nothing is persisted; the panel removes the bubble.
+            _safe_send_message(
+                connection,
+                websocket_api.event_message(
+                    msg["id"],
+                    {"type": "done", "session_id": session_id, "discarded": True},
+                ),
+            )
+            return
 
         await _reject_unusable_blueprint(hass, parsed, entities)
 
@@ -4145,9 +4214,12 @@ async def _handle_websocket_chat_stream(
         # silent "no response" failure. Substitute a bounded fallback so the
         # turn is never silent. Stall/runaway are already bounded upstream by
         # the stream guard and surface as "error" events.
-        response_text = _empty_response_fallback(
-            intent_type, response_text, parsed, msg.get("language") or hass.config.language
-        )
+        # Not when the model said nothing is left after running tools: that is
+        # an answer, and the steps it ran are what the bubble shows.
+        if not said_nothing_left:
+            response_text = _empty_response_fallback(
+                intent_type, response_text, parsed, msg.get("language") or hass.config.language
+            )
 
         # Scenes are NOT created immediately — they are stored as proposals
         # with scene_status="pending" so the user can review before applying.

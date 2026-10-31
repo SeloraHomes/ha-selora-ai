@@ -17,7 +17,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.selora_ai import _resume_request
+from custom_components.selora_ai import _NOTHING_LEFT, _resume_request
 from custom_components.selora_ai.tool_executor import ToolExecutor
 
 
@@ -94,7 +94,7 @@ def test_a_client_action_with_nothing_declared_replays_the_request() -> None:
 
     assert error is None
     assert "office dashboard with my devices" in directive
-    assert "one short confirmation" in directive
+    assert "If nothing is outstanding" in directive
 
 
 def test_an_unknown_proposal_is_refused() -> None:
@@ -238,7 +238,12 @@ async def test_a_resumption_persists_no_user_message(hass: HomeAssistant) -> Non
     )
 
     before = await harness.messages()
-    turn = await harness.stream("", chunks="Added the Office lights.", resume_proposal_id="p1")
+    turn = await harness.stream(
+        "",
+        chunks="Added the Office lights.",
+        tool_calls=[{"tool": "insert_dashboard_card", "arguments": {}, "result": {}}],
+        resume_proposal_id="p1",
+    )
     after = await harness.messages()
 
     # The model was asked to continue, with the declared remainder.
@@ -453,7 +458,7 @@ def test_an_undeclared_remainder_replays_the_request() -> None:
     assert "make a scene and add it" in directive
     # And the model is told what to do when nothing is left, or it will invent
     # work to justify the round.
-    assert "one short confirmation" in directive
+    assert "If nothing is outstanding" in directive
 
 
 def test_the_replay_uses_the_users_last_words() -> None:
@@ -474,7 +479,7 @@ def test_a_declared_remainder_still_wins() -> None:
     no-op round is avoided."""
     directive, _ = _resume_request(_scene_messages(), "selora_scene_office")
     assert "add a tile for it to the Office dashboard" in directive
-    assert "one short confirmation" not in directive
+    assert "If nothing is outstanding" not in directive
 
 
 def test_the_scene_handle_is_the_id_not_a_position() -> None:
@@ -631,3 +636,230 @@ def test_the_frigate_tool_takes_no_remaining_intent() -> None:
     params = {p.name for p in TOOL_MAP["add_cameras_to_frigate"].params}
 
     assert "remaining_intent" not in params
+
+
+async def _seed_approved(harness: Any, request: str) -> None:
+    harness.session_id = "sess-resume"
+    await harness.store.append_message(harness.session_id, "user", request)
+    await harness.store.append_message(
+        harness.session_id,
+        "assistant",
+        "Nothing has been done yet.",
+        intent="command_approval",
+        command_approval={
+            "proposal_id": "p1",
+            "approval_kind": "client_action",
+            "client_actions": [{"kind": "delete_dashboard", "url_path": "cameras"}],
+            "resume_depth": 0,
+            "calls": [],
+        },
+        approval_status="approved",
+    )
+
+
+async def test_a_resumption_that_does_nothing_is_dropped(hass: HomeAssistant) -> None:
+    """With nothing left to do, all a resumed turn can say is that the confirmed
+    step happened — under the outcome line that already says so. "Deleted the
+    Cameras dashboard." then "The Cameras dashboard has been removed." So the
+    model is asked to answer with the marker then, and that turn is not shown,
+    streamed or kept."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+    before = await harness.messages()
+
+    turn = await harness.stream("", chunks=_NOTHING_LEFT, resume_proposal_id="p1")
+
+    assert turn.done.get("discarded") is True
+    assert turn.tokens() == ""
+    assert await harness.messages() == before
+
+
+async def test_a_resumption_that_runs_a_tool_is_kept(hass: HomeAssistant) -> None:
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard and add a camera card to Home")
+
+    turn = await harness.stream(
+        "",
+        chunks="Added the camera card to Home.",
+        tool_calls=[{"tool": "insert_dashboard_card", "arguments": {}, "result": {}}],
+        resume_proposal_id="p1",
+    )
+
+    assert not turn.done.get("discarded")
+    assert (await harness.messages())[-1]["content"] == "Added the camera card to Home."
+
+
+async def test_a_resumption_raises_no_automation_spinner(hass: HomeAssistant) -> None:
+    """The resumed turn's message is the server's directive, and its "If any
+    part of it is still outstanding, do that part" matched the automation
+    predicate — so confirming a dashboard delete showed "Building
+    automation..." first."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+
+    turn = await harness.stream("", chunks=_NOTHING_LEFT, resume_proposal_id="p1")
+
+    assert not any(e.get("synthetic") for e in turn.events if e.get("type") == "token")
+
+
+async def test_a_reply_without_the_marker_is_kept(hass: HomeAssistant) -> None:
+    """Prose that is not the marker is something the model chose to say — a
+    question, a failure, a refusal. Guessing which of those is a "mere
+    confirmation" dropped each of them in turn, so only the marker drops."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard and add the Office lights")
+
+    turn = await harness.stream(
+        "", chunks="Which Office lights did you mean?", resume_proposal_id="p1"
+    )
+
+    assert not turn.done.get("discarded")
+    assert turn.done["response"] == "Which Office lights did you mean?"
+
+
+async def test_tools_then_the_marker_keep_the_turn(hass: HomeAssistant) -> None:
+    """Whatever ran stays on the record — a write must not vanish because the
+    model then said nothing is left. Its steps are the bubble; the marker is
+    not a provider failure, so no "no response" fallback either."""
+    from custom_components.selora_ai.const import STREAM_EMPTY_RESPONSE_MESSAGE
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard and make the hall area")
+
+    turn = await harness.stream(
+        "",
+        chunks=_NOTHING_LEFT,
+        tool_calls=[{"tool": "create_area", "arguments": {"name": "Hall"}, "result": {}}],
+        resume_proposal_id="p1",
+    )
+
+    assert not turn.done.get("discarded")
+    assert turn.done["response"] == ""
+    assert STREAM_EMPTY_RESPONSE_MESSAGE not in turn.done["response"]
+    assert (await harness.messages())[-1]["tool_calls"]
+
+
+async def test_the_marker_inside_a_json_envelope_is_found(hass: HomeAssistant) -> None:
+    """JSON-enveloped providers wrap the reply; the marker is read after
+    parsing, not off the raw stream."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+
+    turn = await harness.stream(
+        "",
+        chunks=f'{{"intent": "answer", "response": "{_NOTHING_LEFT}"}}',
+        resume_proposal_id="p1",
+    )
+
+    assert turn.done.get("discarded") is True
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_the_marker_beside_a_command_keeps_the_command(hass: HomeAssistant) -> None:
+    """Contradictory, but calls are work: a command whose only words are the
+    marker must still run, not be dropped before the executor sees it. (The
+    lingering timer is the delayed command, scheduled.)"""
+    from unittest.mock import patch
+
+    from custom_components.selora_ai.llm_client import LLMClient
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard and turn on the office light")
+    parsed = {
+        "intent": "delayed_command",
+        "response": _NOTHING_LEFT,
+        "calls": [{"service": "light.turn_on", "target": {"entity_id": "light.office"}}],
+        "delay_seconds": 60,
+    }
+
+    with patch.object(LLMClient, "parse_streamed_response", return_value=parsed):
+        turn = await harness.stream("", chunks=_NOTHING_LEFT, resume_proposal_id="p1")
+
+    assert not turn.done.get("discarded")
+
+
+async def test_the_marker_is_only_a_last_word(hass: HomeAssistant) -> None:
+    """The request may put the text itself somewhere; only a trailing,
+    standalone marker is the protocol."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+
+    turn = await harness.stream(
+        "", chunks=f"Named it {_NOTHING_LEFT}OVER as asked.", resume_proposal_id="p1"
+    )
+
+    assert f"{_NOTHING_LEFT}OVER" in turn.done["response"]
+
+
+async def test_the_marker_after_words_is_stripped(hass: HomeAssistant) -> None:
+    """Said beside other words, the words are kept and the marker is not one."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+
+    turn = await harness.stream(
+        "",
+        chunks=f"Checked, nothing else to do. {_NOTHING_LEFT}",
+        tool_calls=[{"tool": "list_dashboards", "arguments": {}, "result": {}}],
+        resume_proposal_id="p1",
+    )
+
+    assert not turn.done.get("discarded")
+    assert _NOTHING_LEFT not in turn.done["response"]
+    assert _NOTHING_LEFT not in turn.tokens()
+    # Held text still tells the panel the turn is alive.
+    assert any(e.get("type") == "heartbeat" for e in turn.events)
+
+
+async def test_a_resumption_keeps_the_automation_idle_budget(hass: HomeAssistant) -> None:
+    """What remains after a card is often an automation, and the directive says
+    nothing the predicate can read. Without the spinner guess, the turn still
+    needs the automation budget, or a slow cloud first token times it out."""
+    from unittest.mock import patch
+
+    import custom_components.selora_ai as integration
+    from custom_components.selora_ai.const import STREAM_AUTOMATION_IDLE_TIMEOUT_S
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard")
+    seen: list[float] = []
+    real = integration._consume_stream_with_guards
+
+    def _record(source: Any, *, idle_timeout: float, **kwargs: Any) -> Any:
+        seen.append(idle_timeout)
+        return real(source, idle_timeout=idle_timeout, **kwargs)
+
+    with patch.object(integration, "_consume_stream_with_guards", _record):
+        await harness.stream("", chunks="Done.", resume_proposal_id="p1")
+
+    assert seen == [STREAM_AUTOMATION_IDLE_TIMEOUT_S]
+
+
+async def test_an_empty_resumed_reply_is_not_dropped(hass: HomeAssistant) -> None:
+    """An empty stream is the provider failing, not the model confirming. It
+    keeps the no-response fallback, or outstanding work ends in silence."""
+    from tests.chat_harness import ChatHarness
+
+    harness = await ChatHarness.create(hass)
+    await _seed_approved(harness, "Remove the Cameras dashboard and make a Security one")
+
+    turn = await harness.stream("", chunks="", resume_proposal_id="p1")
+
+    assert not turn.done.get("discarded")
+    assert turn.done.get("response")
