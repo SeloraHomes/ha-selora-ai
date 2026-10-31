@@ -39,8 +39,10 @@ testpaths = ["tests"]
 # `test-soak`) and in the dedicated CI `soak` job, where the wall-clock
 # cost is acceptable. Local `pytest tests/` skips them so the unit-test
 # loop stays under a few seconds.
-addopts = "-m 'not soak' --strict-markers"
+# The chat evals (tests/evals) call a real model: opt-in via `-m eval`.
+addopts = "-m 'not soak and not eval' --strict-markers"
 markers = [
     "soak: long-running memory-leak soak tests (opt-in via `-m soak`)",
+    "eval: chat accuracy evals against a real model (opt-in via `-m eval`)",
     "real_config_check: run Home Assistant's real configuration check instead of the stub",
 ]

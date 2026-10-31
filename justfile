@@ -29,6 +29,10 @@ test: test-python test-frontend
 test-python *args='':
     pytest tests/ -v {{ args }}
 
+# Run the chat evals against a real model (SELORA_EVAL_PROVIDER, SELORA_EVAL_API_KEY)
+eval *args='':
+    pytest tests/evals -m eval -v {{ args }}
+
 # Run frontend tests (vitest)
 test-frontend:
     cd {{ frontend_dir }} && npx vitest run
