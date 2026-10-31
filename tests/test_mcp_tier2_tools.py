@@ -18,6 +18,7 @@ from homeassistant.helpers import (
 )
 import pytest
 
+from custom_components.selora_ai.mcp_server import commands as mcp_commands
 from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 from custom_components.selora_ai.mcp_server.entities import (
     _tool_eval_template,
@@ -25,6 +26,14 @@ from custom_components.selora_ai.mcp_server.entities import (
 )
 from custom_components.selora_ai.mcp_server.scenes import _tool_delete_scene
 from custom_components.selora_ai.tool_registry import CHAT_TOOLS
+
+
+@pytest.fixture(autouse=True)
+def _no_settle_wait():
+    """The mocked services change no state, so the read-back would wait out
+    its full timeout on every call that expects a transition."""
+    with patch.object(mcp_commands, "_STATE_SETTLE_TIMEOUT", 0.01):
+        yield
 
 
 @pytest.fixture
