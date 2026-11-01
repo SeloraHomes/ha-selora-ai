@@ -1115,6 +1115,8 @@
     "camera_events_close": "Закрыть",
     "camera_events_now": "Продолжается",
     "camera_events_more": "Ещё {count} за этот период.",
+    "camera_events_unconfirmed_show": "Показать неподтверждённые: {count}",
+    "camera_events_unconfirmed_hide": "Скрыть неподтверждённые: {count}",
     "camera_events_person": "Человек",
     "camera_events_car": "Машина",
     "camera_events_dog": "Собака",

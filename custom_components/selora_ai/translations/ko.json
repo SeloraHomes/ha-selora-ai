@@ -1115,6 +1115,8 @@
     "camera_events_close": "닫기",
     "camera_events_now": "진행 중",
     "camera_events_more": "이 기간에 {count}개 더 있습니다.",
+    "camera_events_unconfirmed_show": "확인되지 않은 {count}개 보기",
+    "camera_events_unconfirmed_hide": "확인되지 않은 {count}개 숨기기",
     "camera_events_person": "사람",
     "camera_events_car": "자동차",
     "camera_events_dog": "개",

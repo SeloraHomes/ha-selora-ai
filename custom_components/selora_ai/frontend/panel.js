@@ -11744,6 +11744,8 @@ var en_default = {
     camera_events_close: "Close",
     camera_events_now: "Still going",
     camera_events_more: "{count} more in this time range.",
+    camera_events_unconfirmed_show: "Show {count} not confirmed",
+    camera_events_unconfirmed_hide: "Hide {count} not confirmed",
     camera_events_person: "Person",
     camera_events_car: "Car",
     camera_events_dog: "Dog",
@@ -13217,6 +13219,8 @@ var fr_default = {
     camera_events_close: "Fermer",
     camera_events_now: "En cours",
     camera_events_more: "{count} de plus sur cette p\xE9riode.",
+    camera_events_unconfirmed_show: "Afficher {count} non confirm\xE9s",
+    camera_events_unconfirmed_hide: "Masquer {count} non confirm\xE9s",
     camera_events_person: "Personne",
     camera_events_car: "Voiture",
     camera_events_dog: "Chien",
@@ -14685,6 +14689,8 @@ var de_default = {
     camera_events_close: "Schlie\xDFen",
     camera_events_now: "L\xE4uft noch",
     camera_events_more: "{count} weitere in diesem Zeitraum.",
+    camera_events_unconfirmed_show: "{count} nicht best\xE4tigte anzeigen",
+    camera_events_unconfirmed_hide: "{count} nicht best\xE4tigte ausblenden",
     camera_events_person: "Person",
     camera_events_car: "Auto",
     camera_events_dog: "Hund",
@@ -16132,6 +16138,8 @@ var es_default = {
     camera_events_close: "Cerrar",
     camera_events_now: "En curso",
     camera_events_more: "{count} m\xE1s en este intervalo.",
+    camera_events_unconfirmed_show: "Mostrar {count} sin confirmar",
+    camera_events_unconfirmed_hide: "Ocultar {count} sin confirmar",
     camera_events_person: "Persona",
     camera_events_car: "Coche",
     camera_events_dog: "Perro",
@@ -17577,6 +17585,8 @@ var it_default = {
     camera_events_close: "Chiudi",
     camera_events_now: "In corso",
     camera_events_more: "Altri {count} in questo intervallo.",
+    camera_events_unconfirmed_show: "Mostra {count} non confermati",
+    camera_events_unconfirmed_hide: "Nascondi {count} non confermati",
     camera_events_person: "Persona",
     camera_events_car: "Auto",
     camera_events_dog: "Cane",
@@ -19036,6 +19046,8 @@ var nl_default = {
     camera_events_close: "Sluiten",
     camera_events_now: "Nog bezig",
     camera_events_more: "Nog {count} in deze periode.",
+    camera_events_unconfirmed_show: "{count} niet bevestigde tonen",
+    camera_events_unconfirmed_hide: "{count} niet bevestigde verbergen",
     camera_events_person: "Persoon",
     camera_events_car: "Auto",
     camera_events_dog: "Hond",
@@ -20551,6 +20563,10 @@ var hu_default = {
     camera_events_close: "Bez\xE1r\xE1s",
     camera_events_now: "Folyamatban",
     camera_events_more: "M\xE9g {count} ebben az id\u0151szakban.",
+    camera_events_unconfirmed_show:
+      "{count} nem meger\u0151s\xEDtett megjelen\xEDt\xE9se",
+    camera_events_unconfirmed_hide:
+      "{count} nem meger\u0151s\xEDtett elrejt\xE9se",
     camera_events_person: "Szem\xE9ly",
     camera_events_car: "Aut\xF3",
     camera_events_dog: "Kutya",
@@ -21994,6 +22010,8 @@ var pt_default = {
     camera_events_close: "Fechar",
     camera_events_now: "Em curso",
     camera_events_more: "Mais {count} neste per\xEDodo.",
+    camera_events_unconfirmed_show: "Mostrar {count} n\xE3o confirmados",
+    camera_events_unconfirmed_hide: "Ocultar {count} n\xE3o confirmados",
     camera_events_person: "Pessoa",
     camera_events_car: "Carro",
     camera_events_dog: "C\xE3o",
@@ -24092,6 +24110,10 @@ var ru_default = {
       "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0430\u0435\u0442\u0441\u044F",
     camera_events_more:
       "\u0415\u0449\u0451 {count} \u0437\u0430 \u044D\u0442\u043E\u0442 \u043F\u0435\u0440\u0438\u043E\u0434.",
+    camera_events_unconfirmed_show:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043D\u0435\u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043D\u043D\u044B\u0435: {count}",
+    camera_events_unconfirmed_hide:
+      "\u0421\u043A\u0440\u044B\u0442\u044C \u043D\u0435\u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0451\u043D\u043D\u044B\u0435: {count}",
     camera_events_person: "\u0427\u0435\u043B\u043E\u0432\u0435\u043A",
     camera_events_car: "\u041C\u0430\u0448\u0438\u043D\u0430",
     camera_events_dog: "\u0421\u043E\u0431\u0430\u043A\u0430",
@@ -25870,6 +25892,10 @@ var ja_default = {
     camera_events_now: "\u7D99\u7D9A\u4E2D",
     camera_events_more:
       "\u3053\u306E\u671F\u9593\u306B\u3042\u3068 {count} \u4EF6\u3002",
+    camera_events_unconfirmed_show:
+      "\u672A\u78BA\u8A8D\u306E {count} \u4EF6\u3092\u8868\u793A",
+    camera_events_unconfirmed_hide:
+      "\u672A\u78BA\u8A8D\u306E {count} \u4EF6\u3092\u96A0\u3059",
     camera_events_person: "\u4EBA",
     camera_events_car: "\u8ECA",
     camera_events_dog: "\u72AC",
@@ -27530,6 +27556,10 @@ var ko_default = {
     camera_events_now: "\uC9C4\uD589 \uC911",
     camera_events_more:
       "\uC774 \uAE30\uAC04\uC5D0 {count}\uAC1C \uB354 \uC788\uC2B5\uB2C8\uB2E4.",
+    camera_events_unconfirmed_show:
+      "\uD655\uC778\uB418\uC9C0 \uC54A\uC740 {count}\uAC1C \uBCF4\uAE30",
+    camera_events_unconfirmed_hide:
+      "\uD655\uC778\uB418\uC9C0 \uC54A\uC740 {count}\uAC1C \uC228\uAE30\uAE30",
     camera_events_person: "\uC0AC\uB78C",
     camera_events_car: "\uC790\uB3D9\uCC28",
     camera_events_dog: "\uAC1C",
@@ -29099,6 +29129,10 @@ var zh_Hans_default = {
     camera_events_now: "\u8FDB\u884C\u4E2D",
     camera_events_more:
       "\u6B64\u65F6\u95F4\u6BB5\u5185\u8FD8\u6709 {count} \u4E2A\u3002",
+    camera_events_unconfirmed_show:
+      "\u663E\u793A {count} \u4E2A\u672A\u786E\u8BA4\u7684",
+    camera_events_unconfirmed_hide:
+      "\u9690\u85CF {count} \u4E2A\u672A\u786E\u8BA4\u7684",
     camera_events_person: "\u4EBA",
     camera_events_car: "\u6C7D\u8F66",
     camera_events_dog: "\u72D7",
@@ -30673,6 +30707,10 @@ var zh_Hant_default = {
     camera_events_now: "\u9032\u884C\u4E2D",
     camera_events_more:
       "\u6B64\u6642\u9593\u6BB5\u5167\u9084\u6709 {count} \u500B\u3002",
+    camera_events_unconfirmed_show:
+      "\u986F\u793A {count} \u500B\u672A\u78BA\u8A8D\u7684",
+    camera_events_unconfirmed_hide:
+      "\u96B1\u85CF {count} \u500B\u672A\u78BA\u8A8D\u7684",
     camera_events_person: "\u4EBA",
     camera_events_car: "\u6C7D\u8ECA",
     camera_events_dog: "\u72D7",
@@ -43869,7 +43907,18 @@ var OBJECTS = {
 };
 var SIGNED = /* @__PURE__ */ new Map();
 var OPEN = /* @__PURE__ */ new Map();
+var UNFOLDED = /* @__PURE__ */ new Set();
+function picksOf(msg) {
+  let picks = null;
+  for (const call of msg.tool_calls || []) {
+    if (call?.tool !== "show_camera_events") continue;
+    picks ??= /* @__PURE__ */ new Set();
+    for (const id of call.result?.shown || []) picks.add(id);
+  }
+  return picks;
+}
 function searchesOf(msg) {
+  const picks = picksOf(msg);
   const seen = /* @__PURE__ */ new Set();
   const searches = [];
   for (const call of msg.tool_calls || []) {
@@ -43881,7 +43930,11 @@ function searchesOf(msg) {
       .map((e6) => ({ ...e6, frigate_instance: instance }));
     events.forEach((e6) => seen.add(e6.id));
     const more = (call.result?.total || 0) - listed.length;
-    if (events.length || more > 0) searches.push({ events, more });
+    const byDescription = Boolean(String(call.arguments?.query || "").trim());
+    const confirm2 = picks !== null || byDescription;
+    const shown = confirm2 ? events.filter((e6) => picks?.has(e6.id)) : events;
+    const folded = confirm2 ? events.filter((e6) => !picks?.has(e6.id)) : [];
+    if (events.length || more > 0) searches.push({ shown, folded, more });
   }
   return searches;
 }
@@ -44056,26 +44109,67 @@ function renderMore(host2, more) {
       </div>`
     : "";
 }
+function renderFolded(host2, events, foldKey, key) {
+  if (!events.length) return "";
+  const open = UNFOLDED.has(foldKey);
+  return b2`
+    <div
+      class="yaml-toggle camera-events-fold"
+      @click=${() => {
+        if (open) UNFOLDED.delete(foldKey);
+        else UNFOLDED.add(foldKey);
+        host2.requestUpdate?.();
+      }}
+    >
+      <ha-icon
+        icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}
+        style="--mdc-icon-size:14px;"
+      ></ha-icon>
+      ${interpolate(
+        open
+          ? host2._t(
+              "camera_events_unconfirmed_hide",
+              "Hide {count} not confirmed",
+            )
+          : host2._t(
+              "camera_events_unconfirmed_show",
+              "Show {count} not confirmed",
+            ),
+        { count: events.length },
+      )}
+    </div>
+    ${
+      open
+        ? b2`<div class="camera-events-grid camera-events-unconfirmed">
+            ${events.map((e6) => renderTile(host2, e6, key))}
+          </div>`
+        : ""
+    }
+  `;
+}
 function renderCameraEventsCard(host2, msg) {
   const searches = searchesOf(msg);
   if (!searches.length) return "";
   const key = msg.timestamp || "";
   const openId = OPEN.get(key);
   const open = openId
-    ? searches.flatMap((s6) => s6.events).find((e6) => e6.id === openId)
+    ? searches
+        .flatMap((s6) => [...s6.shown, ...s6.folded])
+        .find((e6) => e6.id === openId)
     : null;
   return b2`
     <div class="camera-events">
       ${open ? renderOpen(host2, open, key) : ""}
       ${searches.map(
-        ({ events, more }) => b2`
+        ({ shown, folded, more }, index) => b2`
           ${
-            events.length
+            shown.length
               ? b2`<div class="camera-events-grid">
-                  ${events.map((e6) => renderTile(host2, e6, key))}
+                  ${shown.map((e6) => renderTile(host2, e6, key))}
                 </div>`
               : ""
           }
+          ${renderFolded(host2, folded, `${key}|${index}`, key)}
           ${renderMore(host2, more)}
         `,
       )}
@@ -59019,7 +59113,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ede268a6ef01" : "";
+var PANEL_BUILD = true ? "07b4e2cfce5d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

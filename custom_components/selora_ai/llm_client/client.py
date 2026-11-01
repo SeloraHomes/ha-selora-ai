@@ -16,7 +16,7 @@ import contextlib
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from ..agent_steps import encode_tool_step
 from ..command_policy_options import resolve_command_policy_options
@@ -241,6 +241,14 @@ _LEAK_RETRY_DIRECTIVE = (
 # formatting slip, and falling through to a normal final answer beats burning
 # the budget on a model that cannot do structured calls at all.
 _MAX_LEAK_RETRIES = 2
+# Tools that only tell the panel what to draw. A round of nothing else, with
+# the answer written beside it, has nothing left for the model to say: the
+# next round would only repeat the answer.
+_CARD_ONLY_TOOLS: Final = frozenset({"show_camera_events"})
+
+
+def _only_card_tools(tool_calls: list[dict[str, Any]]) -> bool:
+    return bool(tool_calls) and all(tc.get("name") in _CARD_ONLY_TOOLS for tc in tool_calls)
 
 
 def _grant_leak_retry(
@@ -2153,6 +2161,12 @@ class LLMClient:
                 )
                 return text, None, tool_calls_log
 
+            if _only_card_tools(requested_tools):
+                said = self._provider.extract_text_response(response_data)
+                said = strip_leaked_tool_markup(said) if said else said
+                if said and said.strip():
+                    return said, None, tool_calls_log
+
         # Exhausted rounds
         _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
         # _tool_failure_response handles both branches (executed-something
@@ -2410,7 +2424,7 @@ class LLMClient:
                     # Surface read/inspect tools as a timeline step. The write tool
                     # (execute_command) has its own result UI and is intentionally
                     # not narrated here.
-                    if tc["name"] != "execute_command":
+                    if tc["name"] != "execute_command" and tc["name"] not in _CARD_ONLY_TOOLS:
                         tool_step_seq += 1
                         yield encode_tool_step(tool_step_seq, tc["name"])
                     if isinstance(result, dict) and result.get("requires_approval"):
@@ -2474,6 +2488,12 @@ class LLMClient:
                     "executed write call(s); skipping post-tool LLM round.",
                     len(executed_results),
                 )
+                return
+
+            if (
+                _only_card_tools(tool_calls)
+                and "".join(streamed_text_parts[text_len_before:]).strip()
+            ):
                 return
 
             # Another keepalive before the next provider round-trip so the

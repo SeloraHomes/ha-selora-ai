@@ -1135,6 +1135,8 @@
     "camera_events_close": "Sluiten",
     "camera_events_now": "Nog bezig",
     "camera_events_more": "Nog {count} in deze periode.",
+    "camera_events_unconfirmed_show": "{count} niet bevestigde tonen",
+    "camera_events_unconfirmed_hide": "{count} niet bevestigde verbergen",
     "camera_events_person": "Persoon",
     "camera_events_car": "Auto",
     "camera_events_dog": "Hond",

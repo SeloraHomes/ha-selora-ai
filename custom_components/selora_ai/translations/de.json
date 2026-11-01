@@ -1115,6 +1115,8 @@
     "camera_events_close": "Schließen",
     "camera_events_now": "Läuft noch",
     "camera_events_more": "{count} weitere in diesem Zeitraum.",
+    "camera_events_unconfirmed_show": "{count} nicht bestätigte anzeigen",
+    "camera_events_unconfirmed_hide": "{count} nicht bestätigte ausblenden",
     "camera_events_person": "Person",
     "camera_events_car": "Auto",
     "camera_events_dog": "Hund",

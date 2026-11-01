@@ -69,6 +69,16 @@ _SEMANTIC_OFF: Final = (
     "only: say they were not checked for the description. If the user wants to "
     "search by description, tell them what turning it on means."
 )
+# The same, where Frigate writes descriptions: they are in the events, so the
+# model can check them itself. Told only that Frigate did not, it answered
+# "I can't verify" with the matching description in front of it.
+_SEMANTIC_OFF_DESCRIBED: Final = (
+    "Frigate's semantic search is off, so Frigate did not match these to the "
+    "description: read each event's description yourself. One that says it "
+    "answers; one without a description was not checked, so say how many. If "
+    "the user wants Frigate to search by description, tell them what turning "
+    "it on means."
+)
 # Events a described camera should have described and did not: the answer
 # leaves them out, and has to say so rather than read as complete.
 _UNDESCRIBED: Final = (
@@ -456,7 +466,7 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         result.update(await _describe_gaps(hass, config, ranged, chosen, bool(query or unfiltered)))
     if unfiltered:
         result["not_filtered_by"] = unfiltered
-        result["note"] = _SEMANTIC_OFF
+        result["note"] = _SEMANTIC_OFF_DESCRIBED if _describes(config) else _SEMANTIC_OFF
         result["semantic_search"] = _SEMANTIC_SEARCH
     if query:
         result["ranked_by"] = "how well each matches the query"
@@ -474,6 +484,21 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         result["by_camera"] = dict(
             Counter(sanitize_untrusted_text(str(e.get("camera") or ""), 64) for e in found)
         )
+    return result
+
+
+def show_events(arguments: dict[str, Any]) -> dict[str, Any]:
+    """The events the model confirmed, for the card to draw (show_camera_events).
+
+    Nothing is read here: the card draws only ids a search of the same reply
+    listed, so an id is only checked for shape.
+    """
+    raw = arguments.get("ids")
+    items = raw if isinstance(raw, list) else [raw] if isinstance(raw, str) else []
+    ids = list(dict.fromkeys(str(i).strip() for i in items if str(i).strip()))
+    result: dict[str, Any] = {"shown": [i for i in ids if _EVENT_ID.match(i)]}
+    if bad := [sanitize_untrusted_text(i, 40) for i in ids if not _EVENT_ID.match(i)]:
+        result["not_event_ids"] = bad[:_MAX_FILTERS]
     return result
 
 

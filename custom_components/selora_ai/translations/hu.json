@@ -1135,6 +1135,8 @@
     "camera_events_close": "Bezárás",
     "camera_events_now": "Folyamatban",
     "camera_events_more": "Még {count} ebben az időszakban.",
+    "camera_events_unconfirmed_show": "{count} nem megerősített megjelenítése",
+    "camera_events_unconfirmed_hide": "{count} nem megerősített elrejtése",
     "camera_events_person": "Személy",
     "camera_events_car": "Autó",
     "camera_events_dog": "Kutya",
