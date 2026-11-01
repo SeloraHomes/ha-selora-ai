@@ -1,11 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../chat-attachments.js", () => ({
-  _processImageFile: vi.fn(async (file) => ({
-    name: file.name,
-    mimeType: "image/jpeg",
-    dataUrl: "data:image/jpeg;base64,QUJD",
-  })),
+  // Like the real one: a small GIF passes through, anything else that decodes
+  // comes back as JPEG.
+  _processImageFile: vi.fn(async (file) => {
+    if (file.name.endsWith(".bin")) throw new Error("decode failed");
+    const mimeType = file.type === "image/gif" ? file.type : "image/jpeg";
+    return {
+      name: file.name,
+      mimeType,
+      dataUrl: `data:${mimeType};base64,QUJD`,
+    };
+  }),
 }));
 
 import {
@@ -185,6 +191,34 @@ describe("faces actions", () => {
     expect(result.failed.map((f) => f.file)).toEqual(["back.jpg", "clip.gif"]);
     expect(peopleState(h).people).toEqual([{ name: "Alice", photos: 1 }]);
     expect(peopleState(h).name).toBe(" Alice ");
+  });
+
+  it("takes an iOS photo the browser re-encodes, whatever type it was picked as", async () => {
+    const h = host(async (msg) =>
+      msg.type === "selora_ai/frigate/faces_people"
+        ? { running: true, people: [{ name: "Alice", photos: 2 }] }
+        : { name: "Alice" },
+    );
+    peopleState(h).name = "Alice";
+
+    await addPhotos(h, [
+      new File(["a"], "IMG_0001.HEIC", { type: "image/heic" }),
+      new File(["b"], "IMG_0002.HEIC", { type: "" }),
+      new File(["c"], "notes.txt", { type: "text/plain" }),
+      new File(["d"], "broken.bin", { type: "" }),
+    ]);
+
+    const sent = h.hass.callWS.mock.calls
+      .map(([m]) => m)
+      .filter((m) => m.type === "selora_ai/frigate/faces_add_photo");
+    expect(sent.map((m) => m.content_type)).toEqual([
+      "image/jpeg",
+      "image/jpeg",
+    ]);
+    expect(peopleState(h).result.failed.map((f) => f.file)).toEqual([
+      "notes.txt",
+      "broken.bin",
+    ]);
   });
 
   it("empties the name for the next person once every photo is in", async () => {

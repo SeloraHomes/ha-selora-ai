@@ -44452,12 +44452,18 @@ function stoppedWaiting(state) {
   );
 }
 async function sendPhoto(host2, name, file) {
-  if (!PHOTO_TYPES.has(file.type)) {
-    throw new Error(
+  const unsupported = () =>
+    new Error(
       host2._t("faces_photo_unsupported", "Not a JPEG, PNG or WebP photo."),
     );
+  if (file.type && !file.type.startsWith("image/")) throw unsupported();
+  let photo;
+  try {
+    photo = await _processImageFile(file);
+  } catch (_2) {
+    throw unsupported();
   }
-  const photo = await _processImageFile(file);
+  if (!PHOTO_TYPES.has(photo.mimeType)) throw unsupported();
   const image = photo.dataUrl.slice(photo.dataUrl.indexOf(",") + 1);
   if (image.length > MAX_PHOTO_B64) {
     throw new Error(
@@ -59013,7 +59019,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "67f868ce5062" : "";
+var PANEL_BUILD = true ? "ede268a6ef01" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
