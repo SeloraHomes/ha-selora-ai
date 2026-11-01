@@ -442,6 +442,20 @@ entities only say what is there now.
   widest break of at least one standard deviation (`_STANDOUT_GAP`) are kept,
   and `weaker_matches_left_out` counts the rest. A query many events match
   equally well has no such break and keeps them all.
+- **The card shows what the reply confirmed.** A search by description lists
+  every event it ranked, and the card drew two dozen people under a reply
+  that found two wearing a backpack. Only the model, reading the
+  descriptions, knows which answer, so it names them with
+  `show_camera_events` (chat only, `panel_only`) and the card folds the rest
+  under "N not confirmed". After a `query` with no pick, nothing is shown
+  unfolded; a plain listing without one shows everything. A label answers on
+  its own ("anyone at the door?": every person), so the pick is not limited to
+  described events. A round of only that call, beside the written answer,
+  ends the turn (`_CARD_ONLY_TOOLS`): the next round would only repeat it.
+- **Without semantic search, the model checks the descriptions itself.** Told
+  only that Frigate had not matched them, it answered "I can't verify" with
+  the matching description in front of it; where Frigate writes
+  descriptions, the note says to read them (`_SEMANTIC_OFF_DESCRIBED`).
 - **Counts cover the range, the list is a page.** Up to `_COUNT_CAP` events are
   read without thumbnails so `total`, `by_object` and `by_camera` answer "how
   many…" while at most 25 are listed.

@@ -32,10 +32,30 @@ const OBJECTS = {
 const SIGNED = new Map();
 // "<message timestamp>|<event id>" of the event shown large, per message.
 const OPEN = new Map();
+// "<message timestamp>|<search index>" of the searches whose unconfirmed
+// events the user unfolded.
+const UNFOLDED = new Set();
+
+// The events the reply confirmed (`show_camera_events`), or null when it
+// picked none: then a search shows what it listed, unless it was by
+// description.
+function picksOf(msg) {
+  let picks = null;
+  for (const call of msg.tool_calls || []) {
+    if (call?.tool !== "show_camera_events") continue;
+    picks ??= new Set();
+    for (const id of call.result?.shown || []) picks.add(id);
+  }
+  return picks;
+}
 
 // One group per search the reply made, each with what it left unlisted. An
-// event a previous search already showed is not shown twice.
+// event a previous search already showed is not shown twice. A search by
+// description ranks every event, matching or not: only the model, reading
+// the descriptions, knows which answer the question, so what it did not
+// confirm is folded away rather than shown as an answer.
 function searchesOf(msg) {
+  const picks = picksOf(msg);
   const seen = new Set();
   const searches = [];
   for (const call of msg.tool_calls || []) {
@@ -47,7 +67,11 @@ function searchesOf(msg) {
       .map((e) => ({ ...e, frigate_instance: instance }));
     events.forEach((e) => seen.add(e.id));
     const more = (call.result?.total || 0) - listed.length;
-    if (events.length || more > 0) searches.push({ events, more });
+    const byDescription = Boolean(String(call.arguments?.query || "").trim());
+    const confirm = picks !== null || byDescription;
+    const shown = confirm ? events.filter((e) => picks?.has(e.id)) : events;
+    const folded = confirm ? events.filter((e) => !picks?.has(e.id)) : [];
+    if (events.length || more > 0) searches.push({ shown, folded, more });
   }
   return searches;
 }
@@ -257,6 +281,45 @@ function renderMore(host, more) {
     : "";
 }
 
+function renderFolded(host, events, foldKey, key) {
+  if (!events.length) return "";
+  const open = UNFOLDED.has(foldKey);
+  return html`
+    <div
+      class="yaml-toggle camera-events-fold"
+      @click=${() => {
+        if (open) UNFOLDED.delete(foldKey);
+        else UNFOLDED.add(foldKey);
+        host.requestUpdate?.();
+      }}
+    >
+      <ha-icon
+        icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}
+        style="--mdc-icon-size:14px;"
+      ></ha-icon>
+      ${interpolate(
+        open
+          ? host._t(
+              "camera_events_unconfirmed_hide",
+              "Hide {count} not confirmed",
+            )
+          : host._t(
+              "camera_events_unconfirmed_show",
+              "Show {count} not confirmed",
+            ),
+        { count: events.length },
+      )}
+    </div>
+    ${
+      open
+        ? html`<div class="camera-events-grid camera-events-unconfirmed">
+            ${events.map((e) => renderTile(host, e, key))}
+          </div>`
+        : ""
+    }
+  `;
+}
+
 /** The events card for a reply that looked up camera events, or "". */
 export function renderCameraEventsCard(host, msg) {
   const searches = searchesOf(msg);
@@ -264,20 +327,23 @@ export function renderCameraEventsCard(host, msg) {
   const key = msg.timestamp || "";
   const openId = OPEN.get(key);
   const open = openId
-    ? searches.flatMap((s) => s.events).find((e) => e.id === openId)
+    ? searches
+        .flatMap((s) => [...s.shown, ...s.folded])
+        .find((e) => e.id === openId)
     : null;
   return html`
     <div class="camera-events">
       ${open ? renderOpen(host, open, key) : ""}
       ${searches.map(
-        ({ events, more }) => html`
+        ({ shown, folded, more }, index) => html`
           ${
-            events.length
+            shown.length
               ? html`<div class="camera-events-grid">
-                  ${events.map((e) => renderTile(host, e, key))}
+                  ${shown.map((e) => renderTile(host, e, key))}
                 </div>`
               : ""
           }
+          ${renderFolded(host, folded, `${key}|${index}`, key)}
           ${renderMore(host, more)}
         `,
       )}

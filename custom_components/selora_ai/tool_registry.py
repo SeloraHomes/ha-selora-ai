@@ -2358,6 +2358,10 @@ TOOL_FIND_CAMERA_EVENTS = ToolDef(
         "or occupancy sensors, which hold neither times of objects nor what a "
         "camera is not looking for. The user sees each event's snapshot on a card under "
         "your reply, so describe what happened, with no links and no device tiles. "
+        "When your answer keeps only some of the listed events (what someone "
+        "wore, a colour: what a description says and a label cannot), pick "
+        "those with show_camera_events; after a query the card shows none until "
+        "you do, so give query only for such a description. "
         "Opening one there offers Frigate's own pages, the event and the camera's "
         "Zones: for a parked car or other detections to ignore, point the user to "
         "Zones. "
@@ -2410,6 +2414,35 @@ TOOL_FIND_CAMERA_EVENTS = ToolDef(
     ),
     requires_admin=True,
     large_context_only=True,
+)
+
+# The card under the reply draws what find_camera_events listed. Only the
+# model, reading the descriptions, knows which of them answer the question, so
+# a search by description draws only the events it names here.
+TOOL_SHOW_CAMERA_EVENTS = ToolDef(
+    name="show_camera_events",
+    description=(
+        "The events from find_camera_events that answer the user, for the card "
+        "under your reply: only ids whose description or label you checked says "
+        "what was asked. A label answers on its own ('anyone at the door?': "
+        "every person is confirmed, described or not); a description is needed "
+        "only for what a label cannot say (a backpack, a colour). The rest stay "
+        "folded as not confirmed, for the user to open. Empty ids when none is "
+        "confirmed. Call it with your answer."
+    ),
+    params=(
+        ToolParam(
+            name="ids",
+            type="array",
+            items_type="string",
+            description="Event ids from find_camera_events.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+    # Nothing but the panel's card reads it.
+    panel_only=True,
 )
 
 TOOL_GET_FRIGATE_STATUS = ToolDef(
@@ -3444,6 +3477,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_FRIGATE_STATUS,
     TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_FIND_CAMERA_EVENTS,
+    TOOL_SHOW_CAMERA_EVENTS,
     TOOL_SET_CAMERA_OBJECTS,
     TOOL_SET_CAMERA_SNAPSHOTS,
     TOOL_MOVE_FRIGATE_CAMERA,
@@ -3461,6 +3495,7 @@ FRIGATE_TOOL_NAMES: frozenset[str] = frozenset(
         TOOL_GET_FRIGATE_STATUS.name,
         TOOL_ADD_CAMERAS_TO_FRIGATE.name,
         TOOL_FIND_CAMERA_EVENTS.name,
+        TOOL_SHOW_CAMERA_EVENTS.name,
         TOOL_SET_CAMERA_OBJECTS.name,
         TOOL_SET_CAMERA_SNAPSHOTS.name,
         TOOL_MOVE_FRIGATE_CAMERA.name,

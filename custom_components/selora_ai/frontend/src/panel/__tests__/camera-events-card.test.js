@@ -241,3 +241,73 @@ describe("links into Frigate's own UI", () => {
     expect(out).toMatch(/aria-label=\s*Close/);
   });
 });
+
+describe("a search by description", () => {
+  const searched = (timestamp, picks) => ({
+    role: "assistant",
+    content: "Alice wore a backpack.",
+    timestamp,
+    tool_calls: [
+      {
+        tool: "find_camera_events",
+        arguments: { query: "someone wearing a backpack" },
+        result: { events: [PORCH, NOW] },
+      },
+      ...(picks
+        ? [{ tool: "show_camera_events", result: { shown: picks } }]
+        : []),
+    ],
+  });
+  const tiles = (out) => out.split('class="camera-event"').length - 1;
+
+  it("shows only the events the reply confirmed, the rest folded", () => {
+    const out = flatten(
+      renderCameraEventsCard(host(), searched("d1", [PORCH.id])),
+    );
+
+    expect(tiles(out)).toBe(1);
+    expect(out).toContain("Alice");
+    expect(out).toContain("Show 1 not confirmed");
+  });
+
+  it("shows nothing it could not confirm until the user unfolds it", () => {
+    const h = host();
+    const msg = searched("d2", null);
+    const out = flatten(renderCameraEventsCard(h, msg));
+    expect(tiles(out)).toBe(0);
+    expect(out).toContain("Show 2 not confirmed");
+
+    const fold = handlers(renderCameraEventsCard(h, msg)).find((f) =>
+      String(f).includes("UNFOLDED"),
+    );
+    fold();
+    const unfolded = flatten(renderCameraEventsCard(h, msg));
+    expect(tiles(unfolded)).toBe(2);
+    expect(unfolded).toContain("Hide 2 not confirmed");
+  });
+
+  it("folds nothing when every event is confirmed", () => {
+    const out = flatten(
+      renderCameraEventsCard(host(), searched("d3", [PORCH.id, NOW.id])),
+    );
+    expect(tiles(out)).toBe(2);
+    expect(out).not.toContain("not confirmed");
+  });
+
+  it("leaves a plain listing whole", () => {
+    const out = flatten(
+      renderCameraEventsCard(host(), message("d4", [PORCH, NOW])),
+    );
+    expect(out).not.toContain("not confirmed");
+  });
+
+  it("follows the reply's pick on a plain listing too", () => {
+    const msg = message("d5", [PORCH, NOW]);
+    msg.tool_calls.push({
+      tool: "show_camera_events",
+      result: { shown: [NOW.id] },
+    });
+    const out = flatten(renderCameraEventsCard(host(), msg));
+    expect(out).toContain("Show 1 not confirmed");
+  });
+});

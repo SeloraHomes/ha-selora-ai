@@ -43,6 +43,10 @@ class Case:
     # "domain.service entity_id" the turn must run.
     services: tuple[str, ...] = ()
     no_service_on: tuple[str, ...] = ()
+    # The card shows events, and only events whose description says this.
+    shows: str | None = None
+    # The card folds none of this camera's events: their label answers.
+    folds_none_of: str | None = None
 
 
 _NAMESAKES = (
@@ -74,6 +78,15 @@ CASES = (
         "Was anyone at the front door in the last 3 hours?",
         calls=("find_camera_events",),
         no_tiles=_NAMESAKES,
+        folds_none_of="front_door",
+    ),
+    Case(
+        "backpack-verified",
+        "Was anyone wearing a backpack at the front door in the last 3 hours? "
+        "If you can't verify it, don't show me the clips.",
+        calls=("find_camera_events", "show_camera_events"),
+        no_tiles=_NAMESAKES,
+        shows="backpack",
     ),
     Case(
         "speaker-state",
@@ -102,6 +115,46 @@ def _tiles(response: str) -> set[str]:
     return {eid.strip() for group in _TILES.findall(response) for eid in group.split(",")}
 
 
+def _shown(turn: ChatTurn, word: str) -> list[str]:
+    """What is wrong with the events the card shows, for ``Case.shows``."""
+    listed = {
+        e["id"]: e
+        for c in turn.tool_calls
+        if c["tool"] == "find_camera_events"
+        for e in (c.get("result") or {}).get("events") or []
+    }
+    shown = [
+        i
+        for c in turn.tool_calls
+        if c["tool"] == "show_camera_events"
+        for i in (c.get("result") or {}).get("shown") or []
+    ]
+    if not shown:
+        return ["showed no event"]
+    return [
+        f"showed {i} ({(listed.get(i) or {}).get('description') or 'not listed'})"
+        for i in shown
+        if word not in str((listed.get(i) or {}).get("description") or "").casefold()
+    ]
+
+
+def _folded(turn: ChatTurn, camera: str) -> list[str]:
+    """The camera's listed events the card would fold away, for ``Case.folds_none_of``."""
+    calls = turn.tool_calls
+    picks = [c for c in calls if c["tool"] == "show_camera_events"]
+    searched = [c for c in calls if c["tool"] == "find_camera_events"]
+    if not picks and not any((c.get("arguments") or {}).get("query") for c in searched):
+        return []
+    shown = {i for c in picks for i in (c.get("result") or {}).get("shown") or []}
+    listed = [
+        e["id"]
+        for c in searched
+        for e in (c.get("result") or {}).get("events") or []
+        if e.get("camera") == camera
+    ]
+    return [f"folded {i}" for i in listed if i not in shown]
+
+
 def _service_calls(hass: HomeAssistant) -> list[str]:
     seen: list[str] = []
 
@@ -128,6 +181,10 @@ def _grade(case: Case, turn: ChatTurn, services: list[str]) -> list[str]:
         failures.append(f"names none of {list(case.says)}")
     failures += [f"did not run {s}" for s in case.services if s not in services]
     failures += [f"ran {s}" for s in services if s.split(" ", 1)[1] in case.no_service_on]
+    if case.shows:
+        failures += _shown(turn, case.shows)
+    if case.folds_none_of:
+        failures += _folded(turn, case.folds_none_of)
     return failures
 
 

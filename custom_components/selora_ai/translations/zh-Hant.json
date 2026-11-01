@@ -1115,6 +1115,8 @@
     "camera_events_close": "關閉",
     "camera_events_now": "進行中",
     "camera_events_more": "此時間段內還有 {count} 個。",
+    "camera_events_unconfirmed_show": "顯示 {count} 個未確認的",
+    "camera_events_unconfirmed_hide": "隱藏 {count} 個未確認的",
     "camera_events_person": "人",
     "camera_events_car": "汽車",
     "camera_events_dog": "狗",

@@ -1115,6 +1115,8 @@
     "camera_events_close": "Close",
     "camera_events_now": "Still going",
     "camera_events_more": "{count} more in this time range.",
+    "camera_events_unconfirmed_show": "Show {count} not confirmed",
+    "camera_events_unconfirmed_hide": "Hide {count} not confirmed",
     "camera_events_person": "Person",
     "camera_events_car": "Car",
     "camera_events_dog": "Dog",

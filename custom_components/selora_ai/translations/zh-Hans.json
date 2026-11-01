@@ -1115,6 +1115,8 @@
     "camera_events_close": "关闭",
     "camera_events_now": "进行中",
     "camera_events_more": "此时间段内还有 {count} 个。",
+    "camera_events_unconfirmed_show": "显示 {count} 个未确认的",
+    "camera_events_unconfirmed_hide": "隐藏 {count} 个未确认的",
     "camera_events_person": "人",
     "camera_events_car": "汽车",
     "camera_events_dog": "狗",

@@ -1115,6 +1115,8 @@
     "camera_events_close": "閉じる",
     "camera_events_now": "継続中",
     "camera_events_more": "この期間にあと {count} 件。",
+    "camera_events_unconfirmed_show": "未確認の {count} 件を表示",
+    "camera_events_unconfirmed_hide": "未確認の {count} 件を隠す",
     "camera_events_person": "人",
     "camera_events_car": "車",
     "camera_events_dog": "犬",

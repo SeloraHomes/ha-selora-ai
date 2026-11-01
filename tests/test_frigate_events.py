@@ -213,6 +213,19 @@ async def test_a_description_search_without_semantic_search_keeps_the_other_filt
     assert set(result["semantic_search"]) == {"where", "cost", "history", "privacy"}
 
 
+async def test_without_semantic_search_the_model_reads_the_descriptions_itself(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """Told only that Frigate did not check them, the model said it could not
+    verify a backpack with the description saying so in front of it."""
+    _api(aioclient_mock, EVENTS, {**_CONFIG, "genai": {"enabled": True, "provider": "ollama"}})
+
+    result = await async_find_events(hass, {"query": "someone with a backpack"})
+
+    assert result["not_filtered_by"] == "someone with a backpack"
+    assert "read each event's description yourself" in result["note"]
+
+
 async def test_a_description_search_is_ranked_by_frigate(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:

@@ -4,7 +4,9 @@ Every name here is something a real home had more than one of: a speaker,
 a camera and an area are all "Living Room"; a lock and a camera are both
 "Front Door"; Sam is a person, a face Frigate recognises and a last-camera
 sensor. A model that answers from a name instead of from the kind of thing
-it names gets these wrong, and that is what the cases check.
+it names gets these wrong, and that is what the cases check. The front door's
+events are described, one of them as someone with a backpack: a search by
+description lists them all, and only the reply can say which one matches.
 
 Frigate is a fake at the client: the config and events below are served
 through the real `find_camera_events`, so its filtering, formatting and
@@ -55,15 +57,26 @@ FRIGATE_CONFIG: dict[str, Any] = {
         "front_door": {"friendly_name": "Front Door"},
     },
     "semantic_search": {"enabled": False},
-    "genai": {"enabled": False},
+    # Descriptions on, by a provider of the homeowner's own (not Selora's,
+    # whose budget Connect would be asked about).
+    "genai": {"enabled": True, "provider": "ollama"},
     "face_recognition": {"enabled": True},
 }
 # Frigate's Face Library; "train" holds the faces it could not match.
 FACES: dict[str, list[str]] = {"Sam": ["sam-1.webp", "sam-2.webp"], "train": ["x.webp"]}
 
 
-def _event(minutes_ago: float, camera: str, label: str, name: str | None = None) -> dict[str, Any]:
+def _event(
+    minutes_ago: float,
+    camera: str,
+    label: str,
+    name: str | None = None,
+    description: str | None = None,
+) -> dict[str, Any]:
     start = dt_util.utcnow().timestamp() - minutes_ago * 60
+    data: dict[str, Any] = {"top_score": 0.88}
+    if description:
+        data["description"] = description
     return {
         # Frigate's id shape; the tool drops anything else.
         "id": f"{start:.6f}-{camera.replace('_', '')}{int(minutes_ago):04d}",
@@ -75,8 +88,11 @@ def _event(minutes_ago: float, camera: str, label: str, name: str | None = None)
         "sub_label": [name, 0.92] if name else None,
         "has_clip": True,
         "has_snapshot": True,
-        "data": {"top_score": 0.88},
+        "data": data,
     }
+
+
+BACKPACK = "A person in a grey hoodie with a dark backpack walks up and rings the bell."
 
 
 def frigate_events() -> list[dict[str, Any]]:
@@ -84,11 +100,26 @@ def frigate_events() -> list[dict[str, Any]]:
 
     Sam was last on the E1 Zoom in the kitchen; the last-camera sensor still
     says Living Room, from hours earlier — it records a change of camera, not
-    each sighting, which is the trap.
+    each sighting, which is the trap. One front door visitor wore a backpack;
+    two others are described without one, two are not described at all.
     """
     return [
         _event(25, "e1_zoom", "person", "Sam"),
         _event(40, "e1_zoom", "person", "Sam"),
+        _event(60, "front_door", "person", description=BACKPACK),
+        _event(
+            75,
+            "front_door",
+            "person",
+            description="A person carrying two grocery bags stops at the door, then leaves.",
+        ),
+        _event(
+            90,
+            "front_door",
+            "person",
+            description="A courier in a red jacket leaves a parcel on the step.",
+        ),
+        _event(110, "front_door", "person"),
         _event(130, "front_door", "person"),
         _event(300, "living_room", "person", "Sam"),
     ]
