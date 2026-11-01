@@ -12,6 +12,9 @@ const WAIT_MS = 5 * 60 * 1000;
 // Mirrors websocket/frigate.py _MAX_PHOTO_B64: HA closes the websocket on a
 // frame past 4 MiB.
 const MAX_PHOTO_B64 = 3 * 1024 * 1024;
+// What the server takes. The photo is checked after it is re-encoded, not as
+// picked: iOS hands over HEIC, or no type at all, for a photo the browser
+// decodes and re-encodes as JPEG.
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function answerFaces(host, msg, action) {
@@ -115,12 +118,18 @@ export function stoppedWaiting(state) {
 }
 
 async function sendPhoto(host, name, file) {
-  if (!PHOTO_TYPES.has(file.type)) {
-    throw new Error(
+  const unsupported = () =>
+    new Error(
       host._t("faces_photo_unsupported", "Not a JPEG, PNG or WebP photo."),
     );
+  if (file.type && !file.type.startsWith("image/")) throw unsupported();
+  let photo;
+  try {
+    photo = await _processImageFile(file);
+  } catch (_) {
+    throw unsupported();
   }
-  const photo = await _processImageFile(file);
+  if (!PHOTO_TYPES.has(photo.mimeType)) throw unsupported();
   const image = photo.dataUrl.slice(photo.dataUrl.indexOf(",") + 1);
   if (image.length > MAX_PHOTO_B64) {
     throw new Error(
