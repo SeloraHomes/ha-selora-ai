@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Suggestion reportée pendant 24 h",
     "suggestions_pattern_scan_failed": "Échec de l'analyse des motifs",
     "area_unassigned": "Non assigné",
+    "chat_tiles_show_all_other": "Tout afficher ({count})",
     "recipes_back_to_overview": "Retour à l'aperçu",
     "recipes_back_to_recipes": "Retour aux recettes",
     "recipes_bucket_completed": "Terminé",

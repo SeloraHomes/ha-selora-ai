@@ -726,8 +726,14 @@ def _entity_device_class(state: State, entry: RegistryEntry | None) -> str:
     return ""
 
 
-async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Fuzzy search entities across their own names, their area, and their device."""
+async def _tool_search_entities(
+    hass: HomeAssistant, arguments: dict[str, Any], *, ceiling: int | None = None
+) -> dict[str, Any]:
+    """Fuzzy search entities across their own names, their area, and their device.
+
+    ``ceiling`` replaces the row cap for a caller that never sends the rows to
+    a model — the chat expanding a listing into tiles.
+    """
     from homeassistant.helpers import area_registry as ar
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
@@ -769,7 +775,8 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     # low-battery automation that silently saw the first ten of a home's forty
     # batteries is the same failure as the search that found none of them.
     listing = not query_terms
-    ceiling = _MAX_LISTING_MATCHES if listing else _MAX_RANKED_MATCHES
+    if ceiling is None:
+        ceiling = _MAX_LISTING_MATCHES if listing else _MAX_RANKED_MATCHES
     default_limit = ceiling if listing else _DEFAULT_RANKED_MATCHES
     try:
         limit = int(arguments.get("limit", default_limit))

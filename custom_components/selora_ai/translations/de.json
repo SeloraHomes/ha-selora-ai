@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Vorschlag für 24h zurückgestellt",
     "suggestions_pattern_scan_failed": "Musterscan fehlgeschlagen",
     "area_unassigned": "Nicht zugewiesen",
+    "chat_tiles_show_all_other": "Alle {count} anzeigen",
     "recipes_back_to_overview": "Zurück zur Übersicht",
     "recipes_back_to_recipes": "Zurück zu den Rezepten",
     "recipes_bucket_completed": "Abgeschlossen",

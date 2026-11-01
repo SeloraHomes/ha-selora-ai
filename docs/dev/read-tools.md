@@ -75,6 +75,25 @@ load-bearing.
   returns all, up to 50. Past the bound, `omitted` + `omitted_note` say the list
   is partial.
 
+### Showing a listing as tiles
+
+A listing (filters, no `query`) returns at most 50 rows, but "which lights are
+on?" in a big home has more answers than that, and a model copying ids into
+`[[entities:…]]` both spends the tokens and shows only the rows it was sent. In
+chat, a listing's result carries `tiles: "[[search:N]]"`; the model writes that
+marker instead of ids, and `expand_search_markers` (`tool_executor.py`) reruns
+the same search after the turn, without the row cap (up to 500), and swaps in an
+`[[entities:…]]` marker with every match. The panel then folds a big grid into
+one row per area and mounts an area's tiles when it is opened.
+
+- One matching rule: the expansion IS `_tool_search_entities`, so the grid and
+  the count the model read cannot disagree. Don't re-implement the filter in
+  the panel.
+- A marker only expands to a search this turn ran; any other `[[search:N]]` is
+  dropped, so the model cannot conjure a grid.
+- MCP results carry no `tiles` (the field is added by the chat executor), and
+  Assist strips the marker.
+
 ## Configuration reads
 
 `get_automation`, `get_scene`, `get_automation_traces` and `find_references`

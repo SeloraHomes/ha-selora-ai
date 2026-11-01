@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Предложение отложено на 24 ч",
     "suggestions_pattern_scan_failed": "Не удалось выполнить сканирование шаблонов",
     "area_unassigned": "Не назначено",
+    "chat_tiles_show_all_other": "Показать все ({count})",
     "recipes_back_to_overview": "Назад к обзору",
     "recipes_back_to_recipes": "Назад к рецептам",
     "recipes_bucket_completed": "Завершено",

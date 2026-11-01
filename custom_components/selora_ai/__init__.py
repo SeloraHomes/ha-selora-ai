@@ -2882,6 +2882,11 @@ async def _handle_websocket_chat(
         response_text = _approval_phrase(
             _REFINEMENT_SUPPRESSED_BY_LANG, msg.get("language") or hass.config.language
         )
+    from .tool_executor import expand_search_markers  # noqa: PLC0415
+
+    response_text = expand_search_markers(
+        response_text, tool_executor.listings if tool_executor else None
+    )
     if intent_type == "command":
         calls = result.get("calls", [])
         executed, failed, error_suffix = await _execute_command_calls(hass, calls)
@@ -3285,9 +3290,9 @@ _RESUME_FROM_REQUEST_DIRECTIVE = (
     "exists. The user's original request was: {request}\n"
     "If any part of it is still outstanding, do that part NOW with the tools. "
     "If nothing is outstanding, reply with exactly {nothing_left} and nothing "
-    "else — the user already sees the outcome. Either way: do not repeat the "
-    "step that just completed, do not ask the user to confirm again, and do not "
-    "propose another card."
+    "else — the user already sees the outcome. Either way: do not repeat or "
+    "re-check the step that just completed (its result is final), do not ask "
+    "the user to confirm again, and do not propose another card."
 )
 
 # The model's own word that nothing is left. Asked for rather than inferred:
@@ -4164,6 +4169,11 @@ async def _handle_websocket_chat_stream(
             response_text = _approval_phrase(
                 _REFINEMENT_SUPPRESSED_BY_LANG, msg.get("language") or hass.config.language
             )
+        from .tool_executor import expand_search_markers  # noqa: PLC0415
+
+        response_text = expand_search_markers(
+            response_text, tool_executor.listings if tool_executor else None
+        )
         if intent_type == "command":
             calls = parsed.get("calls", [])
             executed, failed, error_suffix = await _execute_command_calls(hass, calls)

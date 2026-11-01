@@ -3,6 +3,10 @@ import { seloraTokens } from "./shared/design-tokens.css.js";
 import { sharedAnimations } from "./shared/styles/animations.css.js";
 import { sharedButtons } from "./shared/styles/buttons.css.js";
 import { armPressRipple } from "./shared/press-ripple.js";
+import { planTiles } from "./panel/tile-plan.js";
+
+// Tiles a reply mounts before "Show all": each one is a live card.
+const TILE_LIMIT = 12;
 import { sharedModals } from "./shared/styles/modals.css.js";
 import { sharedBadges } from "./shared/styles/badges.css.js";
 import { sharedLoaders } from "./shared/styles/loaders.css.js";
@@ -2505,6 +2509,11 @@ class SeloraAIPanel extends LitElement {
       // and identical target, the states JSON alone is unchanged, so
       // without it the card keeps the previous scene's intercepted
       // callService closure and edits would land on the wrong scene.
+      // A tile mounted later (an area row opened, "Show all") is built by
+      // the closure of the pass that wired the grid; it reads this, not that
+      // pass's hass, or it starts with the states of that moment.
+      grid._seloraHass = gridHass;
+
       let sceneChanged = false;
       if (grid.dataset.sceneStates) {
         const sig = `${sceneEditId || ""}|${grid.dataset.sceneStates}`;
@@ -2542,6 +2551,7 @@ class SeloraAIPanel extends LitElement {
         // appending duplicates.
         grid.replaceChildren();
         let appended = 0;
+        let hidden = 0;
         if (createTile) {
           // Build (areaName, ids[]) groups so multi-area lists render
           // as a single grid with full-width section headers between
@@ -2568,7 +2578,6 @@ class SeloraAIPanel extends LitElement {
             if (!b[0]) return -1;
             return a[0].localeCompare(b[0]);
           });
-          const showHeaders = groups.size > 1;
           const buildTile = (id) => {
             // Scene-target tiles disable the body tap so it can't open
             // more-info (which would control the real device).
@@ -2579,7 +2588,7 @@ class SeloraAIPanel extends LitElement {
               name: String(tileOptions[id]?.name || ""),
             });
             if (!card) return null;
-            card.hass = gridHass;
+            card.hass = grid._seloraHass || gridHass;
             // Hover tooltip with manufacturer / model — see the
             // _ensureFullRegistries comment for why we can't rely on
             // hass.entities directly.
@@ -2602,36 +2611,120 @@ class SeloraAIPanel extends LitElement {
           for (const a of Object.values(registries.areas || {})) {
             if (a.name) areaIdByName.set(a.name, a.area_id);
           }
-          for (const [areaName, areaIds] of sortedGroups) {
-            if (showHeaders) {
-              const header = document.createElement("div");
-              header.className = "selora-area-header";
-              const icon = document.createElement("ha-icon");
-              icon.icon = areaName
-                ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
-                  "mdi:floor-plan"
-                : "mdi:help-circle-outline";
-              icon.className = "selora-area-icon";
-              const label = document.createElement("span");
-              label.textContent =
-                areaName || this._t("area_unassigned", "Unassigned");
-              header.append(icon, label);
-              grid.appendChild(header);
+          // One budget per reply, not per grid: a reply split into a block
+          // per area would otherwise mount TILE_LIMIT cards for each.
+          const reply = grid.closest(".msg-content");
+          const mountedElsewhere = reply
+            ? [...reply.querySelectorAll(".selora-entity-grid")]
+                .filter((g) => g !== grid)
+                .reduce(
+                  (n, g) =>
+                    n +
+                    g.querySelectorAll(
+                      ":scope > :not(.selora-area-header):not(.selora-tiles-more)",
+                    ).length,
+                  0,
+                )
+            : 0;
+          const { now, later, sections, tileCount } = planTiles(
+            sortedGroups,
+            Math.max(0, TILE_LIMIT - mountedElsewhere),
+          );
+          const areaHeading = (areaName) => {
+            const icon = document.createElement("ha-icon");
+            icon.icon = areaName
+              ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
+                "mdi:floor-plan"
+              : "mdi:help-circle-outline";
+            icon.className = "selora-area-icon";
+            const label = document.createElement("span");
+            label.textContent =
+              areaName || this._t("area_unassigned", "Unassigned");
+            return [icon, label];
+          };
+          const placeTile = (id, before = null) => {
+            try {
+              const card = buildTile(id);
+              if (!card) return null;
+              grid.insertBefore(card, before);
+              appended += 1;
+              return card;
+            } catch (e) {
+              console.warn("Selora: tile card create failed for", id, e);
+              return null;
             }
-            for (const id of areaIds) {
-              try {
-                const card = buildTile(id);
-                if (!card) continue;
-                grid.appendChild(card);
-                appended += 1;
-              } catch (e) {
-                console.warn("Selora: tile card create failed for", id, e);
+          };
+          const appendItem = (item) => {
+            if ("id" in item) {
+              placeTile(item.id);
+              return;
+            }
+            const header = document.createElement("div");
+            header.className = "selora-area-header";
+            header.append(...areaHeading(item.areaName));
+            grid.appendChild(header);
+          };
+          // Too many tiles over several areas: one row per area, its
+          // tiles mounted on first open and hidden, not torn down, on
+          // close.
+          const closedToggles = [];
+          for (const { areaName, ids: areaIds } of sections) {
+            const toggle = document.createElement("button");
+            toggle.type = "button";
+            toggle.className = "selora-area-header selora-area-toggle";
+            toggle.setAttribute("aria-expanded", "false");
+            const count = document.createElement("span");
+            count.className = "selora-area-count";
+            count.textContent = String(areaIds.length);
+            const chevron = document.createElement("ha-icon");
+            chevron.icon = "mdi:chevron-down";
+            chevron.className = "selora-area-chevron";
+            toggle.append(...areaHeading(areaName), count, chevron);
+            grid.appendChild(toggle);
+            closedToggles.push(toggle);
+            let cards = null;
+            toggle.addEventListener("click", () => {
+              const open = toggle.getAttribute("aria-expanded") !== "true";
+              toggle.setAttribute("aria-expanded", String(open));
+              if (!cards) {
+                const after = toggle.nextSibling;
+                cards = areaIds
+                  .map((id) => placeTile(id, after))
+                  .filter(Boolean);
+                return;
               }
-            }
+              for (const card of cards) card.hidden = !open;
+            });
+          }
+          for (const item of now) appendItem(item);
+          hidden = sections.length
+            ? tileCount
+            : later.filter((item) => "id" in item).length;
+          if (hidden > 0) {
+            const more = document.createElement("button");
+            more.type = "button";
+            more.className = "btn btn-outline selora-tiles-more";
+            more.textContent = this._tn(
+              "chat_tiles_show_all",
+              tileCount,
+              "Show all {count}",
+            );
+            more.addEventListener("click", () => {
+              more.remove();
+              // Folded into area rows: open every row still closed.
+              for (const toggle of closedToggles) {
+                if (toggle.getAttribute("aria-expanded") !== "true") {
+                  toggle.click();
+                }
+              }
+              for (const item of later) appendItem(item);
+            });
+            grid.appendChild(more);
           }
         }
-        if (appended > 0) {
-          // Only mark wired on success. Wiring on failure (creator not
+        if (appended > 0 || hidden > 0) {
+          // Only mark wired on success (a grid whose tiles all wait behind
+          // "Show all" is one). Wiring on failure (creator not
           // ready, or all ids briefly missing from hass.states) would
           // lock the grid to the text fallback forever — the next pass
           // must be free to retry.

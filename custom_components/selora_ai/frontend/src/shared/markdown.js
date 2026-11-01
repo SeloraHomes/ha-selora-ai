@@ -442,6 +442,9 @@ export function renderMarkdown(text) {
       );
     },
   );
+  // A listing's marker, expanded into `[[entities:…]]` when the turn ends;
+  // while the reply streams it would show as raw text.
+  escaped = escaped.replace(/\[\[search:\d+\]\]/g, "");
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
     (_m, ids) =>

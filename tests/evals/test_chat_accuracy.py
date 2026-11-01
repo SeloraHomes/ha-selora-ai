@@ -47,6 +47,8 @@ class Case:
     shows: str | None = None
     # The card folds none of this camera's events: their label answers.
     folds_none_of: str | None = None
+    # The confirmation card the turn must end on (its approval_kind).
+    card: str = ""
 
 
 _NAMESAKES = (
@@ -101,6 +103,45 @@ CASES = (
         never_calls=("find_camera_events",),
         tiles=("lock.front_door",),
         no_tiles=("camera.front_door",),
+    ),
+    # A card is how a delete is asked — never a prose "are you sure?" first.
+    Case(
+        "delete-automation",
+        "Delete the Morning Kitchen Light automation",
+        calls=("delete_automation",),
+        card="delete",
+    ),
+    # Inventory: every matching device gets its tile.
+    Case(
+        "which-lights",
+        "Which lights do I have?",
+        tiles=("light.kitchen", "light.living_room_lamp"),
+    ),
+    # The snapshot shows its entities as tiles, not as name — state bullets.
+    Case(
+        "home-overview",
+        "Give me an overview of what's on and off in my home",
+        tiles=("light.kitchen", "light.living_room_lamp"),
+    ),
+    # What is on, and only that (test_big_home.py: when the home is too big
+    # to dump).
+    Case(
+        "whats-on",
+        "What's on right now?",
+        tiles=("light.living_room_lamp",),
+        no_tiles=("light.kitchen",),
+    ),
+    # A how-to answer is about Home Assistant, not about a device in it.
+    Case(
+        "how-to-no-tiles",
+        "How do I add a Zigbee light to Home Assistant?",
+        no_tiles=("light.kitchen", "light.living_room_lamp"),
+    ),
+    # An explicit request is the authorization: no "should I proceed?" first.
+    Case(
+        "setup-integration",
+        "Set up the Philips Hue integration",
+        calls=("start_device_flow",),
     ),
     Case(
         "kitchen-light",
@@ -177,6 +218,9 @@ def _grade(case: Case, turn: ChatTurn, services: list[str]) -> list[str]:
     failures += [f"called {t}" for t in case.never_calls if t in called]
     failures += [f"no tile for {e}" for e in case.tiles if e not in tiles]
     failures += [f"tiled {e}" for e in case.no_tiles if e in tiles]
+    # One block: the panel groups by area, and its tile budget is per reply.
+    if (blocks := response.count("[[entities:")) > 1:
+        failures.append(f"split the tiles into {blocks} blocks")
     if case.says and not any(s.casefold() in response.casefold() for s in case.says):
         failures.append(f"names none of {list(case.says)}")
     failures += [f"did not run {s}" for s in case.services if s not in services]
@@ -185,6 +229,10 @@ def _grade(case: Case, turn: ChatTurn, services: list[str]) -> list[str]:
         failures += _shown(turn, case.shows)
     if case.folds_none_of:
         failures += _folded(turn, case.folds_none_of)
+    if case.card:
+        approval = turn.done.get("command_approval") or {}
+        if approval.get("approval_kind") != case.card:
+            failures.append(f"no {case.card} card (got {approval.get('approval_kind')})")
     return failures
 
 

@@ -740,6 +740,7 @@
     "suggestions_snoozed_toast": "Suggestie 24u uitgesteld",
     "suggestions_pattern_scan_failed": "Patroonscan mislukt",
     "area_unassigned": "Niet toegewezen",
+    "chat_tiles_show_all_other": "Alle {count} tonen",
     "recipes_back_to_overview": "Terug naar overzicht",
     "recipes_back_to_recipes": "Terug naar recepten",
     "recipes_bucket_completed": "Voltooid",

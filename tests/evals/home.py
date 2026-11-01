@@ -23,6 +23,7 @@ from unittest.mock import patch
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -49,6 +50,18 @@ ENTITIES: tuple[tuple[str, str, str | None, str, dict[str, Any]], ...] = (
 )
 
 LAST_CAMERA = "sensor.frigate_sam_last_camera"
+
+# A Selora-made automation, deletable from chat.
+AUTOMATIONS: tuple[dict[str, Any], ...] = (
+    {
+        "id": "selora_ai_morning",
+        "alias": "Morning Kitchen Light",
+        "description": "Turns the kitchen light on at 7",
+        "triggers": [{"trigger": "time", "at": "07:00:00"}],
+        "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
+        "mode": "single",
+    },
+)
 
 FRIGATE_CONFIG: dict[str, Any] = {
     "cameras": {
@@ -167,14 +180,41 @@ async def build_home(hass: HomeAssistant) -> None:
     areas = ar.async_get(hass)
     area_ids = {name: areas.async_get_or_create(name).id for name in AREAS}
     entities = er.async_get(hass)
+    devices = dr.async_get(hass)
+    # Each entity on a device of its own, as an integration registers it:
+    # `list_devices` answers from the device registry.
+    source = MockConfigEntry(domain="eval")
+    source.add_to_hass(hass)
     for entity_id, name, area, state, attrs in ENTITIES:
         domain, object_id = entity_id.split(".", 1)
+        device = devices.async_get_or_create(
+            config_entry_id=source.entry_id,
+            identifiers={("eval", entity_id)},
+            name=name,
+            manufacturer="Eval",
+            model=domain,
+        )
+        if area:
+            devices.async_update_device(device.id, area_id=area_ids[area])
         entry = entities.async_get_or_create(
-            domain, "eval", entity_id, suggested_object_id=object_id
+            domain,
+            "eval",
+            entity_id,
+            suggested_object_id=object_id,
+            config_entry=source,
+            device_id=device.id,
         )
         if area:
             entities.async_update_entity(entry.entity_id, area_id=area_ids[area])
         hass.states.async_set(entity_id, state, {"friendly_name": name, **attrs})
+
+    for automation in AUTOMATIONS:
+        object_id = automation["alias"].lower().replace(" ", "_")
+        hass.states.async_set(
+            f"automation.{object_id}",
+            "on",
+            {"friendly_name": automation["alias"], "id": automation["id"]},
+        )
 
     frigate = MockConfigEntry(domain="frigate", data={"url": FRIGATE})
     frigate.add_to_hass(hass)

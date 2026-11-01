@@ -235,7 +235,8 @@ _SHARED_AUTOMATION_RULES = (
     "- TRIGGER PLATFORM: common core values are state, numeric_state, time, time_pattern, sun, "
     "template, event, mqtt, webhook, zone, geo_location, device, calendar, tag, conversation, "
     "homeassistant. Specific integrations may register their own (e.g. `platform: litejet`). "
-    "The platform value is ALWAYS a single token — there is NO dotted trigger type. "
+    "A dotted trigger (`light.turned_on`) exists only where Home Assistant registers that "
+    "exact key — never invent one. "
     "Integration-fired events (timer finishing, Shelly click, ZHA press, etc.) use the "
     'EVENT trigger: `{platform: event, event_type: "timer.finished"}`. For timer or '
     "schedule completion a plain state trigger on the entity also works: "
@@ -426,6 +427,11 @@ _SHARED_TONE_RULES = (
     "produce a status report. The EXISTING AUTOMATIONS / AVAILABLE ENTITIES blocks are "
     "background context for follow-up requests, NEVER a prompt to recap them. A correct reply "
     "to 'Hello' is something like `Hi! What can I help with?` — nothing more.\n"
+)
+
+# Only where tiles render. Assist forbids markers in its own entity output
+# rules, and these — later in the prompt and full of RIGHT examples — won.
+_TILE_MARKER_RULES = (
     "- Entity references render as live HA tile cards (the same tiles the dashboard uses — "
     "state-aware coloured icon, friendly name, formatted state value, tap to open more-info). "
     "Emit a tile MARKER ONLY when the user is asking to SEE, LIST, or CHECK STATE of devices "
@@ -444,20 +450,19 @@ _SHARED_TONE_RULES = (
     "NEVER place a tile marker inside a fenced code block (```…```) or inline code span (`…`). "
     "Inside YAML, JSON, service calls, or any configuration snippet, write the plain "
     "entity_id text — a marker inside code breaks a snippet the user is meant to copy.\n"
-    "When the response lists multiple entities, prefer a single `[[entities:…]]` block per "
-    "logical group instead of one bulleted marker per entity — bulleted markers wrap each "
-    "tile in a list-item bar and double-render the state. If grouping by area helps the user "
-    "read the answer, emit one `[[entities:…]]` block per area, each preceded by a short "
-    "`### Area Name` sub-heading; otherwise one block for the whole list.\n"
+    "When the response lists multiple entities, emit ONE `[[entities:…]]` block for the "
+    "whole list — never one bulleted marker per entity (bulleted markers wrap each tile in "
+    "a list-item bar and double-render the state), and never a block per area: the panel "
+    "groups the tiles by area itself.\n"
+    "A `search_entities` result with `tiles` (e.g. `[[search:1]]`) hands you a marker "
+    "standing for EVERY match, the rows it left out included: to show that list, put "
+    "that marker on its own line INSTEAD of an `[[entities:…]]` block, and give the "
+    "total from `total_scored`.\n"
     "Example for 'what lights are on?' — RIGHT (<count> is a PLACEHOLDER; "
     "substitute the real number of ids you emit):\n"
     "  `<count> lights are on:\\n[[entities:light.kitchen,light.office,light.living_room]]`\n"
-    "Or grouped by area:\n"
-    "  `<count> lights on across two rooms:\\n### Living Room\\n"
-    "[[entities:light.living_room_lampe,light.living_room_table]]\\n"
-    "### Kitchen\\n[[entities:light.kitchen]]`\n"
     "COUNT RULE: the number that opens the answer MUST equal the total count "
-    "of entity_ids you actually emit across all `[[entities:…]]` blocks — "
+    "of entity_ids you actually emit in the `[[entities:…]]` block — "
     "count them as you write them. The examples use a `<count>` placeholder "
     "precisely so you never copy a literal number; this matters most when you "
     "answer in a language other than English (do not default to 'three' / "
@@ -1014,10 +1019,13 @@ def build_architect_system_prompt(
         "a confirmation.\n"
         "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
         + "\n"
-        + ("" if slim else _load_tool_policy())
+        # A policy for using tools, on a turn that has none (Assist), had the
+        # model promise to "retrieve the snapshot first" and answer nothing.
+        + ("" if slim or not tools_available else _load_tool_policy())
         + "\n"
         + (_suggestions_prompt() if tools_available else "")
         + _SHARED_TONE_RULES
+        + ("" if for_assist else _TILE_MARKER_RULES)
         + "- Command confirmations: 1 sentence.\n"
         "- Automation explanations: summarize what the automation does and mention all targeted entities "
         "so the caller can verify without parsing the YAML.\n"
@@ -1054,7 +1062,7 @@ def build_architect_stream_system_prompt(
     reference text adds latency without affecting the service call —
     the local command policy validates every call regardless.
     """
-    tool_policy = "" if slim else _load_tool_policy()
+    tool_policy = "" if slim or not tools_available else _load_tool_policy()
     device_knowledge = "" if slim else _load_device_knowledge()
     return (
         _language_directive(language)
@@ -1301,6 +1309,7 @@ def build_architect_stream_system_prompt(
         + "\n"
         + (_suggestions_prompt() if tools_available else "")
         + _SHARED_TONE_RULES
+        + _TILE_MARKER_RULES
         + "- Device commands: 1 sentence confirming the action.\n"
         "- Automations: 1-2 sentences explaining what it does. The automation card shows the details.\n"
         "- In chat text, do NOT list every entity or service call in automations — the automation card shows "
@@ -1316,12 +1325,13 @@ def build_architect_stream_system_prompt(
         "════════════════════════════════════════════════════════════\n"
         "FINAL REMINDER — ENTITY OUTPUT\n"
         "════════════════════════════════════════════════════════════\n"
-        "Before sending your response, verify: every device, sensor, or entity you NAME in\n"
-        "the reply is followed (on its own line, with blank lines around it) by a marker —\n"
+        "Before sending your response, verify: every device, sensor, or entity that IS the\n"
+        "answer is followed (on its own line, with blank lines around it) by a marker —\n"
         "`[[entity:<id>|<name>]]` for one, `[[entities:<id>,<id>,…]]` for several. The\n"
         "marker comes RIGHT AFTER the sentence that names the device, NOT at the bottom of\n"
         "the response. No markdown bullets describing device state. No 'Status:' sub-\n"
-        "headings. No friendly-name bullet lists. This is the contract — honor it.\n"
+        "headings. No friendly-name bullet lists. A how-to or explanation carries no marker.\n"
+        "This is the contract — honor it.\n"
         "════════════════════════════════════════════════════════════"
     )
 

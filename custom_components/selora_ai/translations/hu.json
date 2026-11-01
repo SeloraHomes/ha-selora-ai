@@ -740,6 +740,7 @@
     "suggestions_snoozed_toast": "Javaslat 24 órára szundira állítva",
     "suggestions_pattern_scan_failed": "A mintavizsgálat sikertelen",
     "area_unassigned": "Hozzá nem rendelt",
+    "chat_tiles_show_all_other": "Mind a(z) {count} megjelenítése",
     "recipes_back_to_overview": "Vissza az áttekintéshez",
     "recipes_back_to_recipes": "Vissza a receptekhez",
     "recipes_bucket_completed": "Befejezve",

@@ -98,7 +98,10 @@ TOOL_GET_HOME_SNAPSHOT = ToolDef(
     description=(
         "Return current Home Assistant entity states grouped by area. "
         "Use this to understand what devices and entities exist in the home, "
-        "their current states, and which areas they are assigned to."
+        "their current states, and which areas they are assigned to. Unfiltered, "
+        "so a real home's snapshot is cut short: for a question about states "
+        "(what's on, open, unavailable) call search_entities with the state "
+        "filter instead."
     ),
 )
 
@@ -807,7 +810,7 @@ TOOL_DELETE_SCENE = ToolDef(
         "names it informally — or by a Selora scene_id. "
         "This does NOT delete immediately: it surfaces a confirmation card the "
         "user must tap to approve, so do not ask 'are you sure?' in prose — "
-        "just call the tool and the card handles confirmation. Only "
+        "just call the tool and the card handles confirmation. "
         "To CREATE a scene there is no tool — emit the scene JSON block "
         "(intent 'scene') and the user gets a card to accept it. Only "
         "yaml-managed scenes can be deleted; storage/UI-managed ones must be "

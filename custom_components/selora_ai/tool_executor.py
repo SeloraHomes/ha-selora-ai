@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.core import HomeAssistant
@@ -49,6 +50,8 @@ class ToolExecutor:
         # streaming chat handler reads this after the LLM stream ends
         # to suppress duplicate execute_command JSON blocks.
         self.call_log: list[dict[str, Any]] = []
+        # Listing marker → every entity id it stands for, this turn.
+        self.listings: dict[str, list[str]] = {}
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return a JSON-serialisable result."""
@@ -260,7 +263,24 @@ class ToolExecutor:
     async def _search_entities(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server.entities import _tool_search_entities
 
-        return await _tool_search_entities(self._hass, arguments)
+        result = await _tool_search_entities(self._hass, arguments)
+        # A listing (filters, no name) hands the reply a marker that stands
+        # for ALL its matches, past the rows this result carries: the chat
+        # swaps it for a tile marker after the turn (``expand_search_markers``),
+        # so the model neither copies hundreds of ids nor shows only the first
+        # rows. The ids are taken now, from the same states the model counts.
+        if result.get("matches") and not str(arguments.get("query") or "").strip():
+            uncapped = {k: v for k, v in arguments.items() if k != "limit"}
+            every = await _tool_search_entities(
+                self._hass, uncapped, ceiling=MAX_SEARCH_MARKER_TILES
+            )
+            # Past the tile cap the marker would stand for less than it
+            # claims; without one the model narrows or says what it left out.
+            if not every.get("omitted"):
+                marker = search_marker(len(self.listings) + 1)
+                self.listings[marker] = [m["entity_id"] for m in every.get("matches") or []]
+                result["tiles"] = marker
+        return result
 
     async def _get_entity_history(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server.entities import _tool_get_entity_history
@@ -1416,6 +1436,37 @@ def _opt_bool(value: Any) -> bool | None:
     return None
 
 
+# How many tiles one listing marker may expand to. The panel folds a big grid
+# into area rows and mounts each on open, so this bounds the stored message,
+# not the page.
+MAX_SEARCH_MARKER_TILES: Final = 500
+
+SEARCH_MARKER_RE: Final = re.compile(r"\[\[search:(\d{1,3})\]\]")
+
+
+def search_marker(n: int) -> str:
+    """The reply marker standing for the turn's ``n``-th listing search."""
+    return f"[[search:{n}]]"
+
+
+def expand_search_markers(text: str, listings: dict[str, list[str]] | None) -> str:
+    """Replace each ``[[search:N]]`` with a tile marker for every match.
+
+    The ids were taken when the listing ran, with no row cap, so the grid
+    holds what the model counted, not the first rows it was sent. A marker
+    no listing of this turn handed out is dropped: the model may only point
+    at a search it ran.
+    """
+    if not text or "[[search:" not in text:
+        return text
+
+    def _tiles(match: re.Match[str]) -> str:
+        ids = (listings or {}).get(match.group(0))
+        return f"[[entities:{','.join(ids)}]]" if ids else ""
+
+    return SEARCH_MARKER_RE.sub(_tiles, text)
+
+
 def _truncate_result(result: dict[str, Any]) -> dict[str, Any]:
     """Truncate large tool results semantically to prevent token explosion.
 
@@ -1485,8 +1536,13 @@ def _semantic_trim(data: dict[str, Any], limit: int) -> dict[str, Any]:
                 del result[longest_key]
 
     if trimmed_count > 0:
+        # What to DO about it, not just that it happened: told only to "ask
+        # the user", the model answered "what's on?" from the partial list.
         result["truncated"] = (
-            f"{trimmed_count} items were omitted to fit the response size limit. Ask the user if they want more details."
+            f"{trimmed_count} items were omitted to fit the response size limit, so "
+            "this result is INCOMPLETE — never present it as everything. To answer "
+            "exactly, call again with narrower filters (for entities: "
+            "search_entities by state, area, domain or device_class)."
         )
 
     return result

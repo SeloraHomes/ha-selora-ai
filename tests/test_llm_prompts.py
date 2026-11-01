@@ -132,14 +132,14 @@ class TestArchitectPromptVerbosity:
 
     def test_tool_policy_formatting_preserved(self, hass) -> None:
         """Tool policy output formatting rules are still present."""
-        prompt = build_architect_system_prompt()
-        assert "List EVERY entity" in prompt
+        prompt = build_architect_system_prompt(tools_available=True)
+        assert "Account for EVERY entity" in prompt
         assert "bullet-pointed lists" in prompt.lower() or "bullet" in prompt.lower()
 
     def test_brevity_after_tool_policy(self, hass) -> None:
         """Brevity rules appear after the tool policy so tool formatting takes precedence."""
-        prompt = build_architect_system_prompt()
-        tool_policy_pos = prompt.find("List EVERY entity")
+        prompt = build_architect_system_prompt(tools_available=True)
+        tool_policy_pos = prompt.find("Account for EVERY entity")
         brevity_pos = prompt.find("NOT tool-backed answers")
         assert tool_policy_pos < brevity_pos
 
@@ -212,14 +212,14 @@ class TestStreamPromptVerbosity:
 
     def test_tool_policy_formatting_preserved(self, hass) -> None:
         """Tool policy output formatting rules are still present."""
-        prompt = build_architect_stream_system_prompt()
-        assert "List EVERY entity" in prompt
+        prompt = build_architect_stream_system_prompt(tools_available=True)
+        assert "Account for EVERY entity" in prompt
         assert "bullet-pointed lists" in prompt.lower() or "bullet" in prompt.lower()
 
     def test_brevity_after_tool_policy(self, hass) -> None:
         """Brevity rules appear after the tool policy so tool formatting takes precedence."""
-        prompt = build_architect_stream_system_prompt()
-        tool_policy_pos = prompt.find("List EVERY entity")
+        prompt = build_architect_stream_system_prompt(tools_available=True)
+        tool_policy_pos = prompt.find("Account for EVERY entity")
         brevity_pos = prompt.find("NOT tool-backed answers")
         assert tool_policy_pos < brevity_pos
 
@@ -1143,3 +1143,21 @@ class TestBuildCommandConfirmation:
         result = _build_command_confirmation(calls)
         assert "kitchen" in result
         assert "bedroom" in result
+
+
+def test_tile_marker_rules_never_reach_assist(hass) -> None:
+    """Assist speaks the reply; its own rules forbid markers. The tile how-to,
+    later in the same prompt and full of RIGHT examples, won — every inventory
+    answer leaked `[[entities:…]]` into Assist."""
+    from custom_components.selora_ai.llm_client.prompts import _TILE_MARKER_RULES
+
+    assert _TILE_MARKER_RULES not in build_architect_system_prompt(for_assist=True)
+    assert _TILE_MARKER_RULES in build_architect_system_prompt()
+    assert _TILE_MARKER_RULES in build_architect_stream_system_prompt()
+
+
+def test_tool_policy_needs_tools(hass) -> None:
+    """Assist has no tools: told to call get_home_snapshot, the model promised
+    to "retrieve the snapshot first" and answered nothing."""
+    assert "Tool Usage Policy" not in build_architect_system_prompt(for_assist=True)
+    assert "Tool Usage Policy" in build_architect_system_prompt(tools_available=True)
