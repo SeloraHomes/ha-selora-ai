@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "建议已暂停 24 小时",
     "suggestions_pattern_scan_failed": "模式扫描失败",
     "area_unassigned": "未分配",
+    "chat_tiles_show_all_other": "显示全部（{count}）",
     "recipes_back_to_overview": "返回概览",
     "recipes_back_to_recipes": "返回配方",
     "recipes_bucket_completed": "已完成",

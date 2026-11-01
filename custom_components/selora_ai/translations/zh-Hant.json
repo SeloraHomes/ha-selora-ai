@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "建議已延後 24 小時",
     "suggestions_pattern_scan_failed": "模式掃描失敗",
     "area_unassigned": "未指派",
+    "chat_tiles_show_all_other": "顯示全部（{count}）",
     "recipes_back_to_overview": "返回總覽",
     "recipes_back_to_recipes": "返回食譜",
     "recipes_bucket_completed": "已完成",

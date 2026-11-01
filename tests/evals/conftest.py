@@ -26,7 +26,7 @@ from pytest_homeassistant_custom_component import plugins
 import pytest_socket
 
 from ..chat_harness import ChatHarness
-from .home import build_home, fake_frigate
+from .home import AUTOMATIONS, build_home, fake_frigate
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
@@ -102,8 +102,16 @@ async def home(
     provider: dict[str, str],
     network: aiohttp.ClientSession,
 ) -> AsyncIterator[ChatHarness]:
-    """A harness over the eval home, talking to the configured model."""
+    """A harness over the eval home, talking to the configured model.
+
+    With the prompt files a hub loads at setup: without them the model is
+    judged on a prompt no hub sends.
+    """
+    from custom_components.selora_ai.llm_client.prompts import async_preload_prompts
+
+    await async_preload_prompts(hass)
     await build_home(hass)
     harness = await ChatHarness.create(hass, **provider)
+    harness.write_automations(list(AUTOMATIONS))
     with fake_frigate():
         yield harness

@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Sugerencia pospuesta 24h",
     "suggestions_pattern_scan_failed": "Falló el escaneo de patrones",
     "area_unassigned": "Sin asignar",
+    "chat_tiles_show_all_other": "Mostrar los {count}",
     "recipes_back_to_overview": "Volver al resumen",
     "recipes_back_to_recipes": "Volver a las recetas",
     "recipes_bucket_completed": "Completado",

@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Sugestão adiada por 24h",
     "suggestions_pattern_scan_failed": "A análise de padrões falhou",
     "area_unassigned": "Não atribuída",
+    "chat_tiles_show_all_other": "Mostrar todos ({count})",
     "recipes_back_to_overview": "Voltar à visão geral",
     "recipes_back_to_recipes": "Voltar às receitas",
     "recipes_bucket_completed": "Concluído",

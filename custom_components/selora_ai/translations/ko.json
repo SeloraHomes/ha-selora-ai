@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "제안이 24시간 동안 미뤄졌습니다",
     "suggestions_pattern_scan_failed": "패턴 스캔에 실패했습니다",
     "area_unassigned": "미지정",
+    "chat_tiles_show_all_other": "모두 보기 ({count})",
     "recipes_back_to_overview": "개요로 돌아가기",
     "recipes_back_to_recipes": "레시피로 돌아가기",
     "recipes_bucket_completed": "완료됨",

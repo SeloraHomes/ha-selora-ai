@@ -26,6 +26,9 @@ services run, the fact it named. Never the wording.
 - **Check behaviour, not text.** `says` takes alternatives and is for the one
   fact that was wrong (which camera, which room); asserting phrasing turns the
   eval into a prompt-wording test.
+- **The prompt is the hub's.** The `home` fixture runs `async_preload_prompts`, as
+  setup does: without it `tool_policy.md` and `device_knowledge.md` are blank,
+  and the model is judged on a prompt no hub sends.
 - **The home is real except Frigate's HTTP.** Entities, areas and the recorder
   are HA's; `fake_frigate()` serves config and events through the real
   `find_camera_events`. `test_home.py` runs in the normal suite so the traps

@@ -686,6 +686,20 @@ export const chatStyles = css`
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
+  /* Shrink-to-fit gives an auto-fill grid one column: a reply with tiles
+     takes the room it is allowed (the wrap's 82%), so they sit side by side.
+     Tiles in the reply's own text only: scene and approval cards size
+     themselves. */
+  .assistant-wrap:not(.assistant-wrap--scene):not(
+      .assistant-wrap--approval
+    ):has(.msg-content .selora-entity-grid) {
+    width: 82%;
+  }
+  .assistant-wrap:not(.assistant-wrap--scene):not(.assistant-wrap--approval)
+    .bubble.assistant:has(.msg-content .selora-entity-grid) {
+    align-self: stretch;
+    max-width: 100%;
+  }
   .bubble.assistant {
     align-self: flex-start;
     background: var(--card-background-color);
@@ -1013,6 +1027,45 @@ export const chatStyles = css`
      spans the header across the full row so the next row of tiles
      starts cleanly under it. Layout matches HA dashboard section
      headers: small uppercase label with the area icon to its left. */
+  .selora-tiles-more {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .selora-entity-grid > [hidden] {
+    display: none !important;
+  }
+  /* A collapsed area: the header becomes a row that opens its tiles. */
+  .selora-area-header.selora-area-toggle {
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .selora-area-header.selora-area-toggle:hover {
+    background: var(--secondary-background-color);
+  }
+  .selora-area-header.selora-area-toggle:first-child {
+    margin-top: 0;
+  }
+  .selora-area-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .selora-area-chevron {
+    --mdc-icon-size: 18px;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    transition: transform 0.15s ease;
+  }
+  .selora-area-toggle[aria-expanded="true"] .selora-area-chevron {
+    transform: rotate(180deg);
+  }
   .selora-area-header {
     grid-column: 1 / -1;
     display: flex;

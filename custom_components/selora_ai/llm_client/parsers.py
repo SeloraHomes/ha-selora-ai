@@ -65,7 +65,7 @@ _LOGGER = logging.getLogger(__name__)
 # (as some models, notably deepseek, like to do regardless of the
 # prompt) shoves an irrelevant brightness slider into the proposal
 # card. Strip the markers from the prose before we hand it off.
-_ENTITY_MARKER_RE = re.compile(r"\s*\[\[(?:entity|entities|areas):[^\]]+\]\]")
+_ENTITY_MARKER_RE = re.compile(r"\s*\[\[(?:entity|entities|areas|search):[^\]]+\]\]")
 
 # Template spans first, then anything shaped like an entity_id. The entity_id
 # half is deliberately loose — "at 7 a.m." matches too — because the state

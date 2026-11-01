@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "提案を 24 時間スヌーズしました",
     "suggestions_pattern_scan_failed": "パターンスキャンに失敗しました",
     "area_unassigned": "未割り当て",
+    "chat_tiles_show_all_other": "すべて表示（{count}）",
     "recipes_back_to_overview": "概要に戻る",
     "recipes_back_to_recipes": "レシピに戻る",
     "recipes_bucket_completed": "完了",

@@ -20,6 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_SCENE_DELETED, SIGNAL_SCENE_REFRESHED, SIGNAL_SCENE_RESTORED
 from .telemetry import record_activity
+from .tool_executor import SEARCH_MARKER_RE
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
@@ -104,6 +105,8 @@ def _unwrap_entity_markers(text: str, entities: list[dict[str, Any]]) -> str:
 
     text = _ENTITY_SINGLE_RE.sub(_single, text)
     text = _ENTITIES_LIST_RE.sub(_multi, text)
+    # A listing's tile marker stands for a grid Assist cannot show.
+    text = SEARCH_MARKER_RE.sub("", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 

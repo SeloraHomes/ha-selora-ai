@@ -720,6 +720,7 @@
     "suggestions_snoozed_toast": "Suggestion snoozed for 24h",
     "suggestions_pattern_scan_failed": "Pattern scan failed",
     "area_unassigned": "Unassigned",
+    "chat_tiles_show_all_other": "Show all {count}",
     "recipes_back_to_overview": "Back to overview",
     "recipes_back_to_recipes": "Back to recipes",
     "recipes_bucket_completed": "Completed",

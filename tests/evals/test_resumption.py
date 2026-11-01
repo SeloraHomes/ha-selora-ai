@@ -33,20 +33,29 @@ async def _cameras_dashboard(hass: HomeAssistant) -> None:
     assert "error" not in created, created
 
 
-def _card(turn: ChatTurn) -> dict[str, Any]:
+def _card(turn: ChatTurn, *kinds: str) -> dict[str, Any]:
+    """The turn's one dashboard card, of one of ``kinds``."""
     approval = turn.done.get("command_approval") or {}
-    kinds = [a.get("kind") for a in approval.get("client_actions") or []]
-    assert kinds == ["delete_dashboard"], (
-        f"expected a delete card, got {kinds}\n"
+    got = [a.get("kind") for a in approval.get("client_actions") or []]
+    assert len(got) == 1 and got[0] in kinds, (
+        f"expected a card of {kinds}, got {got}\n"
         f"tools: {[c['tool'] for c in turn.tool_calls]}\nreply: {turn.done.get('response')}"
     )
     return approval
 
 
 async def _confirm(hass: HomeAssistant, home: ChatHarness, approval: dict[str, Any]) -> None:
-    """What the panel does on a tap: delete, report, then resume."""
+    """What the panel does on a tap: run the action, then report it."""
+    action = approval["client_actions"][0]
     with caller_scope(True):
-        await mcp_dashboards._tool_delete_dashboard(hass, {"dashboard_target": "cameras"})
+        if action["kind"] == "delete_dashboard":
+            await mcp_dashboards._tool_delete_dashboard(
+                hass, {"dashboard_target": action["url_path"]}
+            )
+        else:
+            await mcp_dashboards._tool_create_dashboard(
+                hass, {"title": action["title"], "url_path": action["url_path"]}
+            )
     connection = MagicMock()
     connection.user.is_admin = True
     await inspect.unwrap(tokens._handle_websocket_client_action_result)(
@@ -57,7 +66,11 @@ async def _confirm(hass: HomeAssistant, home: ChatHarness, approval: dict[str, A
             "session_id": home.session_id,
             "proposal_id": approval["proposal_id"],
             "results": [
-                {"ok": True, "kind": "delete_dashboard", "detail": {"url_path": "cameras"}}
+                {
+                    "ok": True,
+                    "kind": action["kind"],
+                    "detail": {"url_path": action["url_path"], "title": action.get("title")},
+                }
             ],
         },
     )
@@ -71,7 +84,7 @@ async def test_a_delete_that_was_the_whole_request_says_it_once(
     hass: HomeAssistant, home: ChatHarness, run: int
 ) -> None:
     await _cameras_dashboard(hass)
-    approval = _card(await home.live("Remove the Cameras dashboard"))
+    approval = _card(await home.live("Remove the Cameras dashboard"), "delete_dashboard")
     await _confirm(hass, home, approval)
     before = await home.messages()
 
@@ -90,15 +103,23 @@ async def test_a_delete_that_was_the_whole_request_says_it_once(
 async def test_a_delete_with_more_to_do_does_the_rest(
     hass: HomeAssistant, home: ChatHarness, run: int
 ) -> None:
+    """Two writes, one card per message: either may come first. Confirming it
+    must bring back the OTHER, never the same one again."""
     await _cameras_dashboard(hass)
-    approval = _card(
-        await home.live("Remove the Cameras dashboard and create a new one called Security")
+    first = _card(
+        await home.live("Remove the Cameras dashboard and create a new one called Security"),
+        "delete_dashboard",
+        "create_dashboard",
     )
-    await _confirm(hass, home, approval)
+    await _confirm(hass, home, first)
 
-    resumed = await home.live("", resume_proposal_id=approval["proposal_id"])
+    resumed = await home.live("", resume_proposal_id=first["proposal_id"])
 
     assert not resumed.errors, resumed.errors
-    called = [c["tool"] for c in resumed.tool_calls]
     assert not resumed.done.get("discarded"), resumed.done
-    assert "create_dashboard" in called, f"tools: {called}\nreply: {resumed.done.get('response')}"
+    done_kind = first["client_actions"][0]["kind"]
+    other = "create_dashboard" if done_kind == "delete_dashboard" else "delete_dashboard"
+    called = [c["tool"] for c in resumed.tool_calls]
+    assert other in called and done_kind not in called, (
+        f"first: {done_kind}\ntools: {called}\nreply: {resumed.done.get('response')}"
+    )

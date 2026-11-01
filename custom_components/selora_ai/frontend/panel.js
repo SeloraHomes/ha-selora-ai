@@ -1473,6 +1473,40 @@ function armPressRipple(root) {
   root.addEventListener("animationcancel", clear);
 }
 
+// src/panel/tile-plan.js
+function planTiles(groups, limit) {
+  const tileCount = groups.reduce((n6, [, ids2]) => n6 + ids2.length, 0);
+  const headers = groups.length > 1 && tileCount >= groups.length * 2;
+  if (tileCount > limit && headers) {
+    return {
+      now: [],
+      later: [],
+      sections: groups.map(([areaName, ids2]) => ({ areaName, ids: ids2 })),
+      tileCount,
+    };
+  }
+  const items = [];
+  for (const [areaName, ids2] of groups) {
+    if (headers) items.push({ areaName });
+    for (const id of ids2) items.push({ id });
+  }
+  let shown = 0;
+  let cut = items.length;
+  for (let k2 = 0; k2 < items.length; k2++) {
+    if (shown === limit) {
+      cut = k2;
+      break;
+    }
+    if ("id" in items[k2]) shown += 1;
+  }
+  return {
+    now: items.slice(0, cut),
+    later: items.slice(cut),
+    sections: [],
+    tileCount,
+  };
+}
+
 // src/shared/styles/modals.css.js
 var sharedModals = i`
   .modal-overlay {
@@ -3675,6 +3709,20 @@ var chatStyles = i`
     white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
+  /* Shrink-to-fit gives an auto-fill grid one column: a reply with tiles
+     takes the room it is allowed (the wrap's 82%), so they sit side by side.
+     Tiles in the reply's own text only: scene and approval cards size
+     themselves. */
+  .assistant-wrap:not(.assistant-wrap--scene):not(
+      .assistant-wrap--approval
+    ):has(.msg-content .selora-entity-grid) {
+    width: 82%;
+  }
+  .assistant-wrap:not(.assistant-wrap--scene):not(.assistant-wrap--approval)
+    .bubble.assistant:has(.msg-content .selora-entity-grid) {
+    align-self: stretch;
+    max-width: 100%;
+  }
   .bubble.assistant {
     align-self: flex-start;
     background: var(--card-background-color);
@@ -4002,6 +4050,45 @@ var chatStyles = i`
      spans the header across the full row so the next row of tiles
      starts cleanly under it. Layout matches HA dashboard section
      headers: small uppercase label with the area icon to its left. */
+  .selora-tiles-more {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .selora-entity-grid > [hidden] {
+    display: none !important;
+  }
+  /* A collapsed area: the header becomes a row that opens its tiles. */
+  .selora-area-header.selora-area-toggle {
+    width: 100%;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .selora-area-header.selora-area-toggle:hover {
+    background: var(--secondary-background-color);
+  }
+  .selora-area-header.selora-area-toggle:first-child {
+    margin-top: 0;
+  }
+  .selora-area-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+  .selora-area-chevron {
+    --mdc-icon-size: 18px;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    transition: transform 0.15s ease;
+  }
+  .selora-area-toggle[aria-expanded="true"] .selora-area-chevron {
+    transform: rotate(180deg);
+  }
   .selora-area-header {
     grid-column: 1 / -1;
     display: flex;
@@ -11274,6 +11361,7 @@ var en_default = {
     suggestions_snoozed_toast: "Suggestion snoozed for 24h",
     suggestions_pattern_scan_failed: "Pattern scan failed",
     area_unassigned: "Unassigned",
+    chat_tiles_show_all_other: "Show all {count}",
     recipes_back_to_overview: "Back to overview",
     recipes_back_to_recipes: "Back to recipes",
     recipes_bucket_completed: "Completed",
@@ -12727,6 +12815,7 @@ var fr_default = {
     suggestions_snoozed_toast: "Suggestion report\xE9e pendant 24 h",
     suggestions_pattern_scan_failed: "\xC9chec de l'analyse des motifs",
     area_unassigned: "Non assign\xE9",
+    chat_tiles_show_all_other: "Tout afficher ({count})",
     recipes_back_to_overview: "Retour \xE0 l'aper\xE7u",
     recipes_back_to_recipes: "Retour aux recettes",
     recipes_bucket_completed: "Termin\xE9",
@@ -14198,6 +14287,7 @@ var de_default = {
     suggestions_snoozed_toast: "Vorschlag f\xFCr 24h zur\xFCckgestellt",
     suggestions_pattern_scan_failed: "Musterscan fehlgeschlagen",
     area_unassigned: "Nicht zugewiesen",
+    chat_tiles_show_all_other: "Alle {count} anzeigen",
     recipes_back_to_overview: "Zur\xFCck zur \xDCbersicht",
     recipes_back_to_recipes: "Zur\xFCck zu den Rezepten",
     recipes_bucket_completed: "Abgeschlossen",
@@ -15658,6 +15748,7 @@ var es_default = {
     suggestions_snoozed_toast: "Sugerencia pospuesta 24h",
     suggestions_pattern_scan_failed: "Fall\xF3 el escaneo de patrones",
     area_unassigned: "Sin asignar",
+    chat_tiles_show_all_other: "Mostrar los {count}",
     recipes_back_to_overview: "Volver al resumen",
     recipes_back_to_recipes: "Volver a las recetas",
     recipes_bucket_completed: "Completado",
@@ -17100,6 +17191,7 @@ var it_default = {
     suggestions_snoozed_toast: "Suggerimento rinviato di 24h",
     suggestions_pattern_scan_failed: "Scansione pattern non riuscita",
     area_unassigned: "Non assegnato",
+    chat_tiles_show_all_other: "Mostra tutti ({count})",
     recipes_back_to_overview: "Torna alla panoramica",
     recipes_back_to_recipes: "Torna alle ricette",
     recipes_bucket_completed: "Completate",
@@ -18566,6 +18658,7 @@ var nl_default = {
     suggestions_snoozed_toast: "Suggestie 24u uitgesteld",
     suggestions_pattern_scan_failed: "Patroonscan mislukt",
     area_unassigned: "Niet toegewezen",
+    chat_tiles_show_all_other: "Alle {count} tonen",
     recipes_back_to_overview: "Terug naar overzicht",
     recipes_back_to_recipes: "Terug naar recepten",
     recipes_bucket_completed: "Voltooid",
@@ -20057,6 +20150,7 @@ var hu_default = {
     suggestions_snoozed_toast: "Javaslat 24 \xF3r\xE1ra szundira \xE1ll\xEDtva",
     suggestions_pattern_scan_failed: "A mintavizsg\xE1lat sikertelen",
     area_unassigned: "Hozz\xE1 nem rendelt",
+    chat_tiles_show_all_other: "Mind a(z) {count} megjelen\xEDt\xE9se",
     recipes_back_to_overview: "Vissza az \xE1ttekint\xE9shez",
     recipes_back_to_recipes: "Vissza a receptekhez",
     recipes_bucket_completed: "Befejezve",
@@ -21524,6 +21618,7 @@ var pt_default = {
     suggestions_snoozed_toast: "Sugest\xE3o adiada por 24h",
     suggestions_pattern_scan_failed: "A an\xE1lise de padr\xF5es falhou",
     area_unassigned: "N\xE3o atribu\xEDda",
+    chat_tiles_show_all_other: "Mostrar todos ({count})",
     recipes_back_to_overview: "Voltar \xE0 vis\xE3o geral",
     recipes_back_to_recipes: "Voltar \xE0s receitas",
     recipes_bucket_completed: "Conclu\xEDdo",
@@ -23387,6 +23482,8 @@ var ru_default = {
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432",
     area_unassigned:
       "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E",
+    chat_tiles_show_all_other:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0432\u0441\u0435 ({count})",
     recipes_back_to_overview:
       "\u041D\u0430\u0437\u0430\u0434 \u043A \u043E\u0431\u0437\u043E\u0440\u0443",
     recipes_back_to_recipes:
@@ -25294,6 +25391,8 @@ var ja_default = {
     suggestions_pattern_scan_failed:
       "\u30D1\u30BF\u30FC\u30F3\u30B9\u30AD\u30E3\u30F3\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
     area_unassigned: "\u672A\u5272\u308A\u5F53\u3066",
+    chat_tiles_show_all_other:
+      "\u3059\u3079\u3066\u8868\u793A\uFF08{count}\uFF09",
     recipes_back_to_overview: "\u6982\u8981\u306B\u623B\u308B",
     recipes_back_to_recipes: "\u30EC\u30B7\u30D4\u306B\u623B\u308B",
     recipes_bucket_completed: "\u5B8C\u4E86",
@@ -27003,6 +27102,7 @@ var ko_default = {
     suggestions_pattern_scan_failed:
       "\uD328\uD134 \uC2A4\uCE94\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4",
     area_unassigned: "\uBBF8\uC9C0\uC815",
+    chat_tiles_show_all_other: "\uBAA8\uB450 \uBCF4\uAE30 ({count})",
     recipes_back_to_overview: "\uAC1C\uC694\uB85C \uB3CC\uC544\uAC00\uAE30",
     recipes_back_to_recipes:
       "\uB808\uC2DC\uD53C\uB85C \uB3CC\uC544\uAC00\uAE30",
@@ -28602,6 +28702,7 @@ var zh_Hans_default = {
     suggestions_snoozed_toast: "\u5EFA\u8BAE\u5DF2\u6682\u505C 24 \u5C0F\u65F6",
     suggestions_pattern_scan_failed: "\u6A21\u5F0F\u626B\u63CF\u5931\u8D25",
     area_unassigned: "\u672A\u5206\u914D",
+    chat_tiles_show_all_other: "\u663E\u793A\u5168\u90E8\uFF08{count}\uFF09",
     recipes_back_to_overview: "\u8FD4\u56DE\u6982\u89C8",
     recipes_back_to_recipes: "\u8FD4\u56DE\u914D\u65B9",
     recipes_bucket_completed: "\u5DF2\u5B8C\u6210",
@@ -30178,6 +30279,7 @@ var zh_Hant_default = {
     suggestions_snoozed_toast: "\u5EFA\u8B70\u5DF2\u5EF6\u5F8C 24 \u5C0F\u6642",
     suggestions_pattern_scan_failed: "\u6A21\u5F0F\u6383\u63CF\u5931\u6557",
     area_unassigned: "\u672A\u6307\u6D3E",
+    chat_tiles_show_all_other: "\u986F\u793A\u5168\u90E8\uFF08{count}\uFF09",
     recipes_back_to_overview: "\u8FD4\u56DE\u7E3D\u89BD",
     recipes_back_to_recipes: "\u8FD4\u56DE\u98DF\u8B5C",
     recipes_bucket_completed: "\u5DF2\u5B8C\u6210",
@@ -31201,6 +31303,7 @@ function renderMarkdown(text) {
       return `<a class="selora-dashboard-link" href="${url}"><ha-icon icon="mdi:view-dashboard-outline"></ha-icon><span class="selora-dashboard-link-text"><span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span><span class="selora-dashboard-link-path">${url}</span></span></a>`;
     },
   );
+  escaped = escaped.replace(/\[\[search:\d+\]\]/g, "");
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
     (_m, ids2) =>
@@ -59113,7 +59216,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "07b4e2cfce5d" : "";
+var PANEL_BUILD = true ? "e364b9524e15" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -60655,6 +60758,7 @@ function filterSessions(sessions, query) {
 }
 
 // src/panel.js
+var TILE_LIMIT = 12;
 (() => {
   const PANEL_NAME = "selora-ai";
   const GUARD = "__seloraAiPanelMountGuard";
@@ -62711,6 +62815,7 @@ var SeloraAIPanel = class extends i4 {
           },
         };
       }
+      grid._seloraHass = gridHass;
       let sceneChanged = false;
       if (grid.dataset.sceneStates) {
         const sig = `${sceneEditId || ""}|${grid.dataset.sceneStates}`;
@@ -62736,6 +62841,7 @@ var SeloraAIPanel = class extends i4 {
         }
         grid.replaceChildren();
         let appended = 0;
+        let hidden = 0;
         if (createTile) {
           const groups = /* @__PURE__ */ new Map();
           for (const id of ids2) {
@@ -62756,7 +62862,6 @@ var SeloraAIPanel = class extends i4 {
             if (!b3[0]) return -1;
             return a3[0].localeCompare(b3[0]);
           });
-          const showHeaders = groups.size > 1;
           const buildTile = (id) => {
             const card = createTile(id, {
               noFeatures,
@@ -62765,7 +62870,7 @@ var SeloraAIPanel = class extends i4 {
               name: String(tileOptions[id]?.name || ""),
             });
             if (!card) return null;
-            card.hass = gridHass;
+            card.hass = grid._seloraHass || gridHass;
             const reg = registries.entities?.[id];
             const dev = reg?.device_id
               ? registries.devices?.[reg.device_id]
@@ -62782,35 +62887,112 @@ var SeloraAIPanel = class extends i4 {
           for (const a3 of Object.values(registries.areas || {})) {
             if (a3.name) areaIdByName.set(a3.name, a3.area_id);
           }
-          for (const [areaName, areaIds] of sortedGroups) {
-            if (showHeaders) {
-              const header = document.createElement("div");
-              header.className = "selora-area-header";
-              const icon = document.createElement("ha-icon");
-              icon.icon = areaName
-                ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
-                  "mdi:floor-plan"
-                : "mdi:help-circle-outline";
-              icon.className = "selora-area-icon";
-              const label = document.createElement("span");
-              label.textContent =
-                areaName || this._t("area_unassigned", "Unassigned");
-              header.append(icon, label);
-              grid.appendChild(header);
+          const reply = grid.closest(".msg-content");
+          const mountedElsewhere = reply
+            ? [...reply.querySelectorAll(".selora-entity-grid")]
+                .filter((g2) => g2 !== grid)
+                .reduce(
+                  (n6, g2) =>
+                    n6 +
+                    g2.querySelectorAll(
+                      ":scope > :not(.selora-area-header):not(.selora-tiles-more)",
+                    ).length,
+                  0,
+                )
+            : 0;
+          const { now, later, sections, tileCount } = planTiles(
+            sortedGroups,
+            Math.max(0, TILE_LIMIT - mountedElsewhere),
+          );
+          const areaHeading = (areaName) => {
+            const icon = document.createElement("ha-icon");
+            icon.icon = areaName
+              ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
+                "mdi:floor-plan"
+              : "mdi:help-circle-outline";
+            icon.className = "selora-area-icon";
+            const label = document.createElement("span");
+            label.textContent =
+              areaName || this._t("area_unassigned", "Unassigned");
+            return [icon, label];
+          };
+          const placeTile = (id, before = null) => {
+            try {
+              const card = buildTile(id);
+              if (!card) return null;
+              grid.insertBefore(card, before);
+              appended += 1;
+              return card;
+            } catch (e6) {
+              console.warn("Selora: tile card create failed for", id, e6);
+              return null;
             }
-            for (const id of areaIds) {
-              try {
-                const card = buildTile(id);
-                if (!card) continue;
-                grid.appendChild(card);
-                appended += 1;
-              } catch (e6) {
-                console.warn("Selora: tile card create failed for", id, e6);
+          };
+          const appendItem = (item) => {
+            if ("id" in item) {
+              placeTile(item.id);
+              return;
+            }
+            const header = document.createElement("div");
+            header.className = "selora-area-header";
+            header.append(...areaHeading(item.areaName));
+            grid.appendChild(header);
+          };
+          const closedToggles = [];
+          for (const { areaName, ids: areaIds } of sections) {
+            const toggle2 = document.createElement("button");
+            toggle2.type = "button";
+            toggle2.className = "selora-area-header selora-area-toggle";
+            toggle2.setAttribute("aria-expanded", "false");
+            const count = document.createElement("span");
+            count.className = "selora-area-count";
+            count.textContent = String(areaIds.length);
+            const chevron = document.createElement("ha-icon");
+            chevron.icon = "mdi:chevron-down";
+            chevron.className = "selora-area-chevron";
+            toggle2.append(...areaHeading(areaName), count, chevron);
+            grid.appendChild(toggle2);
+            closedToggles.push(toggle2);
+            let cards = null;
+            toggle2.addEventListener("click", () => {
+              const open = toggle2.getAttribute("aria-expanded") !== "true";
+              toggle2.setAttribute("aria-expanded", String(open));
+              if (!cards) {
+                const after = toggle2.nextSibling;
+                cards = areaIds
+                  .map((id) => placeTile(id, after))
+                  .filter(Boolean);
+                return;
               }
-            }
+              for (const card of cards) card.hidden = !open;
+            });
+          }
+          for (const item of now) appendItem(item);
+          hidden = sections.length
+            ? tileCount
+            : later.filter((item) => "id" in item).length;
+          if (hidden > 0) {
+            const more = document.createElement("button");
+            more.type = "button";
+            more.className = "btn btn-outline selora-tiles-more";
+            more.textContent = this._tn(
+              "chat_tiles_show_all",
+              tileCount,
+              "Show all {count}",
+            );
+            more.addEventListener("click", () => {
+              more.remove();
+              for (const toggle2 of closedToggles) {
+                if (toggle2.getAttribute("aria-expanded") !== "true") {
+                  toggle2.click();
+                }
+              }
+              for (const item of later) appendItem(item);
+            });
+            grid.appendChild(more);
           }
         }
-        if (appended > 0) {
+        if (appended > 0 || hidden > 0) {
           grid.dataset.wired = "true";
           grid.dataset.wiredIds = grid.dataset.entityIds || "";
         } else {
