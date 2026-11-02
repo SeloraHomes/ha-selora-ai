@@ -11,9 +11,12 @@ default:
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 
-# Build the frontend (panel.js + card.js)
+# Reinstall when package-lock.json is newer than the last install: the bundle
+# embeds Lit and is formatted by the installed prettier, so a stale
+# node_modules would deploy a bundle the release never builds.
+# Build the frontend (panel.js, not committed); deploy runs it first
 build:
-    cd {{ frontend_dir }} && [ -d node_modules/esbuild ] || npm ci
+    cd {{ frontend_dir }} && if [ ! -f node_modules/.package-lock.json ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then npm ci; fi
     cd {{ frontend_dir }} && npm run build
 
 # Install frontend dependencies
@@ -33,12 +36,12 @@ test-python *args='':
 eval *args='':
     pytest tests/evals -m eval -v {{ args }}
 
-# Run frontend tests (vitest)
-test-frontend:
+# Run frontend tests (vitest); build-id.test.js reads the built bundle
+test-frontend: build
     cd {{ frontend_dir }} && npx vitest run
 
 # Run frontend tests in watch mode
-test-watch:
+test-watch: build
     cd {{ frontend_dir }} && npx vitest
 
 # ── Lint & Format ────────────────────────────────────────────────────────────

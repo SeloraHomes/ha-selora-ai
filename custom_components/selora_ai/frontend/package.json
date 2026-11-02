@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
+    "pretest": "node build.js",
     "test": "vitest run",
+    "pretest:watch": "node build.js",
     "test:watch": "vitest"
   },
   "dependencies": {

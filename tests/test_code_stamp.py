@@ -187,11 +187,17 @@ def test_loaded_signature_is_captured_at_import() -> None:
     assert len(code_stamp.LOADED_PYTHON_SIGNATURE) == 16
 
 
-def test_panel_build_id_reads_the_sidecar() -> None:
+def test_panel_build_id_reads_the_sidecar(tmp_path: Path, monkeypatch: Any) -> None:
     """build.js writes the id the running bundle reports back to us."""
-    sidecar = json.loads((COMPONENT / "frontend" / "panel.build.json").read_text())
-    assert code_stamp.panel_build_id() == sidecar["build"]
-    assert code_stamp.panel_build_id()
+    sidecar = tmp_path / "panel.build.json"
+    sidecar.write_text(json.dumps({"build": "e364b9524e15"}))
+    monkeypatch.setattr(code_stamp, "_PANEL_BUILD_FILE", sidecar)
+    assert code_stamp.panel_build_id() == "e364b9524e15"
+
+
+def test_panel_build_id_points_at_the_built_sidecar() -> None:
+    """The path is where build.js writes it, beside the bundle."""
+    assert code_stamp._PANEL_BUILD_FILE == COMPONENT / "frontend" / "panel.build.json"
 
 
 def test_panel_build_id_survives_a_missing_sidecar(monkeypatch: Any) -> None:
