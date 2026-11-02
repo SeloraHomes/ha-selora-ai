@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate возвращается дольше обычного.",
     "frigate_result_saved": "Сохранена во Frigate; заработает после следующего перезапуска Frigate.",
     "frigate_result_open": "Открыть камеру",
+    "frigate_result_no_picture": "Сейчас нет изображения; оно появится само.",
     "frigate_result_recording": "Запись",
     "frigate_result_detection": "Обнаружение",
     "camera_ideas_label": "Идеи",

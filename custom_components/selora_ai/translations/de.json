@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate braucht länger als üblich, um zurückzukommen.",
     "frigate_result_saved": "In Frigate gespeichert; sie startet beim nächsten Neustart von Frigate.",
     "frigate_result_open": "Kamera öffnen",
+    "frigate_result_no_picture": "Gerade kein Bild; es kommt von selbst zurück.",
     "frigate_result_recording": "Aufnahme",
     "frigate_result_detection": "Erkennung",
     "camera_ideas_label": "Ideen",

@@ -1160,6 +1160,7 @@
     "frigate_result_slow": "Frigate doet er langer dan normaal over om terug te komen.",
     "frigate_result_saved": "Opgeslagen in Frigate; hij start bij de volgende herstart van Frigate.",
     "frigate_result_open": "Camera openen",
+    "frigate_result_no_picture": "Nu geen beeld; het komt vanzelf terug.",
     "frigate_result_recording": "Opname",
     "frigate_result_detection": "Detectie",
     "camera_ideas_label": "Ideeën",

@@ -1160,6 +1160,7 @@
     "frigate_result_slow": "A Frigate a szokásosnál tovább tart, mire visszatér.",
     "frigate_result_saved": "Elmentve a Frigate-ben; a Frigate következő újraindításakor indul el.",
     "frigate_result_open": "Kamera megnyitása",
+    "frigate_result_no_picture": "Most nincs kép; magától visszajön.",
     "frigate_result_recording": "Felvétel",
     "frigate_result_detection": "Észlelés",
     "camera_ideas_label": "Ötletek",

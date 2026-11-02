@@ -17,11 +17,15 @@ function flatten(node) {
   return String(node);
 }
 
-function handlers(node, out = []) {
-  if (Array.isArray(node)) node.forEach((n) => handlers(n, out));
-  else if (typeof node === "function") out.push(node);
+// The listeners a template binds to `event`, found by the attribute before each.
+function handlers(node, event = "click", out = []) {
+  if (Array.isArray(node)) node.forEach((n) => handlers(n, event, out));
   else if (node && typeof node === "object" && "values" in node) {
-    handlers(node.values, out);
+    node.values.forEach((value, i) => {
+      if (typeof value !== "function") handlers(value, event, out);
+      else if (node.strings[i].trimEnd().endsWith(`@${event}=`))
+        out.push(value);
+    });
   }
   return out;
 }
@@ -129,6 +133,30 @@ describe("the Frigate result card", () => {
       expect(event.type).toBe("hass-more-info");
       expect(event.detail).toEqual({ entityId: "camera.e1_zoom" });
     }
+  });
+
+  it("shows a placeholder, not a blank box, while the picture fails", () => {
+    const h = host({
+      "camera.e1_zoom": {
+        state: "streaming",
+        attributes: { entity_picture: "/api/camera_proxy/camera.e1_zoom" },
+      },
+    });
+    const card = renderFrigateResult(h, message("added"));
+    const preview = { classList: { toggle: vi.fn() } };
+    const event = { target: { closest: () => preview } };
+
+    expect(flatten(card)).toContain("No picture right now");
+    handlers(card, "error")[0](event);
+    expect(preview.classList.toggle).toHaveBeenLastCalledWith(
+      "is-missing",
+      true,
+    );
+    handlers(card, "load")[0](event);
+    expect(preview.classList.toggle).toHaveBeenLastCalledWith(
+      "is-missing",
+      false,
+    );
   });
 
   it("says a camera Frigate could not restart for starts later", () => {

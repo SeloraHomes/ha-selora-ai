@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate ci sta mettendo più del solito a tornare.",
     "frigate_result_saved": "Salvata in Frigate; partirà al prossimo riavvio di Frigate.",
     "frigate_result_open": "Apri la telecamera",
+    "frigate_result_no_picture": "Nessuna immagine al momento; tornerà da sola.",
     "frigate_result_recording": "Registrazione",
     "frigate_result_detection": "Rilevamento",
     "camera_ideas_label": "Idee",
