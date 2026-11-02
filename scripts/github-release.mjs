@@ -13,7 +13,7 @@
  */
 
 import { request } from "https";
-import { readFileSync, rmSync } from "fs";
+import { existsSync, readFileSync, rmSync } from "fs";
 import { execSync } from "child_process";
 
 export const GITHUB_REPO = "SeloraHomes/ha-selora-ai";
@@ -171,6 +171,18 @@ export async function main(version, token, targetCommitish = "main") {
   //    it, so a leftover from a direct invocation or interrupted publish
   //    would carry over obsolete entries that aren't part of the tagged
   //    commit — silently shipping stale files inside the HACS asset.
+  //
+  //    The panel bundle is not committed, so the clean-tree checks upstream
+  //    cannot vouch for it: one left on disk may come from another branch or
+  //    from before the version bump. Build it here, from the checkout being
+  //    zipped. Without it the panel 404s; without its panel.build.json sidecar
+  //    the backend reports no build id and stops detecting a stale bundle.
+  execSync("npm run build", { cwd: `${INTEGRATION_DIR}/frontend`, stdio: "inherit" });
+  for (const artifact of ["panel.js", "panel.build.json"]) {
+    if (!existsSync(`${INTEGRATION_DIR}/frontend/${artifact}`)) {
+      throw new Error(`frontend/${artifact} is missing — run \`npm run build\` in the frontend dir first`);
+    }
+  }
   rmSync(ZIP_FILENAME, { force: true });
   execSync(
     `cd ${INTEGRATION_DIR} && zip -r ../../${ZIP_FILENAME} .` +

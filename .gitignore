@@ -50,7 +50,10 @@ requirements.txt
 
 # ── Frontend build artifacts ──────────────────────────────────
 node_modules/
+# Built by `just build` (and by the release job before it zips), never committed:
+# a committed bundle made every frontend MR conflict with the next one merged.
 custom_components/selora_ai/frontend/panel.js
+custom_components/selora_ai/frontend/panel.build.json
 custom_components/selora_ai/frontend/card.js
 custom_components/selora_ai/frontend/.vitest/
 

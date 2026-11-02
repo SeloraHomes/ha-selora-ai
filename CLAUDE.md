@@ -117,8 +117,8 @@ the bundle; resolution is exact locale → `en` → inline fallback, and `pickLo
 lowercases and strips the region. The panel reads `translations/en.json`, not
 `strings.json`.
 
-- **A `translations/*.json` edit changes the bundle** — rebuild and commit
-  `panel.js` + `panel.build.json` (CI's `frontend` job fails on a stale bundle).
+- **A `translations/*.json` edit changes the bundle** — rebuild (`just build`)
+  before testing it on a hub.
 - `_t()` never warns: a missing key silently renders the fallback.
 - New UI text uses `_t('key', 'English default')`, with the key added to `common`
   in `strings.json` and every locale in the same commit (appended in feature
@@ -130,7 +130,11 @@ lowercases and strips the region. The panel reads `translations/en.json`, not
   `*-actions.js` / `*-crud.js`; keep `panel/` files under ~400 lines.
 - Configurable values come from `host._config` (via websocket), so `const.py`
   stays the single source of truth.
-- Run `node build.js` in `frontend/` after any change; the bundle is committed.
+- **`panel.js` and `panel.build.json` are built, never committed.** A committed
+  bundle made every frontend MR conflict with the next one merged. `just build`
+  (which `just deploy` and `just test` run) builds them locally;
+  `github-release.mjs` rebuilds them from the checkout it zips into
+  `selora_ai.zip`, since nothing else vouches for an untracked file.
 - A card in a reply opens with `renderCardHeading` (`shared/card-heading.js`):
   the tinted icon square of the home suggestions, a title, a line under it.
   One heading everywhere is what makes the cards read as one product; don't
