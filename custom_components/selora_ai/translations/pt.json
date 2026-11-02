@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "O Frigate está a demorar mais do que o habitual a voltar.",
     "frigate_result_saved": "Guardada no Frigate; começa no próximo reinício do Frigate.",
     "frigate_result_open": "Abrir a câmara",
+    "frigate_result_no_picture": "Sem imagem agora; ela volta sozinha.",
     "frigate_result_recording": "Gravação",
     "frigate_result_detection": "Deteção",
     "camera_ideas_label": "Ideias",

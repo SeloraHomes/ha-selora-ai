@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate가 평소보다 늦게 돌아오고 있습니다.",
     "frigate_result_saved": "Frigate에 저장되었습니다. Frigate가 다음에 다시 시작될 때 시작됩니다.",
     "frigate_result_open": "카메라 열기",
+    "frigate_result_no_picture": "지금은 화면이 없습니다. 자동으로 다시 표시됩니다.",
     "frigate_result_recording": "녹화",
     "frigate_result_detection": "감지",
     "camera_ideas_label": "아이디어",

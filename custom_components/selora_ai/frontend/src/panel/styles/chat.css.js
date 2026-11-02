@@ -2084,11 +2084,34 @@ export const chatStyles = css`
     background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
     cursor: pointer;
   }
+  .frigate-result-preview {
+    position: relative;
+  }
   .frigate-result-preview img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+  .frigate-result-no-picture {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--secondary-text-color);
+    --mdc-icon-size: 28px;
+  }
+  .frigate-result-preview.is-missing img {
+    visibility: hidden;
+  }
+  .frigate-result-preview.is-missing .frigate-result-no-picture {
+    display: flex;
   }
   @media (max-width: 600px) {
     .frigate-result-wait,

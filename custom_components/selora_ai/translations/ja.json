@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate の復帰にいつもより時間がかかっています。",
     "frigate_result_saved": "Frigate に保存しました。Frigate の次回の再起動後に有効になります。",
     "frigate_result_open": "カメラを開く",
+    "frigate_result_no_picture": "現在は映像がありません。自動的に戻ります。",
     "frigate_result_recording": "録画",
     "frigate_result_detection": "検出",
     "camera_ideas_label": "アイデア",

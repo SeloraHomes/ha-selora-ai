@@ -1140,6 +1140,7 @@
     "frigate_result_slow": "Frigate 恢复所需时间比平时更长。",
     "frigate_result_saved": "已保存到 Frigate，将在 Frigate 下次重启后启用。",
     "frigate_result_open": "打开摄像头",
+    "frigate_result_no_picture": "暂时没有画面，稍后会自动恢复。",
     "frigate_result_recording": "录像",
     "frigate_result_detection": "检测",
     "camera_ideas_label": "建议",

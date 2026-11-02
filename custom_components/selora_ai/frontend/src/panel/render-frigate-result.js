@@ -138,6 +138,15 @@ function renderWaiting(host, msg, result) {
 // card is lazy-loaded and often not there in a custom panel; a plain image is.
 const SNAPSHOT_EVERY_MS = 5000;
 
+// A picture that fails (Home Assistant or the camera restarting) shows a
+// placeholder instead of a blank box with the alt text in it; the next
+// refresh that loads takes it away.
+function markPicture(event, missing) {
+  event.target
+    .closest(".frigate-result-preview")
+    ?.classList.toggle("is-missing", missing);
+}
+
 export function snapshotUrl(host, entityId) {
   const picture = host.hass?.states?.[entityId]?.attributes?.entity_picture;
   if (!picture) return "";
@@ -158,7 +167,22 @@ function renderAdded(host, msg, result, camera) {
               title=${host._t("frigate_result_open", "Open the camera")}
               @click=${() => openMoreInfo(host, cameraId)}
             >
-              <img src=${snapshot} alt=${camera.name} loading="lazy" />
+              <img
+                src=${snapshot}
+                alt=${camera.name}
+                loading="lazy"
+                @load=${(event) => markPicture(event, false)}
+                @error=${(event) => markPicture(event, true)}
+              />
+              <span class="frigate-result-no-picture">
+                <ha-icon icon="mdi:cctv-off"></ha-icon>
+                <span
+                  >${host._t(
+                    "frigate_result_no_picture",
+                    "No picture right now; it comes back on its own.",
+                  )}</span
+                >
+              </span>
             </button>`
           : ""
       }
