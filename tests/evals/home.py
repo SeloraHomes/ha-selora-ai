@@ -51,6 +51,11 @@ ENTITIES: tuple[tuple[str, str, str | None, str, dict[str, Any]], ...] = (
 
 LAST_CAMERA = "sensor.frigate_sam_last_camera"
 
+# A Matter plug on node 31 (0x1F): the Matter server and Thread views call it
+# "Node 31 @1:1f", a name nothing in Home Assistant shows.
+MATTER_PLUG = "switch.office_plug"
+MATTER_NODE = 31
+
 # A Selora-made automation, deletable from chat.
 AUTOMATIONS: tuple[dict[str, Any], ...] = (
     {
@@ -215,6 +220,25 @@ async def build_home(hass: HomeAssistant) -> None:
             "on",
             {"friendly_name": automation["alias"], "id": automation["id"]},
         )
+
+    matter = MockConfigEntry(domain="matter")
+    matter.add_to_hass(hass)
+    plug = devices.async_get_or_create(
+        config_entry_id=matter.entry_id,
+        identifiers={("matter", f"deviceid_8A1C2B3D4E5F6071-{MATTER_NODE:016X}-MatterNodeDevice")},
+        name="Office Plug",
+        manufacturer="Eve Systems",
+        model="Eve Energy",
+    )
+    entities.async_get_or_create(
+        "switch",
+        "matter",
+        "office-plug",
+        suggested_object_id="office_plug",
+        config_entry=matter,
+        device_id=plug.id,
+    )
+    hass.states.async_set(MATTER_PLUG, "off", {"friendly_name": "Office Plug"})
 
     frigate = MockConfigEntry(domain="frigate", data={"url": FRIGATE})
     frigate.add_to_hass(hass)

@@ -143,6 +143,12 @@ CASES = (
         "Set up the Philips Hue integration",
         calls=("start_device_flow",),
     ),
+    # A Matter node id is looked up, not answered with Settings directions.
+    Case(
+        "matter-node",
+        'How can I know which device is the thread node "Node 31 @1:1f"',
+        says=("Office Plug",),
+    ),
     Case(
         "kitchen-light",
         "Turn on the kitchen light",

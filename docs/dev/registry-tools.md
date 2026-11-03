@@ -467,7 +467,25 @@ mesh answer that diagnostics give only as a page of raw radio state.
   Z-Wave JS through the per-node sensors it registers (`.node_status`,
   `.controller_status`, `.statistics_rssi`, `.statistics_last_seen` unique-id
   suffixes; the statistics are disabled by default), Matter through
-  availability only.
+  availability only. Each Matter row carries `node_id` / `node_hex` (and
+  `bridged_endpoint`) from the registry identifier, so a node the Matter
+  server or a Thread view reports can be matched to a device.
+- **Thread is read from what each Matter node reports** (`thread_topology.py`):
+  routing role, channel, network name and neighbour table (cluster 53) and the
+  Thread interface's hardware address (cluster 51, attribute 0, type 4), which
+  IS the node's extended address and is how a neighbour entry is named. From
+  the client's raw attribute cache (`node_data.attributes`, struct fields
+  keyed by id, octet strings base64), never its cluster objects, which need
+  the CHIP library. Core's Matter node fixtures are the reference shape.
+- **A node with no neighbour table is described by the nodes that hear it**
+  (`links_reported_by_neighbours`); the table is optional and sleepy devices
+  often lack it. Its best RSSI feeds the weak-signal test either way.
+- **Thread LQI is 0-3**, not Zigbee's 0-255; it is reported with
+  `lqi_scale` and never compared to `WEAK_LQI`. RSSI decides weak.
+- **What no node of ours owns is `external`**, by extended address with who
+  hears it and whether its radio stays on: border routers, another
+  controller's devices, non-Matter Thread devices. Matching border routers
+  needs their mDNS advertisement, which this sync read does not browse.
 - **Zigbee2MQTT counts as Zigbee.** It reaches HA through MQTT, so it is found
   by its bridge device (manufacturer `Zigbee2MQTT`) and the devices it
   introduced, with `linkquality` from their `_linkquality_zigbee2mqtt` entity.

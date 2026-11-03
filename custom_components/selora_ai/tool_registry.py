@@ -194,8 +194,9 @@ TOOL_GET_DEVICE = ToolDef(
         "current states and key attributes. Use this when the user asks about a "
         "specific device's state, configuration, or health. Also use it to get "
         "the Zigbee IEEE address (returned as `zha_ieee`) needed to build a "
-        "`zha_event` button-press trigger. Accepts either the device's registry "
-        "id or its name as the user would say it."
+        "`zha_event` button-press trigger, or a Matter device's node id "
+        "(`matter`). Accepts the device's registry id, its name as the user "
+        "would say it, or a Matter node ('Node 31')."
     ),
     params=(
         ToolParam(
@@ -484,7 +485,9 @@ TOOL_SEARCH_ENTITIES = ToolDef(
         "If the top match looks weak (low score, several close candidates), "
         "broaden the query or ask the user which one. Each match also carries "
         "the entity's `device_id`, so this is the cheap way to reach "
-        "get_device / get_device_triggers without listing every device."
+        "get_device / get_device_triggers without listing every device. "
+        "A Matter node reference ('Node 31', '@1:1f', '0x1F') resolves "
+        "exactly to that node's device (`matter_nodes`), never by name."
     ),
     params=(
         ToolParam(

@@ -15,7 +15,9 @@ integration is, and their objects change shape between releases. So:
   (``node_status``: alive / asleep / dead; ``controller_status``; the
   statistics ``rssi`` and ``last_seen``, which are disabled by default);
 * **Matter** from availability alone: a node that drops off takes every
-  entity with it;
+  entity with it. Each row carries the node id the Matter server and Thread
+  views name it by, and a Thread node its role and strongest links, from the
+  diagnostics the node reports (``thread_topology.py``);
 * **Zigbee2MQTT** from its bridge device and each device's ``linkquality``
   entity, since many homes run Zigbee there rather than in ZHA.
 
@@ -32,12 +34,16 @@ from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.util import dt as dt_util
 
 from .helpers import device_config_entry_ids, device_entries, sanitize_untrusted_text
+from .matter_node import entry_matter_client, matter_node
+from .thread_topology import read_thread_nodes
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.device_registry import DeviceEntry
     from homeassistant.helpers.entity_registry import RegistryEntry
+
+    from .types import ThreadLink, ThreadNode
 
 PROTOCOLS: Final = ("zigbee", "zwave", "matter")
 _RADIO_DOMAINS: Final = {"zha": "zigbee", "zwave_js": "zwave", "matter": "matter"}
@@ -256,7 +262,143 @@ def _zwave_rows(regs: _Registries, entry: ConfigEntry) -> dict[str, Any]:
 
 
 def _matter_rows(regs: _Registries, entry: ConfigEntry) -> dict[str, Any]:
-    return {"devices": [_finish(_row(regs, d), regs) for d in _entry_devices(regs, entry)]}
+    thread = read_thread_nodes(entry_matter_client(regs.hass, entry))
+    rows: list[dict[str, Any]] = []
+    node_rows: dict[int, dict[str, Any]] = {}
+    for device in _entry_devices(regs, entry):
+        row = _row(regs, device)
+        # The Matter server and Thread views name a device by its node id
+        # ("Node 31"); without it here an offline node there can't be matched.
+        if (node := matter_node(device)) is not None:
+            row["node_id"] = node["node_id"]
+            row["node_hex"] = node["node_hex"]
+            if "bridged_endpoint" in node:
+                row["bridged_endpoint"] = node["bridged_endpoint"]
+            else:
+                node_rows[node["node_id"]] = row
+        rows.append(row)
+    result: dict[str, Any] = {}
+    if thread:
+        result["thread"] = _thread_mesh(thread, node_rows)
+    result["devices"] = [_finish(row, regs) for row in rows]
+    return result
+
+
+_END_DEVICE_ROLES: Final = {"sleepy_end_device", "end_device", "router_eligible_end_device"}
+_MAX_LINKS: Final = 4
+_MAX_EXTERNAL: Final = 20
+
+
+def _thread_mesh(
+    thread: dict[int, ThreadNode], node_rows: dict[int, dict[str, Any]]
+) -> dict[str, Any]:
+    """Put each node's Thread links on its row, by name, and summarize the mesh.
+
+    A neighbour is named through the extended address its own node reports;
+    one no node of ours owns is listed under ``external``. A node with no
+    neighbour table of its own (the cluster is optional, and a sleepy device
+    may never answer) is described by the nodes that hear it.
+    """
+    names: dict[str, str] = {}
+    for node_id, info in thread.items():
+        if address := info.get("ext_address"):
+            # A node whose device is disabled in Home Assistant has no row but
+            # is still ours: named by its node id, never listed as external.
+            row = node_rows.get(node_id)
+            names[address] = row["name"] if row else f"Node {node_id}"
+    heard_by: dict[str, list[tuple[str, ThreadLink]]] = {}
+    for node_id, info in thread.items():
+        reporter = node_rows.get(node_id, {}).get("name") or f"Node {node_id}"
+        for link in info.get("links", []):
+            heard_by.setdefault(link["ext_address"], []).append((reporter, link))
+
+    roles: dict[str, int] = {}
+    for node_id, info in thread.items():
+        role = info.get("role")
+        if role:
+            roles[role] = roles.get(role, 0) + 1
+        row = node_rows.get(node_id)
+        if row is None:
+            continue
+        described: dict[str, Any] = {}
+        if role:
+            described["role"] = role
+        if address := info.get("ext_address"):
+            described["ext_address"] = address
+        own = [
+            (names.get(link["ext_address"]), link, _relation(role, link))
+            for link in info.get("links", [])
+        ]
+        if not own and address:
+            # Only the other side's view: the RSSI is what they hear from it.
+            own = [(name, link, "heard_by") for name, link in heard_by.get(address, [])]
+            if own:
+                described["links_reported_by_neighbours"] = True
+        own.sort(key=lambda item: _strength(item[1]), reverse=True)
+        described["link_count"] = len(own)
+        described["links"] = [
+            _link_row(name, link, relation) for name, link, relation in own[:_MAX_LINKS]
+        ]
+        if own and (best := _strength(own[0][1])) > -1000:
+            row["rssi"] = best
+        row["thread"] = described
+
+    external = [(address, seen) for address, seen in heard_by.items() if address not in names]
+    external.sort(key=lambda item: -len(item[1]))
+    # Thread's LQI is the link quality OpenThread computes, 0-3, not Zigbee's
+    # 0-255: read against WEAK_LQI every Thread link would look dead.
+    mesh: dict[str, Any] = {"roles": roles, "lqi_scale": "0-3, 3 is best"}
+    for info in thread.values():
+        if "network_name" in info and "network_name" not in mesh:
+            mesh["network_name"] = sanitize_untrusted_text(info["network_name"], _NAME_LEN)
+        if "channel" in info and "channel" not in mesh:
+            mesh["channel"] = info["channel"]
+    if external:
+        mesh["external"] = [
+            _external_row(address, seen) for address, seen in external[:_MAX_EXTERNAL]
+        ]
+        if len(external) > _MAX_EXTERNAL:
+            mesh["external_omitted"] = len(external) - _MAX_EXTERNAL
+        mesh["external_note"] = (
+            "Thread devices the Matter devices hear that no Matter device of this "
+            "home owns: border routers, devices another controller commissioned, "
+            "or Thread devices that are not Matter. always_on false is a sleepy "
+            "end device."
+        )
+    return mesh
+
+
+def _relation(role: str | None, link: ThreadLink) -> str:
+    if link.get("is_child"):
+        return "child"
+    return "parent" if role in _END_DEVICE_ROLES else "neighbour"
+
+
+def _strength(link: ThreadLink) -> int:
+    value = link.get("avg_rssi", link.get("last_rssi"))
+    return value if value is not None else -1000
+
+
+def _link_row(name: str | None, link: ThreadLink, relation: str) -> dict[str, Any]:
+    row: dict[str, Any] = {"to": name or f"external {link['ext_address']}", "relation": relation}
+    if (rssi := _strength(link)) > -1000:
+        row["rssi"] = rssi
+    if "lqi" in link:
+        row["lqi"] = link["lqi"]
+    return row
+
+
+def _external_row(address: str, seen: list[tuple[str, ThreadLink]]) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "ext_address": address,
+        "seen_by": sorted({name for name, _ in seen})[:5],
+    }
+    always_on = [link["rx_on_when_idle"] for _, link in seen if "rx_on_when_idle" in link]
+    if always_on:
+        row["always_on"] = any(always_on)
+    if (best := max(_strength(link) for _, link in seen)) > -1000:
+        row["best_rssi"] = best
+    return row
 
 
 def _entry_devices(regs: _Registries, entry: ConfigEntry) -> list[DeviceEntry]:

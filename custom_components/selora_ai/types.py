@@ -1488,3 +1488,34 @@ class HomeRoster(TypedDict):
     truncated: bool  # True when entity rows hit INSIGHTS_ROSTER_MAX_ENTITIES
     unavailable_total: int  # enabled, visible entities with no usable state
     disabled_total: int  # intentionally-off entities across the home
+
+
+class MatterNode(TypedDict, total=False):
+    """A device's place on the Matter fabric, read from its registry identifier."""
+
+    node_id: int  # what the Matter server and its dashboard call "Node 31"
+    node_hex: str  # the same id in hex ("0x1F"), as Thread and fabric views print it
+    fabric: str  # compressed fabric id, 16 hex digits
+    bridged_endpoint: int  # set when the device sits behind a bridge node
+
+
+class ThreadLink(TypedDict, total=False):
+    """One entry of a Thread node's neighbour table."""
+
+    ext_address: str  # 16 hex digits
+    rloc16: int
+    lqi: int
+    avg_rssi: int  # dBm
+    last_rssi: int  # dBm
+    rx_on_when_idle: bool  # False: a sleepy device
+    is_child: bool  # the neighbour is this node's child
+
+
+class ThreadNode(TypedDict, total=False):
+    """A Matter node's own view of the Thread mesh."""
+
+    role: str
+    ext_address: str
+    channel: int
+    network_name: str
+    links: list[ThreadLink]

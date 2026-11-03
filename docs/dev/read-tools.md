@@ -70,6 +70,20 @@ load-bearing.
 - **MCP's `selora_search_entities` is derived** from the chat ToolDef, with its
   own description (`_MCP_DESCRIPTIONS`: the chat text assumes the in-prompt
   entity list). A hand-written copy is how a filter reaches one surface only.
+- **A Matter node reference is an exact lookup, not a name.** The Matter server
+  and Thread views name a device "Node 31" / "@1:1f" / "0x1F"; the device
+  registry already holds the id (`deviceid_<FABRIC>-<NODE>-MatterNodeDevice`,
+  or the endpoint number for a bridged device), read by `matter_node.py`
+  without the Matter client. A query naming a node a device sits on returns
+  that device's entities unranked, plus `matter_nodes`; fuzzy rows would be
+  noise (the name search answered "Node 31 @1:1f" with an iBeacon). A node no
+  device is on keeps the name matches and adds `matter_note` saying they are
+  not that node. Bare decimals count only after "node" — "31 degrees" is a
+  name. `get_device` carries `matter` and `resolve_device` takes "Node 31",
+  after names, so a device actually named "Node 31" still wins. A Thread
+  extended address (16 hex digits, bare or `0x`) resolves through the node
+  whose Thread interface owns it; `thread_note` names one no node owns. A
+  `0x` value of 16 digits is therefore an address, never a node id.
 - **A ranked search and a filter-only listing have different ceilings.** A query
   is a resolution — default 10, max 25. A `device_class`-only call is a listing —
   returns all, up to 50. Past the bound, `omitted` + `omitted_note` say the list
