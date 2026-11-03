@@ -2225,7 +2225,11 @@ _TOOL_DEFINITIONS.extend(
                 "setup_retry, not_loaded …), the reason when it is not working, whether "
                 "it is disabled, how many devices and entities it has, and whether it "
                 "has options. problems_only=true lists just the ones not working — "
-                "start there when something stopped working."
+                "start there when something stopped working. Otherwise `discovered` "
+                "lists the devices Home Assistant found on the network (or Bluetooth, "
+                "USB …) that are not set up yet, as the page's Discovered section "
+                "does: each with a flow_id, its domain and a title; set one up with "
+                "selora_add_integration and that flow_id once the user wants it."
             ),
             inputSchema={
                 "type": "object",
@@ -2308,7 +2312,11 @@ _TOOL_DEFINITIONS.extend(
                 "menu — then pass `type`) and a flow_id. Call again with that flow_id "
                 "and `fields` holding the values; each further step comes back the same "
                 "way until status is added. Ask the user for values you do not know "
-                "rather than guessing. A setup that asks for a password, API key or "
+                "rather than guessing. For a device under `discovered` in "
+                "selora_list_integrations, pass its domain and flow_id on the first "
+                "call: that continues Home Assistant's own setup for it, keeping what "
+                "the discovery found (its address), and the user can still finish it "
+                "in Settings. A setup that asks for a password, API key or "
                 "other login, or a sign-in in the browser, is refused: the user adds "
                 "it in Settings. A custom integration is installed with "
                 "selora_hacs_install first. Helpers use selora_create_helper. Requires "

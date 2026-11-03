@@ -6,8 +6,11 @@ flow stays open between calls and is continued by its ``flow_id``:
 
 * **Only flows started here can be continued**, and only for what they were
   started for — an owner tuple such as ``("helper", "template")``. A caller
-  holding some other flow_id (the user's own flow in the UI, a discovery)
-  is refused.
+  holding some other flow_id (the user's own flow in the UI) is refused.
+* **A discovery can be adopted** (``adopted=True``): a flow Home Assistant
+  started from mDNS, SSDP, DHCP, Bluetooth… and lists under Discovered. It is
+  continued here as a started one is, but never aborted, only let go — so a
+  setup refused or left alone stays on that list for the user to finish.
 * **One left alone is aborted.** Each step re-arms a timer
   (``async_call_later``, never a task sleeping out the delay); when it fires,
   the flow is aborted, or it would linger in progress. Unloading the
@@ -47,6 +50,8 @@ class _OpenFlow:
     cancel_timer: Callable[[], None]
     # The step the flow is waiting on, as the manager last returned it.
     step: dict[str, Any]
+    # A discovery Home Assistant started: let go, never aborted.
+    adopted: bool = False
 
 
 def _flows(hass: HomeAssistant) -> dict[str, _OpenFlow]:
@@ -66,6 +71,8 @@ def keep_open(
     flow_id: str,
     owner: tuple[str, ...],
     step: dict[str, Any] | None = None,
+    *,
+    adopted: bool = False,
 ) -> None:
     """Hold *flow_id* open for its next step, (re)starting its timer."""
     flows = _flows(hass)
@@ -76,25 +83,26 @@ def keep_open(
     def _expire(_now: Any) -> None:
         if (held := flows.get(flow_id)) is not None and held.owner == owner:
             flows.pop(flow_id, None)
-            with contextlib.suppress(UnknownFlow):
-                manager.async_abort(flow_id)
+            if not held.adopted:
+                with contextlib.suppress(UnknownFlow):
+                    manager.async_abort(flow_id)
 
     # Cancelled on shutdown: a stopping Home Assistant drops every flow anyway.
     expiry = HassJob(_expire, "selora_ai flow expiry", cancel_on_shutdown=True)
     flows[flow_id] = _OpenFlow(
-        manager, owner, async_call_later(hass, FLOW_TTL, expiry), dict(step or {})
+        manager, owner, async_call_later(hass, FLOW_TTL, expiry), dict(step or {}), adopted
     )
 
 
 @callback
 def release(hass: HomeAssistant, flow_id: str | None, *, abort: bool) -> None:
-    """Stop holding *flow_id*; abort it unless it already finished."""
+    """Stop holding *flow_id*; abort it unless it already finished or was adopted."""
     if not flow_id:
         return
     held = _flows(hass).pop(flow_id, None)
     if held is not None:
         held.cancel_timer()
-        if abort:
+        if abort and not held.adopted:
             with contextlib.suppress(UnknownFlow):
                 held.manager.async_abort(flow_id)
 
@@ -120,6 +128,7 @@ async def async_drive(
     values: dict[str, Any] | None,
     values_param: str,
     errors: tuple[type[Exception], ...],
+    adopted: bool = False,
 ) -> dict[str, Any]:
     """Start a flow or continue an open one by one step, and say where it is.
 
@@ -128,6 +137,10 @@ async def async_drive(
     of one form. With it, the open flow's current step is answered: a menu by
     ``choice``, a form by ``values``; neither describes the step again.
 
+    With ``adopted``, ``start`` takes over a discovery rather than starting a
+    flow (Home Assistant's own flow view reads its step the same way, with
+    ``async_configure(flow_id)``), and nothing here ever aborts it.
+
     Returns ``{"done": result}`` once the flow created its entry, or the
     response to give: the next menu or form (with ``flow_id``), or an error.
     """
@@ -135,7 +148,7 @@ async def async_drive(
 
     def _waiting(result: dict[str, Any]) -> dict[str, Any]:
         current = str(result.get("flow_id") or flow_id)
-        keep_open(hass, manager, current, owner, result)
+        keep_open(hass, manager, current, owner, result, adopted=adopted)
         step = {"flow_id": current, "step": result.get("step_id")}
         if result.get("type") == "menu":
             return {
@@ -169,6 +182,7 @@ async def async_drive(
                     )
                 }
             held = _flows(hass)[flow_id]
+            adopted = adopted or held.adopted
             if held.step.get("type") == "menu":
                 if not choice or choice not in (held.step.get("menu_options") or []):
                     return _waiting(held.step)
@@ -183,7 +197,7 @@ async def async_drive(
             if result.get("type") == "menu" and choice in (result.get("menu_options") or []):
                 result = await manager.async_configure(flow_id, {"next_step_id": choice})
             if result.get("type") == "form" and values is not None:
-                keep_open(hass, manager, str(flow_id), owner, result)
+                keep_open(hass, manager, str(flow_id), owner, result, adopted=adopted)
                 result = await manager.async_configure(flow_id, values)
     except InvalidData as exc:
         # The form is still waiting: the same flow takes a corrected answer.
@@ -198,7 +212,7 @@ async def async_drive(
         # A flow that failed before it was held — on the first call's menu
         # step — is not released above, and Home Assistant leaves a flow whose
         # step raised in progress: aborted directly, or it lingers.
-        if flow_id:
+        if flow_id and not adopted:
             with contextlib.suppress(UnknownFlow):
                 manager.async_abort(flow_id)
         return {"error": f"Home Assistant refused it: {sanitize_untrusted_text(str(exc), 200)}"}
@@ -212,7 +226,7 @@ async def async_drive(
     release(hass, flow_id, abort=True)
     # One refused at its first step was never held, so release left it open;
     # one that aborted itself is already gone.
-    if flow_id:
+    if flow_id and not adopted:
         with contextlib.suppress(UnknownFlow):
             manager.async_abort(flow_id)
     if kind in ("external", "progress", "external_step", "show_progress"):

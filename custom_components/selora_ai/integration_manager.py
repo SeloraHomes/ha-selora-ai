@@ -1,7 +1,9 @@
 """List integrations, add one, and reload, enable, disable, remove or reconfigure one.
 
 An integration here is a config entry: what Settings → Devices & services shows
-as one card. Everything goes through ``hass.config_entries``, as that page's
+as one card. The devices Home Assistant discovered but nobody set up yet are
+listed with them, as that page's Discovered section shows them, and one is
+added by taking over its discovery flow. Everything goes through ``hass.config_entries``, as that page's
 websocket commands do. Options are changed by driving the entry's own options
 flow the way ``helper_flow`` drives a config flow: a call without ``options``
 describes the form, a call with them submits it, so Home Assistant's own
@@ -18,11 +20,22 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from homeassistant.config_entries import ConfigEntryDisabler, OperationNotAllowed, UnknownEntry
+from homeassistant.config_entries import (
+    DISCOVERY_SOURCES,
+    ConfigEntryDisabler,
+    OperationNotAllowed,
+    UnknownEntry,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.loader import IntegrationNotFound, async_get_integration
+from homeassistant.helpers.translation import async_get_translations
+from homeassistant.loader import (
+    Integration,
+    IntegrationNotFound,
+    async_get_integration,
+    async_get_integrations,
+)
 
 from .const import DOMAIN
 from .helper_flow import _FLOW_ERRORS, is_credential_name
@@ -65,10 +78,61 @@ def _row(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     return row
 
 
+def _discovery_flows(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any]]:
+    """Flows Home Assistant started on its own and waits on the user to finish.
+
+    ``DISCOVERY_SOURCES`` is core's own set: the one it fires
+    ``config_entry_discovered`` and notifies flow subscribers for.
+    """
+    return [
+        flow
+        for flow in hass.config_entries.flow.async_progress()
+        if flow["context"].get("source") in DISCOVERY_SOURCES
+        and flow["handler"] != DOMAIN
+        and (not domain or flow["handler"] == domain)
+    ]
+
+
+async def _discovered(hass: HomeAssistant, domain: str) -> list[dict[str, Any]]:
+    """Discovered devices, named as the Discovered cards name them: the
+    integration's ``config.flow_title`` filled from the flow's
+    ``title_placeholders``, else the integration's name."""
+    from .repairs_manager import _fill  # noqa: PLC0415
+
+    flows = _discovery_flows(hass, domain)
+    if not flows:
+        return []
+    domains = {flow["handler"] for flow in flows}
+    integrations = await async_get_integrations(hass, domains)
+    titles = await async_get_translations(hass, hass.config.language, "config", domains)
+    rows = []
+    for flow in flows:
+        handler = flow["handler"]
+        integration = integrations.get(handler)
+        name = integration.name if isinstance(integration, Integration) else handler
+        # Placeholders are what the device advertises about itself.
+        title = _fill(
+            titles.get(f"component.{handler}.config.flow_title", ""),
+            flow["context"].get("title_placeholders"),
+        )
+        rows.append(
+            {
+                "flow_id": flow["flow_id"],
+                "domain": handler,
+                "integration": name,
+                "title": sanitize_untrusted_text(title or name, 80),
+                "source": flow["context"]["source"],
+            }
+        )
+    rows.sort(key=lambda r: (r["domain"], r["title"]))
+    return rows
+
+
 async def async_list_integrations(
     hass: HomeAssistant, domain: str | None = None, *, problems_only: bool = False
 ) -> dict[str, Any]:
-    """Every config entry, or one domain's, or only those not working."""
+    """Every config entry, or one domain's, or only those not working — and,
+    unless only problems are asked for, what was discovered but not set up."""
     wanted = str(domain or "").strip().lower()
     rows = [
         _row(hass, entry)
@@ -77,10 +141,13 @@ async def async_list_integrations(
         and (not problems_only or entry.state.value in _PROBLEM_STATES)
     ]
     rows.sort(key=lambda r: (r["domain"], r["title"]))
-    return {
+    result: dict[str, Any] = {
         "integrations": rows,
         "not_working": sum(1 for r in rows if r["state"] in _PROBLEM_STATES),
     }
+    if not problems_only:
+        result["discovered"] = await _discovered(hass, wanted)
+    return result
 
 
 def _entry(hass: HomeAssistant, entry_id: str, verb: str) -> ConfigEntry | str:
@@ -238,6 +305,11 @@ async def async_add_integration(
     (``flow_sessions``). A step that needs the browser (an account sign-in) or
     asks for a login is refused and the flow aborted: logins never reach the
     model.
+
+    A discovered device's ``flow_id`` (from the listing's ``discovered``) takes
+    over the flow Home Assistant started for it, as pressing Add on its
+    Discovered card does, so what the discovery found is kept. That flow is
+    never aborted: a refused or abandoned one stays under Discovered.
     """
     from .flow_sessions import async_drive, owner_of, release  # noqa: PLC0415
     from .helper_flow import _DEDICATED  # noqa: PLC0415
@@ -261,12 +333,21 @@ async def async_add_integration(
     if not integration.config_flow:
         return {"error": f"{shown} has no setup form; it is set up in configuration.yaml."}
 
+    manager = hass.config_entries.flow
+    discovery = bool(flow_id) and any(
+        flow["flow_id"] == flow_id for flow in _discovery_flows(hass, domain)
+    )
+    adopt = discovery and owner_of(hass, str(flow_id)) is None
+    where = (
+        "finish it under Settings → Devices & services, where it is listed as discovered"
+        if discovery
+        else "add it under Settings → Devices & services → Add integration"
+    )
     refused = {
         "error": (
             f"Adding {shown} asks for a password, API key or other login, which "
-            "never goes through an assistant. Tell the user to add it under "
-            "Settings → Devices & services → Add integration, and not to type "
-            "the login into this chat."
+            f"never goes through an assistant. Tell the user to {where}, and not "
+            "to type the login into this chat."
         )
     }
     if fields and _carries_credential(fields):
@@ -274,20 +355,25 @@ async def async_add_integration(
             release(hass, flow_id, abort=True)
         return refused
 
-    manager = hass.config_entries.flow
     outcome = await async_drive(
         hass,
         manager,
         owner=("integration", domain),
-        start=lambda: manager.async_init(domain, context={"source": "user"}),
-        flow_id=flow_id,
+        start=(
+            # Home Assistant's own flow view reads a flow's step this way.
+            (lambda: manager.async_configure(str(flow_id)))
+            if adopt
+            else (lambda: manager.async_init(domain, context={"source": "user"}))
+        ),
+        flow_id=None if adopt else flow_id,
         choice=kind,
         # A step is described before it is answered, so a login is refused
         # before one can be submitted: the call that starts the flow submits
         # nothing.
-        values=fields if flow_id else None,
+        values=fields if flow_id and not adopt else None,
         values_param="fields",
         errors=_FLOW_ERRORS,
+        adopted=adopt,
     )
     if _asks_for_credential(outcome.get("fields") or []):
         release(hass, outcome.get("flow_id"), abort=True)

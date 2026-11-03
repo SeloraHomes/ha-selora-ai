@@ -233,7 +233,11 @@ the model stops reciting Settings click-paths.
   setups, options and repair fixes):
   - **Only flows started here, for what they were started for**, can be
     continued — an owner tuple per flow. Any other flow_id (the user's own flow
-    in the UI, a discovery, another entry's options) is refused.
+    in the UI, another entry's options) is refused.
+  - **Except a discovery, which is adopted** (`adopted=True`) and is never
+    aborted — not by a refusal, an error, the timer or unload — only let go.
+    It belongs to the user's Discovered list; aborting it would make the
+    device vanish from there until it is discovered again.
   - **Nothing lingers.** Each step re-arms a `FLOW_TTL` timer that aborts the
     flow; unload aborts them all. The timer's job is `cancel_on_shutdown` — a
     stopping Home Assistant drops every flow anyway, and the test harness counts
@@ -288,6 +292,17 @@ Devices & services does.
     described, so before a login in it could be refused.
   - A browser step (OAuth sign-in) is refused by `async_drive`, as it is for
     every flow.
+- **Discovered devices are listed with the integrations** (`discovered`), as
+  the page's Discovered section shows them: flows whose source is in core's
+  `DISCOVERY_SOURCES`, titled from the integration's `config.flow_title` and
+  the flow's `title_placeholders` (sanitized: the device advertises them).
+  `problems_only` leaves them out.
+- **Adding a discovered device continues Home Assistant's own flow** for it:
+  `add_integration` with its `flow_id` reads the step with
+  `async_configure(flow_id)`, as core's flow view does when Add is pressed on
+  the card. A fresh `user` flow would lose what the discovery found (address,
+  unique id) and often abort `already_in_progress` beside it. The same login
+  refusal applies, pointing the user at the Discovered card, which stays.
 - Listing is read-only access, as `config_entries/get` is in Home Assistant;
   every change needs admin.
 
