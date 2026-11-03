@@ -33,6 +33,18 @@ async def test_the_version_is_the_release_plus_the_tool_set(hass: HomeAssistant)
     assert result["serverInfo"]["version"] == f"{release}+{mcp_dispatch._tool_set_hash()}"
 
 
+async def test_the_icon_is_a_public_https_link(hass: HomeAssistant) -> None:
+    """Clients fetch the icon without the hub's auth, and a data: URI would
+    ride along on every ``initialize``."""
+    ctx = SeloraAuthContext("user", None, True, "selora_jwt")
+
+    result = await mcp_dispatch._jsonrpc_dispatch(hass, "initialize", None, ctx)
+
+    icons = result["serverInfo"]["icons"]
+    assert icons
+    assert all(icon["src"].startswith("https://selorahomes.com/") for icon in icons)
+
+
 def test_touching_any_tool_changes_the_version() -> None:
     """A client may keep its tool list while the version is unchanged, so
     adding, removing, rewording or re-schematising a tool must move it."""
