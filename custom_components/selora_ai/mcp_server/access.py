@@ -400,8 +400,14 @@ def _check_tool_access(auth_ctx: SeloraAuthContext, tool_name: str) -> None:
 
     For MCP tokens with ``allowed_tools`` set, only those tools are accessible.
     For MCP tokens with ``read_only`` permission, only read-only tools are accessible.
-    For Selora JWTs, ``_ADMIN_TOOLS`` require either an admin role or the
-    ``mcp:write`` OAuth scope.
+    For Selora JWTs, ``_ADMIN_TOOLS`` require the ``mcp:write`` OAuth scope,
+    whatever the role. The scope is what the homeowner granted on Connect's
+    consent screen; the role says who they are (``owner`` on their own hub),
+    and an owner who left "Allow control actions" unchecked holds a read-only
+    grant. The admin-only reads in the set (logs, cameras, faces, backups)
+    need the scope too: a read-only grant is the one most often handed to an
+    outside assistant. The role decides only what HA itself hides from a
+    non-admin inside the tools — a dashboard's ``require_admin``.
     For HA tokens, the existing is_admin check applies.
     """
     if auth_ctx.auth_type == "mcp_token":
@@ -425,7 +431,7 @@ def _check_tool_access(auth_ctx: SeloraAuthContext, tool_name: str) -> None:
         return
 
     if auth_ctx.auth_type == "selora_jwt":
-        if tool_name in _ADMIN_TOOLS and not (auth_ctx.is_admin or _jwt_has_write(auth_ctx)):
+        if tool_name in _ADMIN_TOOLS and not _jwt_has_write(auth_ctx):
             _LOGGER.warning(
                 "Selora JWT %s lacks '%s' scope; refused tool %s",
                 auth_ctx.user_id,
@@ -454,5 +460,5 @@ def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
     if auth_ctx.auth_type == "selora_jwt":
         if tool_name not in _ADMIN_TOOLS:
             return True
-        return auth_ctx.is_admin or _jwt_has_write(auth_ctx)
+        return _jwt_has_write(auth_ctx)
     return auth_ctx.is_admin or tool_name not in _ADMIN_TOOLS

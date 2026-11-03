@@ -495,7 +495,7 @@ class TestAuthenticateRequest:
 
 
 class TestJWTWriteScopeGating:
-    """Selora JWTs need 'mcp:write' scope (or admin role) for _ADMIN_TOOLS."""
+    """Selora JWTs need the 'mcp:write' scope for _ADMIN_TOOLS, whatever the role."""
 
     def _ctx(
         self,
@@ -537,13 +537,22 @@ class TestJWTWriteScopeGating:
         assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
         _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)  # no raise
 
-    def test_jwt_admin_role_still_allowed_without_scope(self) -> None:
-        """Backwards-compat: role-derived is_admin keeps working if Connect emits it."""
-        from custom_components.selora_ai.mcp_server.access import _can_access_tool
+    def test_jwt_admin_role_without_write_scope_blocked(self) -> None:
+        """An owner who left "Allow control actions" unchecked holds a
+        read-only grant: the role says who they are, the scope what they
+        granted, and only the scope unlocks writes."""
+        from homeassistant.exceptions import Unauthorized
+
+        from custom_components.selora_ai.mcp_server.access import (
+            _can_access_tool,
+            _check_tool_access,
+        )
         from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = self._ctx(scopes=frozenset({"mcp:sub"}), is_admin=True)
-        assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
+        assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is False
+        with pytest.raises(Unauthorized):
+            _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)
 
     def test_jwt_read_only_tool_always_allowed(self) -> None:
         from custom_components.selora_ai.mcp_server.access import _can_access_tool
