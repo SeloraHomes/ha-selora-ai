@@ -355,6 +355,16 @@ _LOGGER = logging.getLogger(__name__)
 
 _MCP_PROTOCOL_VERSION = "2025-03-26"
 _MCP_SERVER_NAME = "selora-ai"
+# ``serverInfo.icons`` (MCP 2025-11-25), for clients that show a server icon.
+# A link, not a data: URI, so every ``initialize`` stays small; the hub's own
+# URL would not do, since clients fetch it without the hub's auth.
+_MCP_SERVER_ICONS: list[dict[str, Any]] = [
+    {
+        "src": "https://selorahomes.com/selora-logo.png",
+        "mimeType": "image/png",
+        "sizes": ["192x192"],
+    }
+]
 
 
 async def _async_server_version(hass: HomeAssistant) -> str:
@@ -410,6 +420,7 @@ async def _jsonrpc_dispatch(
             "serverInfo": {
                 "name": _MCP_SERVER_NAME,
                 "version": await _async_server_version(hass),
+                "icons": _MCP_SERVER_ICONS,
             },
         }
     if method == "ping":
