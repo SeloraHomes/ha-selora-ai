@@ -51,6 +51,7 @@ from homeassistant.helpers import (
 )
 
 from .helpers import device_entries, sanitize_untrusted_text
+from .matter_node import devices_on_nodes, node_ids_in
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -245,6 +246,17 @@ def resolve_device(hass: HomeAssistant, ref: str) -> tuple[dr.DeviceEntry | None
         return original[0], None
     if len(original) > 1:
         return None, ambiguous(original)
+
+    # "Node 31": what the Matter server and Thread views call a device. Only a
+    # node's own device answers; its bridged devices are named by their own.
+    if node_ids := node_ids_in(ref):
+        on_node = [
+            d for d, node in devices_on_nodes(devices, node_ids) if "bridged_endpoint" not in node
+        ]
+        if len(on_node) == 1:
+            return on_node[0], None
+        if len(on_node) > 1:
+            return None, ambiguous(on_node)
     return None, f"No device named '{sanitize_untrusted_text(ref, 60)}'."
 
 

@@ -18,7 +18,6 @@ before the device joined HA; those only go to the export file, never to a log.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
 from contextlib import suppress
 from datetime import datetime
 import logging
@@ -46,6 +45,7 @@ from .const import (
     TRANSIENT_INTEGRATIONS,
 )
 from .helpers import device_config_entry_ids, device_entries, device_primary_config_entry
+from .matter_node import entry_matter_client
 from .system_log_export import redact
 
 if TYPE_CHECKING:
@@ -215,20 +215,9 @@ def _matter_ids_by_identifier(hass: HomeAssistant) -> dict[str, RosterMatterIds]
 
 
 def _matter_client(hass: HomeAssistant) -> Any:
-    """Return the loaded Matter entry's server client, or None.
-
-    The adapter is the entry's ``runtime_data`` on current cores and lives in
-    ``hass.data["matter"][entry_id]`` on older ones.
-    """
-    legacy = hass.data.get(_MATTER_DOMAIN)
+    """Return the first loaded Matter entry's server client, or None."""
     for entry in hass.config_entries.async_entries(_MATTER_DOMAIN):
-        if entry.state is not ConfigEntryState.LOADED:
-            continue
-        data = getattr(entry, "runtime_data", None)
-        if data is None and isinstance(legacy, Mapping):
-            data = legacy.get(entry.entry_id)
-        client = getattr(getattr(data, "adapter", None), "matter_client", None)
-        if client is not None:
+        if (client := entry_matter_client(hass, entry)) is not None:
             return client
     return None
 

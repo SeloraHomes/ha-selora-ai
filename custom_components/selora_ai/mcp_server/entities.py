@@ -18,11 +18,17 @@ from ..lexical import (
     fuzzy_ratio,
     normalize,
 )
+from ..matter_node import devices_on_nodes, matter_node, node_ids_in
+from ..thread_topology import ext_addresses_in, nodes_with_addresses
 from .common import _sanitize
 
 if TYPE_CHECKING:
-    from homeassistant.helpers.device_registry import DeviceRegistry
+    from collections.abc import Iterable
+
+    from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
     from homeassistant.helpers.entity_registry import RegistryEntry
+
+    from ..types import MatterNode
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -324,6 +330,9 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
     }
     if zha_ieee is not None:
         result["zha_ieee"] = zha_ieee
+    # The node id Matter and Thread views name this device by ("Node 31").
+    if (node := matter_node(device)) is not None:
+        result["matter"] = node
     return result
 
 
@@ -796,6 +805,44 @@ async def _tool_search_entities(
     }
     device_index = _device_search_index(dev_reg)
 
+    # A Matter node id is an exact reference, not a name: "Node 31 @1:1f"
+    # fuzzy-matched an unrelated tracker. When the query names a node a Matter
+    # device sits on, the answer is that device's entities, unranked.
+    node_rows: list[dict[str, Any]] = []
+    hardware_rows: list[dict[str, Any]] = []
+    node_device_ids: set[str] | None = None
+    raw_query = str(arguments.get("query", ""))
+    node_ids = node_ids_in(raw_query) if query_terms else set()
+    # A Thread extended address (what HA's Thread page and the Matter
+    # server's graph show) resolves through the node that owns it.
+    addresses = ext_addresses_in(raw_query) if query_terms else set()
+    by_address = nodes_with_addresses(hass, addresses)
+    node_ids |= set(by_address)
+    # The same 16 hex digits are a Zigbee IEEE address on a ZHA device
+    # (``connections``), which must not be answered as an unknown Thread node.
+    wired = _devices_with_connection(device_entries(dev_reg), addresses)
+    if node_ids or wired:
+        on_nodes = devices_on_nodes(device_entries(dev_reg), node_ids) if node_ids else []
+        node_rows = [
+            _node_row(device, node, area_names.get(device.area_id or "", ""))
+            for device, node in on_nodes
+        ]
+        hardware_rows = [
+            {
+                "device_id": device.id,
+                "name": _sanitize(device.name_by_user or device.name or device.id),
+                "connection": _sanitize(kind),
+                "address": address,
+            }
+            for device, kind, address in wired
+        ]
+        matched = {device.id for device, _ in on_nodes} | {d.id for d, _, _ in wired}
+        if matched:
+            node_device_ids = matched
+            query_terms, query = [], ""
+            if "limit" not in arguments:
+                limit = ceiling
+
     scored: list[tuple[float, dict[str, Any]]] = []
     for state in hass.states.async_all():
         # Every domain the home has. A scene, a camera and a pending update
@@ -829,6 +876,8 @@ async def _tool_search_entities(
             ent_area_id = entry.area_id
             ent_device_id = entry.device_id
 
+        if node_device_ids is not None and ent_device_id not in node_device_ids:
+            continue
         device_info = device_index.get(ent_device_id or "", {})
         if ent_area_id is None:
             ent_area_id = device_info.get("area_id") or None
@@ -921,10 +970,84 @@ async def _tool_search_entities(
             f"Showing {len(matches)} of {len(scored)} matches. Raise `limit` "
             f"(max {ceiling}) or narrow the search to see the rest."
         )
-    if not scored:
+    if node_rows:
+        result["matter_nodes"] = node_rows
+    # A node nothing is on is said even beside one that resolved: "Node 7 and
+    # Node 99" answered with Node 7 alone reads as the whole answer.
+    resolved = {row["node_id"] for row in node_rows}
+    for row in node_rows:
+        if (address := by_address.get(row["node_id"])) is not None:
+            row["ext_address"] = address
+    if hardware_rows:
+        result["hardware_matches"] = hardware_rows
+    known = {by_address[n] for n in resolved & set(by_address)}
+    known |= {row["address"] for row in hardware_rows}
+    if unknown := addresses - known:
+        result["thread_note"] = _NO_THREAD_ADDRESS_NOTE.format(addresses=", ".join(sorted(unknown)))
+    if missing := node_ids - set(by_address) - resolved:
+        note = _NO_MATTER_NODE_NOTE if not node_rows else _MISSING_MATTER_NODE_NOTE
+        result["matter_note"] = note.format(
+            nodes=", ".join(f"{n} (0x{n:X})" for n in sorted(missing))
+        )
+    if not scored and not node_rows and not hardware_rows:
         result["searched"] = _SEARCH_FIELDS
         result["hint"] = _NO_MATCH_HINT
     return result
+
+
+_NO_MATTER_NODE_NOTE = (
+    "The query names Matter node {nodes}, and no device Home Assistant's Matter "
+    "integration registered is on it; the rows above are name matches only, "
+    "not that node. A node Home Assistant does not know belongs to another "
+    "controller's fabric, or is a Thread device that is not Matter."
+)
+
+
+_NO_THREAD_ADDRESS_NOTE = (
+    "No device of this home has address {addresses}: it is neither a Matter "
+    "node's Thread extended address nor a device's registered hardware "
+    "address (Zigbee IEEE, MAC). As a Thread address it may be a border "
+    "router, a device another controller commissioned, or a Thread device "
+    "that is not Matter."
+)
+
+
+def _devices_with_connection(
+    devices: Iterable[DeviceEntry], addresses: set[str]
+) -> list[tuple[DeviceEntry, str, str]]:
+    """Devices registering one of these addresses as a connection, any separators."""
+    if not addresses:
+        return []
+    found: list[tuple[DeviceEntry, str, str]] = []
+    for device in devices:
+        for kind, value in device.connections:
+            plain = re.sub(r"[^0-9a-fA-F]", "", str(value)).upper()
+            if plain in addresses:
+                found.append((device, str(kind), plain))
+    return found
+
+
+_MISSING_MATTER_NODE_NOTE = (
+    "No device Home Assistant's Matter integration registered is on Matter "
+    "node {nodes}; the rows above are the other nodes the query named. A node "
+    "Home Assistant does not know belongs to another controller's fabric, or "
+    "is a Thread device that is not Matter."
+)
+
+
+def _node_row(device: DeviceEntry, node: MatterNode, area_name: str) -> dict[str, Any]:
+    """One device a Matter node reference resolved to."""
+    row: dict[str, Any] = {
+        "device_id": device.id,
+        "name": _sanitize(device.name_by_user or device.name or device.id),
+        **node,
+    }
+    if area_name:
+        row["area"] = _sanitize(area_name)
+    model = " ".join(p for p in (device.manufacturer, device.model) if p)
+    if model:
+        row["model"] = _sanitize(model)
+    return row
 
 
 def _area_filter(hass: HomeAssistant, ref: str) -> tuple[set[str] | None, str | None]:

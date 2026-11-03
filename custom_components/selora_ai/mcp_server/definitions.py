@@ -513,23 +513,6 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         },
     ),
     MCPTool(
-        name=TOOL_GET_DEVICE,
-        description=(
-            "Return full detail for a single Home Assistant device: metadata, "
-            "all associated entities, and their current states and key attributes."
-        ),
-        inputSchema={
-            "type": "object",
-            "required": ["device_id"],
-            "properties": {
-                "device_id": {
-                    "type": "string",
-                    "description": "The HA device registry ID.",
-                }
-            },
-        },
-    ),
-    MCPTool(
         name=TOOL_GET_ENTITY_STATE,
         description=(
             "Return current state and key attributes for a single Home Assistant entity. "
@@ -1076,6 +1059,7 @@ _RETURNS_STORED: frozenset[str] = frozenset({TOOL_REMOVE_DASHBOARD_VIEW, TOOL_DE
 
 _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_SEARCH_ENTITIES: "search_entities",
+    TOOL_GET_DEVICE: "get_device",
     TOOL_GET_ENTITY_HISTORY: "get_entity_history",
     TOOL_IGNORE_REPAIR: "ignore_repair",
     TOOL_CHECK_SYSTEM: "check_system",
@@ -1204,7 +1188,9 @@ _MCP_DESCRIPTIONS: dict[str, str] = {
         "entity that dropped off, device_class='battery' every battery entity — "
         "the way to find battery levels, which are diagnostic. A result with "
         "`omitted` is partial. An empty result is a failed name lookup, not "
-        "proof the device is absent."
+        "proof the device is absent. A Matter node reference ('Node 31', "
+        "'@1:1f', '0x1F') resolves exactly to that node's device "
+        "(`matter_nodes`)."
     ),
     "create_dashboard": (
         "Create a whole new dashboard, with its own sidebar entry, immediately. "
@@ -2700,6 +2686,9 @@ _TOOL_DEFINITIONS.extend(
                 "The home's Zigbee (ZHA or Zigbee2MQTT), Z-Wave and Matter networks: "
                 "each one's controller, how many devices it has, and which are offline "
                 "or have a weak signal (LQI, RSSI), with when they were last seen. "
+                "For Matter over Thread: each node's role, node id and strongest "
+                "links by name, and the Thread devices heard that no Matter device "
+                "of this home owns (`thread.external`). "
                 "Asleep is normal for a battery Z-Wave device. For 'why is this device "
                 "flaky / unavailable'. Read-only; changing the mesh is not offered. "
                 "Requires admin access."

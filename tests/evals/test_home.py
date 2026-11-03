@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.selora_ai.tool_executor import ToolExecutor
 
-from .home import BACKPACK, LAST_CAMERA, build_home, fake_frigate
+from .home import BACKPACK, LAST_CAMERA, MATTER_PLUG, build_home, fake_frigate
 
 
 async def test_the_cameras_saw_sam_last_where_the_sensor_does_not_say(
@@ -53,3 +53,15 @@ async def test_names_collide_across_kinds(recorder_mock: Any, hass: HomeAssistan
     named = [s.entity_id for s in hass.states.async_all() if s.name == "Living Room"]
 
     assert sorted(named) == ["camera.living_room", "media_player.living_room"]
+
+
+async def test_the_matter_plug_is_found_by_its_node_and_not_by_its_name(
+    recorder_mock: Any, hass: HomeAssistant
+) -> None:
+    await build_home(hass)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    found = await executor.execute("search_entities", {"query": "Node 31 @1:1f"})
+
+    assert [m["entity_id"] for m in found["matches"]] == [MATTER_PLUG]
+    assert not [s for s in hass.states.async_all() if "31" in (s.name or "")]
