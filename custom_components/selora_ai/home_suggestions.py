@@ -15,7 +15,7 @@ together, so the intent is inferred from coverage instead of stored:
 * **add_to_frigate** — cameras Frigate could watch but does not, when the
   Frigate integration is set up (``frigate.setup``).
 * **camera_idea** — an automation or scene a camera's detection could drive
-  (``frigate.ideas``).
+  (``frigate.ideas``); the same idea for several cameras is one row.
 * **describe_cameras** — Frigate cameras nobody was asked about describing
   yet, while Selora AI descriptions are on (``frigate.descriptions``).
 * **recognize_faces** — face recognition is off, or on with nobody in the
@@ -66,7 +66,7 @@ from .group_manager import (
 )
 
 if TYPE_CHECKING:
-    from .types import HomeSuggestion, HomeSuggestionCollection
+    from .types import CameraIdea, HomeSuggestion, HomeSuggestionCollection
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,6 +79,13 @@ _MIN_MEMBERS: Final = 2
 
 # Fewest trigger entities of one kind worth replacing with a group.
 _MIN_GROUPABLE_TRIGGERS: Final = 3
+
+# Camera ideas that read the same for any camera, so several cameras share one
+# automation: every one notifies the same phone. A night light differs per
+# camera (its own room's light), so each camera keeps its own row.
+_SHARED_IDEAS: Final = frozenset({"person_away", "animal", "vehicle"})
+_IDEA_PREFIX: Final = "idea:"
+_IDEA_SEPARATOR: Final = ","
 
 # Domains whose entities are configuration, not devices of a kind.
 _NOT_DEVICE_DOMAINS: Final = frozenset(
@@ -527,22 +534,57 @@ async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
         + await async_frigate_suggestions(hass)
     )
     found += [s for s in frigate if s["suggestion_id"] not in dismissed][:1]
-    found += [
-        {
-            "suggestion_id": idea["idea_id"],
+    found = [s for s in found if s["suggestion_id"] not in dismissed]
+    ideas = [i for i in await async_camera_ideas(hass) if i["idea_id"] not in dismissed]
+    return found + _camera_idea_rows(ideas)
+
+
+def _camera_idea_rows(ideas: list[CameraIdea]) -> list[HomeSuggestion]:
+    """One row per idea, except that the same idea for several cameras is one
+    row naming them all: three cameras would otherwise fill every row the chat
+    home shows with one sentence. It sits where the first of them was."""
+    by_kind: dict[str, list[CameraIdea]] = defaultdict(list)
+    for idea in ideas:
+        key = idea["kind"] if idea["kind"] in _SHARED_IDEAS else idea["idea_id"]
+        by_kind[key].append(idea)
+    rows: list[HomeSuggestion] = []
+    for same in by_kind.values():
+        cameras = [i["camera"] for i in same if i["camera"]["entity_id"]]
+        row: HomeSuggestion = {
+            "suggestion_id": same[0]["idea_id"]
+            if len(same) == 1
+            else f"{_IDEA_PREFIX}{same[0]['kind']}:"
+            + _IDEA_SEPARATOR.join(c["entity_id"] for c in cameras),
             "type": "camera_idea",
-            "entities": [idea["camera"]] if idea["camera"]["entity_id"] else [],
-            "collection": {"source": "camera", "name": idea["camera"]["name"], "ref": ""},
-            "idea": idea,
+            "entities": cameras,
+            "collection": {
+                "source": "camera",
+                "name": ", ".join(c["name"] for c in cameras),
+                "ref": "",
+            },
+            # A bundle that only reads ``idea`` still words the row, for its first camera.
+            "idea": same[0],
         }
-        for idea in await async_camera_ideas(hass)
-    ]
-    return [s for s in found if s["suggestion_id"] not in dismissed]
+        if len(same) > 1:
+            row["ideas"] = same
+        rows.append(row)
+    return rows
+
+
+def _dismissed_ids(suggestion_id: str) -> list[str]:
+    """What dismissing *suggestion_id* stores: a row naming several cameras
+    stands for each camera's idea, so a camera added later is still offered."""
+    if not suggestion_id.startswith(_IDEA_PREFIX):
+        return [suggestion_id]
+    kind, _, cameras = suggestion_id.removeprefix(_IDEA_PREFIX).partition(":")
+    if _IDEA_SEPARATOR not in cameras:
+        return [suggestion_id]
+    return [f"{_IDEA_PREFIX}{kind}:{camera}" for camera in cameras.split(_IDEA_SEPARATOR)]
 
 
 async def async_dismiss_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:
     """Never offer this suggestion again."""
-    await get_home_suggestion_store(hass).add("dismissed", [suggestion_id])
+    await get_home_suggestion_store(hass).add("dismissed", _dismissed_ids(suggestion_id))
 
 
 class HomeSuggestionNotifier:

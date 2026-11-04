@@ -160,4 +160,43 @@ describe("camera ideas", () => {
       "Alert me when someone is at E1 Zoom while nobody is home",
     );
   });
+
+  it("names every camera of a shared row and asks for one automation", async () => {
+    const door = {
+      idea_id: "idea:person_away:camera.front_door",
+      kind: "person_away",
+      camera: { entity_id: "camera.front_door", name: "Front Door" },
+      facts: {
+        ...AWAY.facts,
+        trigger: "binary_sensor.front_door_person_occupancy",
+        image: "/api/camera_proxy/camera.front_door",
+      },
+    };
+    const h = host();
+    h._homeSuggestions = [
+      {
+        suggestion_id: "idea:person_away:camera.e1_zoom,camera.front_door",
+        type: "camera_idea",
+        entities: [AWAY.camera, door.camera],
+        collection: { source: "camera", name: "E1 Zoom, Front Door", ref: "" },
+        idea: AWAY,
+        ideas: [AWAY, door],
+      },
+    ];
+    const [toggle] = handlers(renderHomeSuggestions(h));
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Alert me when someone is at E1 Zoom or Front Door while nobody is home",
+    );
+
+    toggle();
+    const opened = renderHomeSuggestions(h);
+    expect(flatten(opened)).toContain("E1 Zoom and Front Door detect people.");
+    await handlers(opened).at(-1)();
+    const prompt = messageDetails(h._askInNewChat.mock.calls[0][0]);
+    expect(prompt).toContain(
+      "binary_sensor.e1_zoom_person_occupancy (camera.e1_zoom), binary_sensor.front_door_person_occupancy (camera.front_door)",
+    );
+    expect(prompt).toContain("naming the camera that saw them");
+    expect(prompt).toContain("Attach the snapshot of the camera that saw it");
+  });
 });

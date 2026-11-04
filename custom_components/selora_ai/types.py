@@ -408,6 +408,8 @@ class HomeSuggestion(TypedDict):
     collection: HomeSuggestionCollection
     # camera_idea only: the idea, which the panel words from its kind.
     idea: NotRequired[CameraIdea]
+    # camera_idea naming several cameras: the same idea for each of them.
+    ideas: NotRequired[list[CameraIdea]]
     # recognize_faces only: "off" or "empty" (on, nobody in the Face Library).
     state: NotRequired[str]
     # add_to_collection only: the members of the entity's kind the collection

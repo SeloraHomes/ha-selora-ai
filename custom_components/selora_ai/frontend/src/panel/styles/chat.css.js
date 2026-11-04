@@ -84,9 +84,60 @@ export const chatStyles = css`
   }
 
   /* "I noticed a few things I can help with" on the welcome screen */
-  .home-suggestions {
+  .home-suggestions-reveal {
     width: 100%;
-    margin-top: 20px;
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .home-suggestions-reveal.entering {
+    animation: homeSuggestionsGrow 0.45s cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  .home-suggestions-reveal.entering .home-suggestions {
+    overflow: hidden;
+  }
+  .home-suggestions-reveal.entering .home-suggestions-heading,
+  .home-suggestions-reveal.entering .home-suggestion {
+    animation: homeSuggestionIn 0.35s ease-out both;
+    animation-delay: 0.2s;
+  }
+  .home-suggestions-reveal.entering .home-suggestion:nth-of-type(2) {
+    animation-delay: 0.3s;
+  }
+  .home-suggestions-reveal.entering .home-suggestion:nth-of-type(3) {
+    animation-delay: 0.4s;
+  }
+  .home-suggestions-reveal.entering .home-suggestion:nth-of-type(4) {
+    animation-delay: 0.5s;
+  }
+  @keyframes homeSuggestionsGrow {
+    from {
+      grid-template-rows: 0fr;
+    }
+    to {
+      grid-template-rows: 1fr;
+    }
+  }
+  @keyframes homeSuggestionIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-suggestions-reveal.entering,
+    .home-suggestions-reveal.entering .home-suggestions-heading,
+    .home-suggestions-reveal.entering .home-suggestion {
+      animation: none;
+    }
+  }
+  .home-suggestions {
+    min-height: 0;
+    width: 100%;
+    padding-top: 20px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -197,54 +248,6 @@ export const chatStyles = css`
     margin-top: 6px;
     opacity: 0.75;
     white-space: pre-wrap;
-  }
-
-  /* Quick-start disclosure on the welcome screen */
-  .welcome-quickstart {
-    width: 100%;
-    margin-top: 20px;
-  }
-  .welcome-quickstart-summary {
-    list-style: none;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 auto 12px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.5;
-    border-radius: 999px;
-    transition:
-      opacity 0.2s,
-      background-color 0.2s;
-    user-select: none;
-  }
-  .welcome-quickstart-summary::-webkit-details-marker {
-    display: none;
-  }
-  .welcome-quickstart-summary:hover {
-    opacity: 0.8;
-    background-color: rgba(255, 255, 255, 0.04);
-  }
-  :host(:not([dark])) .welcome-quickstart-summary:hover {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
-  .welcome-quickstart-chevron {
-    --mdc-icon-size: 16px;
-    transition: transform 0.2s ease;
-  }
-  .welcome-quickstart[open] .welcome-quickstart-chevron {
-    transform: rotate(180deg);
-  }
-  /* Center the summary itself in the centered welcome layout */
-  .welcome-quickstart {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
   }
 
   /* Embossed sub-card used by chat-driven automation proposals (and

@@ -56,6 +56,44 @@ describe("renderHomeSuggestions", () => {
     expect(renderHomeSuggestions(host([]))).toBe("");
   });
 
+  const starters = [
+    {
+      label: "What devices do I have?",
+      value: "List my devices",
+      icon: "mdi:devices",
+    },
+  ];
+
+  it("offers the starters when the home has nothing to suggest", () => {
+    const h = { ...host([]), _quickStart: vi.fn() };
+    const out = renderHomeSuggestions(h, starters);
+    expect(flatten(out)).toContain("Try asking");
+    expect(flatten(out)).toContain("What devices do I have?");
+
+    handlers(out)[0]();
+    expect(h._quickStart).toHaveBeenCalledWith("List my devices");
+  });
+
+  it("shows only the home's suggestions when it has some", () => {
+    const out = flatten(renderHomeSuggestions(host([leak]), starters));
+    expect(out).toContain("Add Leak kitchen to Water Leak Sensors");
+    expect(out).not.toContain("What devices do I have?");
+  });
+
+  it("animates the list in only when it arrives after the chat home", () => {
+    const shown = host([leak]);
+    expect(flatten(renderHomeSuggestions(shown))).not.toContain("entering");
+
+    const late = host(undefined);
+    renderHomeSuggestions(late, starters);
+    late._homeSuggestions = [leak];
+    expect(flatten(renderHomeSuggestions(late))).toContain("entering");
+  });
+
+  it("waits for the suggestions before offering the starters", () => {
+    expect(renderHomeSuggestions(host(undefined), starters)).toBe("");
+  });
+
   it("words an addition to a group", () => {
     const out = flatten(renderHomeSuggestions(host([leak])));
     expect(out).toContain("Add Leak kitchen to Water Leak Sensors");

@@ -271,27 +271,10 @@ export function renderChat(host) {
                         ${
                           host._newAutomationMode
                             ? renderAutomationSuggestButton(host)
-                            : html`
-                                ${renderHomeSuggestions(host)}
-                                <details class="welcome-quickstart">
-                                  <summary class="welcome-quickstart-summary">
-                                    <span
-                                      >${host._t(
-                                        "quick_start",
-                                        "Quick start",
-                                      )}</span
-                                    >
-                                    <ha-icon
-                                      icon="mdi:chevron-down"
-                                      class="welcome-quickstart-chevron"
-                                    ></ha-icon>
-                                  </summary>
-                                  ${renderQuickActions(
-                                    host,
-                                    _welcomeSuggestions(host),
-                                  )}
-                                </details>
-                              `
+                            : renderHomeSuggestions(
+                                host,
+                                _welcomeSuggestions(host),
+                              )
                         }
                       `
                 }

@@ -8,7 +8,7 @@
 // card; nothing is written until the user accepts it there.
 import { html } from "lit";
 
-import { interpolate } from "../shared/i18n.js";
+import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
 
 const MAX_CHIPS = 3;
@@ -16,6 +16,11 @@ const SNAPSHOT = [
   "camera_idea_snapshot",
   "Attach the camera snapshot to the notification as data image {image}.",
 ];
+const SNAPSHOT_MANY = [
+  "camera_idea_snapshot_many",
+  "Attach the snapshot of the camera that saw it to the notification as data image /api/camera_proxy/ followed by that camera's entity id.",
+];
+const MAX_NAMED = 3;
 
 const TEXT = {
   person_away: {
@@ -33,6 +38,16 @@ const TEXT = {
       "camera_idea_person_away_prompt",
       "Propose an automation I can review: when {trigger} turns on while {presence} is {presence_empty} (nobody is home), call {notify} to say a person was seen on {camera}.",
     ],
+    many: {
+      why: [
+        "camera_idea_person_away_why_many",
+        "{cameras} detect people. With nobody home, a person at any of them is worth a notification with a snapshot.",
+      ],
+      prompt: [
+        "camera_idea_person_away_prompt_many",
+        "Propose one automation I can review, triggered by any of these sensors, each followed by its camera: {pairs}. While {presence} is {presence_empty} (nobody is home), call {notify} to say a person was seen, naming the camera that saw them.",
+      ],
+    },
   },
   person_night_light: {
     icon: "mdi:lightbulb-on-outline",
@@ -65,6 +80,16 @@ const TEXT = {
       "camera_idea_animal_prompt",
       "Propose an automation I can review: when {trigger} turns on, call {notify} to say an animal was seen on {camera}.",
     ],
+    many: {
+      why: [
+        "camera_idea_animal_why_many",
+        "{cameras} detect animals: a pet in the garden, or a visitor that should not be there.",
+      ],
+      prompt: [
+        "camera_idea_animal_prompt_many",
+        "Propose one automation I can review, triggered by any of these sensors, each followed by its camera: {pairs}. Call {notify} to say an animal was seen, naming the camera that saw it.",
+      ],
+    },
   },
   vehicle: {
     icon: "mdi:car-outline",
@@ -81,6 +106,16 @@ const TEXT = {
       "camera_idea_vehicle_prompt",
       "Propose an automation I can review: when {trigger} turns on, call {notify} to say a car arrived at {camera}.",
     ],
+    many: {
+      why: [
+        "camera_idea_vehicle_why_many",
+        "{cameras} detect cars, so a delivery or a visitor arriving can be announced.",
+      ],
+      prompt: [
+        "camera_idea_vehicle_prompt_many",
+        "Propose one automation I can review, triggered by any of these sensors, each followed by its camera: {pairs}. Call {notify} to say a car arrived, naming the camera that saw it.",
+      ],
+    },
   },
   watch_scene: {
     icon: "mdi:cctv",
@@ -115,6 +150,52 @@ export function describeIdea(host, idea) {
     prompt: idea.facts?.image
       ? `${t(text.prompt)} ${t(SNAPSHOT)}`
       : t(text.prompt),
+  };
+}
+
+// "Front Door, Garage or 2 more", in the panel's language.
+function cameraList(host, names, type) {
+  const shown = names.slice(0, MAX_NAMED);
+  if (names.length > shown.length) {
+    shown.push(
+      interpolate(host._t("home_suggestion_more", "{count} more"), {
+        count: names.length - shown.length,
+      }),
+    );
+  }
+  try {
+    return new Intl.ListFormat(pickLocale(host.hass), { type }).format(shown);
+  } catch {
+    return shown.join(", ");
+  }
+}
+
+/**
+ * {icon, title, why: [..], prompt} for the same idea on several cameras (a
+ * home suggestion row naming them all), asking for one automation that covers
+ * every camera. Null for a kind that has no shared wording.
+ */
+export function describeIdeas(host, ideas) {
+  if (ideas?.length === 1) return describeIdea(host, ideas[0]);
+  const text = TEXT[ideas?.[0]?.kind];
+  if (!text?.many) return null;
+  const names = ideas.map((i) => i.camera?.name || "");
+  const values = {
+    ...(ideas[0].facts || {}),
+    camera: cameraList(host, names, "disjunction"),
+    cameras: cameraList(host, names, "conjunction"),
+    pairs: ideas
+      .map((i) => `${i.facts?.trigger} (${i.camera?.entity_id})`)
+      .join(", "),
+  };
+  const t = ([key, fallback]) => interpolate(host._t(key, fallback), values);
+  return {
+    icon: text.icon,
+    title: t(text.title),
+    why: [t(text.many.why)],
+    prompt: ideas[0].facts?.image
+      ? `${t(text.many.prompt)} ${t(SNAPSHOT_MANY)}`
+      : t(text.many.prompt),
   };
 }
 
