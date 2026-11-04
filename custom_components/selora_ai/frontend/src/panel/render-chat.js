@@ -50,6 +50,8 @@ import {
   stripEntityMarkers,
   messageDetails,
   findGhostSuggestion,
+  suggestionGhostSuffix,
+  absorbAutoSpace,
 } from "./chat-autocomplete.js";
 import {
   addImageAttachments,
@@ -670,12 +672,32 @@ function _updateGhost(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
   const hit = findGhostSuggestion(value, caret, host.hass?.language);
-  if (!hit) {
+  // An open dropdown can ghost its highlighted name (_ghostSuffix), and the
+  // highlight moves with ↑↓ without an input event — so the caret anchor is
+  // kept whenever the list is open, not only when a word completes.
+  if (!hit && !host._autocomplete?.open) {
     host._ghost = null;
     return;
   }
   const anchor = _measureCaretInTextarea(textarea);
-  host._ghost = { suffix: hit.suffix, anchor };
+  host._ghost = { suffix: hit?.suffix || null, anchor, caret };
+}
+
+// The highlighted suggestion's tail when the dropdown has one to offer,
+// else the vocabulary word's. The suggestion wins: it is what Tab inserts.
+function _suggestionGhost(host) {
+  const ac = host._autocomplete;
+  if (!ac?.open || !ac.items?.length || host._ghost?.caret == null) return null;
+  return suggestionGhostSuffix(
+    host._input || "",
+    host._ghost.caret,
+    ac.trigger,
+    ac.items[ac.activeIndex],
+  );
+}
+
+function _ghostSuffix(host) {
+  return _suggestionGhost(host) || host._ghost?.suffix || null;
 }
 
 // Insert the ghost-suggestion suffix at the caret. Returns true if a
@@ -706,11 +728,11 @@ function _acceptGhost(host, textarea) {
 // the textarea's caret sits — no font matching required, no risk of
 // the overlay collapsing to zero size.
 function _renderGhostOverlay(host) {
-  const suffix = host._ghost?.suffix;
+  const suffix = _ghostSuffix(host);
   // An empty composer has nothing to complete; a suffix left from the last
   // message would sit on top of the placeholder.
   if (!suffix || !host._input) return "";
-  const anchor = host._ghost.anchor;
+  const anchor = host._ghost?.anchor;
   if (!anchor) return "";
   // anchor.top is already measured from the mirror's outer padding edge
   // (offsetTop counts the parent's padding-top), so it lines up with
@@ -779,6 +801,10 @@ function _selectAutocompleteItem(host, textarea, item) {
     item,
   ];
   _closeAutocomplete(host);
+  // The space a pick appends belongs to the next WORD; punctuation typed
+  // next takes its place (absorbAutoSpace in @input).
+  host._autoSpaceAt = range[1] === caret - 1 ? caret : null;
+  host._ghost = null;
   // Restore caret + resize on the same frame so the textarea visual stays
   // in sync with the new value LitElement is about to paint.
   requestAnimationFrame(() => {
@@ -967,6 +993,21 @@ function _renderComposer(host, opts = {}) {
               .value=${host._input}
               @paste=${(e) => _handlePaste(host, e)}
               @input=${(e) => {
+                const spaceAt = host._autoSpaceAt;
+                host._autoSpaceAt = null;
+                if (e.inputType === "insertText") {
+                  const fixed = absorbAutoSpace(
+                    e.target.value,
+                    e.target.selectionStart ?? e.target.value.length,
+                    spaceAt,
+                    e.data,
+                    host.hass?.language,
+                  );
+                  if (fixed) {
+                    e.target.value = fixed.text;
+                    e.target.setSelectionRange(fixed.caret, fixed.caret);
+                  }
+                }
                 host._input = e.target.value;
                 // Drop chips whose label no longer appears (user deleted the word).
                 host._autocompleteSelections = pruneStaleSelections(
@@ -1031,6 +1072,22 @@ function _renderComposer(host, opts = {}) {
                   if (
                     (e.key === "Tab" && !e.shiftKey) ||
                     (e.key === "Enter" && !e.shiftKey && ac.picked)
+                  ) {
+                    e.preventDefault();
+                    _selectAutocompleteItem(
+                      host,
+                      e.target,
+                      ac.items[ac.activeIndex],
+                    );
+                    return;
+                  }
+                  // → at the end of the text takes the row whose name is
+                  // ghosted, the same as Tab — the ghost invites both.
+                  if (
+                    e.key === "ArrowRight" &&
+                    _suggestionGhost(host) &&
+                    e.target.selectionStart === e.target.value.length &&
+                    e.target.selectionEnd === e.target.value.length
                   ) {
                     e.preventDefault();
                     _selectAutocompleteItem(

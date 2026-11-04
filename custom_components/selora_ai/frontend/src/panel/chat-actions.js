@@ -320,6 +320,7 @@ export async function _sendMessage(options = {}) {
   this._historyDraft = "";
   this._autocompleteSelections = [];
   this._ghost = null;
+  this._autoSpaceAt = null;
   // The "new automation" entry point shapes the welcome copy and
   // composer placeholder. Once the user actually sends their first
   // message the chat behaves normally — clear the flag so an empty
