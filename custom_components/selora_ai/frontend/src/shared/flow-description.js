@@ -1532,7 +1532,10 @@ export function describeFlowItem(hass, item, ctx) {
     return t("when_it_is", ev);
   }
   if (p === "state") {
-    const eid = _entityNamesOr(hass, item.entity_id, t);
+    const eid = _withAttribute(
+      _entityNamesOr(hass, item.entity_id, t),
+      item.attribute,
+    );
     const rawTo = Array.isArray(item.to)
       ? null // a list can't match the on/off shortcuts below
       : item.to == null
@@ -1589,12 +1592,15 @@ export function describeFlowItem(hass, item, ctx) {
     // A bare state trigger on a sensor fires on every reported value —
     // "value changes" says that; "changes state" reads like on/off.
     const firstId = String(asArray(item.entity_id)[0] || "");
-    if (firstId.startsWith("sensor."))
+    if (firstId.startsWith("sensor.") || item.attribute)
       return `${t("when_value_changes", eid)}${dur}`;
     return t("when_changes_state", eid, dur);
   }
   if (p === "numeric_state") {
-    const eid = _entityNamesOr(hass, item.entity_id, t);
+    const eid = _withAttribute(
+      _entityNamesOr(hass, item.entity_id, t),
+      item.attribute,
+    );
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     // `for:` is as load-bearing here as on a state trigger — a threshold that
@@ -1632,8 +1638,24 @@ export function describeFlowItem(hass, item, ctx) {
     return t("when_template_met");
   }
   if (p === "event") {
-    if (item.event_type)
-      return t("when_event", humanizeToken(item.event_type).toLowerCase());
+    if (item.event_type) {
+      // `event_data` is what narrows the event to this rule — a ZHA trigger
+      // on one button's `command: on`, not every event the bus carries.
+      const filters = Object.entries(
+        item.event_data && typeof item.event_data === "object"
+          ? item.event_data
+          : {},
+      )
+        .filter(([k]) => !_SECRET_DATA_KEYS.test(k))
+        .map(([k, v]) => [k, _literalDataValue(v)])
+        .filter(([, v]) => v != null)
+        .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`);
+      const label = t(
+        "when_event",
+        humanizeToken(item.event_type).toLowerCase(),
+      );
+      return filters.length ? `${label} (${filters.join(", ")})` : label;
+    }
     return t("when_event_generic");
   }
   if (p === "device") {
@@ -1677,7 +1699,10 @@ export function describeFlowItem(hass, item, ctx) {
   // ── Conditions ─────────────────────────────────────────────────────────────
   const cond = item.condition;
   if (cond === "state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _withAttribute(
+      fmtEntities(hass, item.entity_id, lang),
+      item.attribute,
+    );
     const st = _statesOr(item.state ?? item.to, lang, t);
     // A state condition takes `for:` too ("has been off for 10 minutes");
     // dropping it made a debounced check read as an instantaneous one.
@@ -1686,7 +1711,10 @@ export function describeFlowItem(hass, item, ctx) {
     return `${t("cond_is", eid, st)}${condDur}`;
   }
   if (cond === "numeric_state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _withAttribute(
+      fmtEntities(hass, item.entity_id, lang),
+      item.attribute,
+    );
     if (item.above != null && item.below != null)
       return t("cond_between", eid, item.above, item.below);
     if (item.above != null) return t("cond_above", eid, item.above);
@@ -1879,8 +1907,11 @@ export function describeFlowItem(hass, item, ctx) {
     }
     if (item.data?.title && !String(item.data.title).includes("{{"))
       extras.push(item.data.title);
+    const other = _otherDataExtras(item.data, svcName);
+    extras.push(...other.labelled);
     const detail = extras.length ? ` (${extras.join(", ")})` : "";
-    return tgt ? `${name} ${tgt}${detail}` : `${name}${detail}`;
+    const sets = other.primary.length ? ` → ${other.primary.join(", ")}` : "";
+    return tgt ? `${name} ${tgt}${sets}${detail}` : `${name}${sets}${detail}`;
   }
   if (item.delay) {
     const d = item.delay;
@@ -2110,6 +2141,70 @@ function _knownValue(v) {
 
 // `volume_level` (0–1) as "50%", or the variable it reads ("prev_volume") when
 // its value is only known at run time; null for any other template.
+// Data keys the action phrasing already states, or that name a target.
+const _PHRASED_DATA_KEYS = new Set([
+  "entity_id",
+  "device_id",
+  "area_id",
+  "floor_id",
+  "label_id",
+  "brightness_pct",
+  "temperature",
+  "color_temp",
+  "volume_level",
+  "message",
+  "title",
+]);
+// Never echoed into the flowchart.
+const _SECRET_DATA_KEYS = /(^|_)(code|pin|password|passcode|token|secret)$/;
+
+function _literalDataValue(v) {
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (typeof v === "string") {
+    if (!v || v.includes("{{") || v.includes("{%")) return null;
+    return v.length > 40 ? v.slice(0, 37) + "…" : v;
+  }
+  if (Array.isArray(v) && v.length && v.length <= 4) {
+    const parts = v.map(_literalDataValue);
+    return parts.every((p) => p != null) ? parts.join(", ") : null;
+  }
+  return null;
+}
+
+// Every literal data field the phrasing above leaves out. What an action sets
+// is what makes it this action — `select_source` without its source, or
+// `set_value` without its value, reads as a step that does nothing in
+// particular. The field the service is named after (`source` for
+// `select_source`, `option` for `select_option`) is what the step sets, shown
+// after an arrow; any other is labelled with its key. Templates have no value
+// until the automation runs.
+function _otherDataExtras(data, svcName) {
+  const out = { primary: [], labelled: [] };
+  if (!data || typeof data !== "object" || Array.isArray(data)) return out;
+  const entries = Object.entries(data).filter(
+    ([k]) => !_PHRASED_DATA_KEYS.has(k) && !_SECRET_DATA_KEYS.test(k),
+  );
+  for (const [key, raw] of entries) {
+    const value = _literalDataValue(raw);
+    if (value == null) continue;
+    const primary =
+      String(svcName).endsWith(`_${key}`) ||
+      key === "value" ||
+      key === "option";
+    if (primary) out.primary.push(value);
+    else out.labelled.push(`${key.replace(/_/g, " ")}: ${value}`);
+  }
+  return out;
+}
+
+// A trigger or condition on an attribute watches that attribute, not the
+// state: "Thermostat current temperature rises above 22", not "Thermostat
+// rises above 22".
+function _withAttribute(subject, attribute) {
+  if (!attribute || typeof attribute !== "string") return subject;
+  return `${subject} ${humanizeToken(attribute).toLowerCase()}`;
+}
+
 function _volumeLabel(v) {
   const n = _literalNumber(v);
   if (n != null) return `${Math.round(n * 100)}%`;
