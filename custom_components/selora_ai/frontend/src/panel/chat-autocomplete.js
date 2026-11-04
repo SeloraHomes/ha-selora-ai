@@ -1627,6 +1627,47 @@ export function applySelection(text, trigger, item) {
   };
 }
 
+// The rest of the highlighted suggestion's name, shown as ghost text after
+// what the user typed, or null. Only a name that STARTS with the query can
+// continue it — a fuzzy hit ("light" → "Kitchen Light") has no tail to
+// show. The caret has to sit at the end of the query and of the text: a
+// ghost drawn mid-sentence would cover the words after it.
+export function suggestionGhostSuffix(text, caret, trigger, item) {
+  if (!trigger || !item?.label || typeof text !== "string") return null;
+  const query = trigger.query || "";
+  if (!query.trim()) return null;
+  if (caret !== trigger.start + query.length || caret !== trigger.end)
+    return null;
+  if (caret !== text.length) return null;
+  const label = String(item.label);
+  if (label.length <= query.length) return null;
+  if (!label.toLowerCase().startsWith(query.toLowerCase())) return null;
+  return label.slice(query.length);
+}
+
+// Punctuation that attaches to the word before it. French sets the high
+// marks (; : ! ?) off with a space, so for French only the low ones attach.
+const _ATTACHING_PUNCT_RE = /^[,.;:!?)\]}…]/;
+const _ATTACHING_PUNCT_FR_RE = /^[,.)\]}…]/;
+
+// A pick inserts the name plus a space so the user can keep typing. When the
+// next thing typed is punctuation, that space is in the wrong place
+// ("Kitchen ,"): drop it. `spaceAt` is the caret position the pick left,
+// just past its space; `inserted` the text just typed at that position.
+// Returns { text, caret } with the space removed, or null to leave it.
+export function absorbAutoSpace(text, caret, spaceAt, inserted, lang) {
+  if (spaceAt == null || typeof inserted !== "string" || !inserted) return null;
+  if (caret - inserted.length !== spaceAt) return null;
+  if (text[spaceAt - 1] !== " ") return null;
+  const re =
+    _langKey(lang) === "fr" ? _ATTACHING_PUNCT_FR_RE : _ATTACHING_PUNCT_RE;
+  if (!re.test(inserted)) return null;
+  return {
+    text: text.slice(0, spaceAt - 1) + text.slice(spaceAt),
+    caret: caret - 1,
+  };
+}
+
 // Build the [[entities:…]] suffix that gets appended to the outgoing user
 // message so the backend can resolve devices/scenes/automations without
 // fuzzy matching. Areas don't have entity IDs, so we emit them as a

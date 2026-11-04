@@ -10,6 +10,8 @@ import {
   pruneStaleSelections,
   stripEntityMarkers,
   findGhostSuggestion,
+  suggestionGhostSuffix,
+  absorbAutoSpace,
 } from "../chat-autocomplete.js";
 
 describe("detectTrigger", () => {
@@ -1309,5 +1311,70 @@ describe("pruneStaleSelections", () => {
     const sels = [{ label: "Aqua Rite", entity_id: "switch.aqua_rite" }];
     const text = "Aqua Rite and the Aqua Rite Energy ";
     expect(pruneStaleSelections(text, sels, [18, 34])).toHaveLength(1);
+  });
+});
+
+describe("suggestionGhostSuffix", () => {
+  const kitchen = { label: "Kitchen Light" };
+  const at = (text) => detectTrigger(text, text.length, "en");
+
+  it("ghosts the rest of a name the query starts", () => {
+    const text = "turn on the kit";
+    expect(suggestionGhostSuffix(text, text.length, at(text), kitchen)).toBe(
+      "chen Light",
+    );
+  });
+
+  it("matches case-insensitively", () => {
+    const text = "turn on the KITCHEN l";
+    expect(suggestionGhostSuffix(text, text.length, at(text), kitchen)).toBe(
+      "ight",
+    );
+  });
+
+  it("has nothing for a name that does not start with the query", () => {
+    const text = "turn on the light";
+    expect(
+      suggestionGhostSuffix(text, text.length, at(text), kitchen),
+    ).toBeNull();
+  });
+
+  it("has nothing when text follows the caret", () => {
+    const text = "turn on the kit please";
+    const trigger = detectTrigger(text, 15, "en");
+    expect(suggestionGhostSuffix(text, 15, trigger, kitchen)).toBeNull();
+  });
+});
+
+describe("absorbAutoSpace", () => {
+  // "Kitchen Light " was picked; the caret sat at 26, after its space.
+  const picked = "turn on the Kitchen Light ";
+  const spaceAt = picked.length;
+
+  it("drops the pick's space before a comma", () => {
+    const typed = picked + ",";
+    expect(absorbAutoSpace(typed, typed.length, spaceAt, ",", "en")).toEqual({
+      text: "turn on the Kitchen Light,",
+      caret: typed.length - 1,
+    });
+  });
+
+  it("keeps the space before a word", () => {
+    const typed = picked + "a";
+    expect(absorbAutoSpace(typed, typed.length, spaceAt, "a", "en")).toBeNull();
+  });
+
+  it("keeps it when the user typed somewhere else first", () => {
+    const typed = picked + "x,";
+    expect(absorbAutoSpace(typed, typed.length, spaceAt, ",", "en")).toBeNull();
+  });
+
+  it("keeps the French space before a high mark", () => {
+    const typed = picked + "?";
+    expect(absorbAutoSpace(typed, typed.length, spaceAt, "?", "fr")).toBeNull();
+    const comma = picked + ",";
+    expect(absorbAutoSpace(comma, comma.length, spaceAt, ",", "fr")?.text).toBe(
+      "turn on the Kitchen Light,",
+    );
   });
 });
