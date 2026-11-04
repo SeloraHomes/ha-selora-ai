@@ -2315,6 +2315,28 @@ def helper_created_line(name: str, entity_id: str | None, language: str | None) 
     return template.format(name=name)
 
 
+_INTEGRATION_ADDED_BY_LANG: dict[str, str] = {
+    "fr": "{name} est configuré ({title}).",
+    "de": "{name} ist eingerichtet ({title}).",
+    "es": "{name} está configurado ({title}).",
+    "it": "{name} è configurato ({title}).",
+    "nl": "{name} is ingesteld ({title}).",
+    "pt": "{name} está configurado ({title}).",
+    "hu": "A(z) {name} be van állítva ({title}).",
+    "ru": "{name} настроено ({title}).",
+    "ja": "{name} を設定しました（{title}）。",
+    "ko": "{name}을(를) 설정했습니다 ({title}).",
+    "zh": "{name} 已设置（{title}）。",
+}
+
+
+def integration_added_line(name: str, title: str, language: str | None) -> str:
+    """The confirmation for an integration the user finished setting up on its
+    card, in the user's language."""
+    template = _INTEGRATION_ADDED_BY_LANG.get(_normalize_lang(language), "Set up {name} ({title}).")
+    return template.format(name=name, title=title)
+
+
 def action_failed_line(detail: str, language: str | None) -> str:
     """The failure line for panel-performed work, in the user's language."""
     template = _ACTION_FAILED_BY_LANG.get(_normalize_lang(language), "That did not work: {detail}")
@@ -3113,10 +3135,22 @@ def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
 # command and we are not a websocket client. Only these may emit a
 # `client_action` descriptor, and the panel allowlists the kinds again.
 _CLIENT_ACTION_TOOLS = frozenset(
-    {"create_dashboard", "delete_dashboard", "create_helper", "add_cameras_to_frigate"}
+    {
+        "create_dashboard",
+        "delete_dashboard",
+        "create_helper",
+        "add_cameras_to_frigate",
+        "add_integration",
+    }
 )
 _CLIENT_ACTION_KINDS = frozenset(
-    {"create_dashboard", "delete_dashboard", "create_helper", "add_frigate_cameras"}
+    {
+        "create_dashboard",
+        "delete_dashboard",
+        "create_helper",
+        "add_frigate_cameras",
+        "integration_setup",
+    }
 )
 
 
@@ -3204,6 +3238,21 @@ _DELETE_PENDING_BY_LANG: dict[str, str] = {
 }
 
 
+_SETUP_PENDING_BY_LANG: dict[str, str] = {
+    "fr": "Cette étape est pour vous : ce que vous saisissez ci-dessous va directement à Home Assistant, jamais à moi.",
+    "de": "Dieser Schritt ist für Sie: Was Sie unten eingeben, geht direkt an Home Assistant, nie an mich.",
+    "es": "Este paso es para ti: lo que escribas abajo va directo a Home Assistant, nunca a mí.",
+    "it": "Questo passaggio è per te: quello che scrivi qui sotto va direttamente a Home Assistant, mai a me.",
+    "nl": "Deze stap is voor jou: wat je hieronder invult, gaat rechtstreeks naar Home Assistant, nooit naar mij.",
+    "pt": "Este passo é para si: o que escrever abaixo vai diretamente para o Home Assistant, nunca para mim.",
+    "hu": "Ez a lépés az Öné: amit lent beír, közvetlenül a Home Assistanthez kerül, sosem hozzám.",
+    "ru": "Этот шаг для вас: то, что вы введёте ниже, уходит прямо в Home Assistant, а не мне.",
+    "ja": "この手順はご自身で入力してください。下に入力した内容は Home Assistant に直接送られ、私には届きません。",
+    "ko": "이 단계는 직접 입력해 주세요. 아래에 입력한 내용은 Home Assistant로 바로 전달되며 저에게는 오지 않습니다.",
+    "zh": "这一步请您自己填写：您在下方输入的内容直接发送给 Home Assistant，不会经过我。",
+}
+
+
 def client_action_pending_hint(language: str | None) -> str:
     """Localized hint shown while a client-executed action awaits its tap."""
     return _CLIENT_ACTION_PENDING_BY_LANG.get(
@@ -3225,6 +3274,12 @@ def _pending_hint_for(actions: list[dict[str, Any]], language: str | None) -> st
         return _DELETE_PENDING_BY_LANG.get(
             _normalize_lang(language),
             "Nothing has been deleted yet — confirm below and I will do it.",
+        )
+    if kinds and kinds <= {"integration_setup"}:
+        # A login or sign-in: said plainly where it goes.
+        return _SETUP_PENDING_BY_LANG.get(
+            _normalize_lang(language),
+            "This step is yours: what you type below goes straight to Home Assistant, never to me.",
         )
     return client_action_pending_hint(language)
 

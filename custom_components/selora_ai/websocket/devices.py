@@ -142,8 +142,51 @@ async def _handle_websocket_get_device_detail(
         connection.send_error(msg["id"], "unknown_error", str(exc))
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/integration_setup_open",
+        vol.Required("flow_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_integration_setup_open(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open a conversation holding the setup card for a flow in progress: where
+    the link ``selora_add_integration`` hands out over MCP lands."""
+    if not _require_admin(connection, msg):
+        return
+    from ..const import DOMAIN  # noqa: PLC0415
+    from ..conversation_store import ConversationStore  # noqa: PLC0415
+    from ..integration_manager import async_setup_card  # noqa: PLC0415
+    from ..llm_client.command_policy import _build_client_action_response  # noqa: PLC0415
+
+    card = await async_setup_card(hass, msg["flow_id"])
+    if "error" in card:
+        connection.send_error(msg["id"], "not_found", card["error"])
+        return
+    language = str(msg.get("language") or "").lower().split("-")[0] or None
+    reply = _build_client_action_response({}, [card], hass=hass, language=language)
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.create_session()
+    await store.append_message(
+        session["id"],
+        "assistant",
+        str(reply.get("response") or ""),
+        intent="command_approval",
+        command_approval=reply["command_approval"],
+        approval_status="pending",
+    )
+    await store.update_session_title(session["id"], card["label"])
+    connection.send_result(msg["id"], {"session_id": session["id"]})
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the devices websocket commands."""
     from homeassistant.components import websocket_api
 
     websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
+    websocket_api.async_register_command(hass, _handle_websocket_integration_setup_open)

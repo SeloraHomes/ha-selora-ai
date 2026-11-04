@@ -34,6 +34,7 @@ from ..llm_client.command_policy import (
     dashboard_created_line,
     dashboard_deleted_line,
     helper_created_line,
+    integration_added_line,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -417,6 +418,24 @@ async def _record_client_action_result(
             else:
                 lines.append(line)
                 frigate_result = result_for(hass, plan_id)
+        elif result.get("ok") and str(action.get("kind")) == "integration_setup":
+            # The panel finished Home Assistant's own flow; the entry it names
+            # must exist, and be of the integration this card set up.
+            entry_id = str(detail.get("entry_id") or "") if isinstance(detail, dict) else ""
+            entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
+            if entry is None or entry.domain != str(action.get("domain") or ""):
+                succeeded[-1] = False
+                lines.append(
+                    action_failed_line("Home Assistant has no record of that setup", language)
+                )
+            else:
+                lines.append(
+                    integration_added_line(
+                        sanitize_untrusted_text(str(action.get("label") or entry.domain), 80),
+                        sanitize_untrusted_text(entry.title, 80),
+                        language,
+                    )
+                )
         elif result.get("ok") and str(result.get("kind")) == "delete_dashboard":
             # No seeding, no card marker: the page is gone, and a link to it
             # would be a link to nothing.

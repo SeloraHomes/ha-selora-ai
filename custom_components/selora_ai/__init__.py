@@ -3351,7 +3351,7 @@ def _request_behind(stored_messages: list[dict[str, Any]], proposal_index: int) 
 # Client actions that finish what they were asked for: nothing is made for a
 # later step to build on, so they never resume. Their tools take no
 # remaining_intent.
-_SELF_CONTAINED_CLIENT_ACTIONS = frozenset({"add_frigate_cameras"})
+_SELF_CONTAINED_CLIENT_ACTIONS = frozenset({"add_frigate_cameras", "integration_setup"})
 
 
 def _resume_request(

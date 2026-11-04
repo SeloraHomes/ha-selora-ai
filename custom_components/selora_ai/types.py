@@ -382,7 +382,8 @@ class HomeSuggestionEntity(TypedDict):
 class HomeSuggestionCollection(TypedDict):
     """The group or automation a home suggestion changes."""
 
-    source: str  # "group_helper" | "automation" | "frigate"
+    source: str  # "group_helper" | "automation" | "frigate" | "camera" | "discovery"
+    # (named by the integration that found the device)
     name: str
     # The group's entity_id, or the automation's entity_id (its config id when
     # the automation is not loaded).
@@ -398,8 +399,9 @@ class HomeSuggestion(TypedDict):
     add), "group_entities" (the automation's trigger entities to group),
     "add_to_frigate" (cameras Frigate does not have yet), "camera_idea" (an
     automation or scene a camera's detection could drive), "describe_cameras"
-    (cameras nobody was asked about describing yet) or "recognize_faces" (face
-    recognition off, or on with nobody to recognize).
+    (cameras nobody was asked about describing yet), "recognize_faces" (face
+    recognition off, or on with nobody to recognize) or "set_up_discovered"
+    (a device Home Assistant discovered, not set up yet).
     """
 
     suggestion_id: str
@@ -416,6 +418,9 @@ class HomeSuggestion(TypedDict):
     # already holds, and the area they all cover (None: the whole home).
     members: NotRequired[list[HomeSuggestionEntity]]
     area: NotRequired[str | None]
+    # set_up_discovered only: the other discovered devices, shown one at a
+    # time after this one.
+    waiting: NotRequired[int]
 
 
 # ── Chat attachments ──────────────────────────────────────────────────

@@ -20,14 +20,21 @@ together, so the intent is inferred from coverage instead of stored:
   yet, while Selora AI descriptions are on (``frigate.descriptions``).
 * **recognize_faces** — face recognition is off, or on with nobody in the
   Face Library (``frigate.faces``).
+* **set_up_discovered** — a device Home Assistant discovered that nobody set
+  up or ignored yet: one of its Discovered cards.
 
 The Frigate set-up steps (describe, faces, add cameras) show one at a time,
-in that order: the first one not dismissed.
+in that order: the first one not dismissed. So do discovered devices, each
+set up in a chat of its own; the row says how many more are waiting.
 
 Nothing is applied from here. The panel turns a suggestion into a chat
 request, where the usual tools and cards do the work and the user sees each
 change. Suggestions are recomputed on every read, so only the user's
-dismissals and which ones were already notified are stored.
+dismissals and snoozes, and which ones were already notified, are stored.
+
+Dismissing is for good. Snoozing ("Later") hides a suggestion for
+``_SNOOZE_FOR``, then it comes back by itself if it still applies: the user
+wanted it out of the way, not gone.
 
 The collection rules know nothing about any particular domain: a new person
 joins the collection of people exactly as a new leak sensor joins the leak
@@ -120,6 +127,9 @@ _NOTIFY_RECENT: Final = timedelta(days=1)
 _NOTIFICATION_ID: Final = "selora_ai_home_suggestions"
 _NOTIFY_MAX_LISTED: Final = 5
 _STORE_MAX_IDS: Final = 500
+
+# How long "Later" hides a suggestion.
+_SNOOZE_FOR: Final = timedelta(days=7)
 
 _NOTIFY_TITLE_BY_LANG: Final[dict[str, str]] = {
     "en": "Selora AI noticed new devices",
@@ -478,7 +488,7 @@ async def _async_read_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
 
 
 class HomeSuggestionStore:
-    """Persists which suggestions were dismissed and which were notified."""
+    """Persists which suggestions were dismissed, snoozed and notified."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         self._store: Store[dict[str, dict[str, str]]] = Store(hass, _STORAGE_VERSION, _STORAGE_KEY)
@@ -490,10 +500,20 @@ class HomeSuggestionStore:
             self._data = raw if isinstance(raw, dict) else {}
             self._data.setdefault("dismissed", {})
             self._data.setdefault("notified", {})
+            self._data.setdefault("snoozed", {})
         return self._data
 
     async def ids(self, bucket: str) -> set[str]:
         return set((await self._load())[bucket])
+
+    async def ids_since(self, bucket: str, since: datetime) -> set[str]:
+        """The ids in *bucket* stored at or after *since*."""
+        ids: set[str] = set()
+        for suggestion_id, stamp in (await self._load())[bucket].items():
+            when = dt_util.parse_datetime(stamp)
+            if when is not None and when >= since:
+                ids.add(suggestion_id)
+        return ids
 
     async def add(self, bucket: str, suggestion_ids: list[str]) -> None:
         data = await self._load()
@@ -516,16 +536,49 @@ def get_home_suggestion_store(hass: HomeAssistant) -> HomeSuggestionStore:
     return store
 
 
+async def _discovered_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
+    """One row per device waiting under Discovered."""
+    from .integration_manager import async_list_discovered, discovery_flows  # noqa: PLC0415
+
+    rows = await async_list_discovered(hass)
+    unique_ids = {f["flow_id"]: f["context"].get("unique_id") for f in discovery_flows(hass)}
+    return [
+        {
+            # Named by the device, which a flow_id is not across restarts.
+            "suggestion_id": f"discovered:{r['domain']}:"
+            + str(unique_ids.get(r["flow_id"]) or r["flow_id"]),
+            "type": "set_up_discovered",
+            "entities": [{"entity_id": "", "name": r["title"]}],
+            "collection": {"source": "discovery", "name": r["integration"], "ref": ""},
+        }
+        for r in rows
+    ]
+
+
 async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
-    """Current suggestions the user has not dismissed."""
+    """Current suggestions the user has not dismissed or snoozed."""
     from .frigate.descriptions import async_describe_suggestions  # noqa: PLC0415
     from .frigate.faces import async_face_suggestions  # noqa: PLC0415
     from .frigate.ideas import async_camera_ideas  # noqa: PLC0415
     from .frigate.setup import async_frigate_suggestions  # noqa: PLC0415
 
-    dismissed = await get_home_suggestion_store(hass).ids("dismissed")
+    store = get_home_suggestion_store(hass)
+    # A snoozed suggestion is out of the way like a dismissed one, so the next
+    # Frigate step or discovered device takes its row until it comes back.
+    dismissed = await store.ids("dismissed") | await store.ids_since(
+        "snoozed", dt_util.utcnow() - _SNOOZE_FOR
+    )
     automations = await _async_read_automations(hass)
-    found = [s for s, _ in _detect(hass, automations)]
+    # A device comes before anything organised around it. Each is set up in a
+    # chat of its own (a chat asked for a dozen runs out of steps before most
+    # of them), so they show one at a time.
+    discovered = [
+        s for s in await _discovered_suggestions(hass) if s["suggestion_id"] not in dismissed
+    ]
+    found = discovered[:1]
+    if found:
+        found[0]["waiting"] = len(discovered) - 1
+    found += [s for s, _ in _detect(hass, automations)]
     # Setting Frigate up is one step at a time, so its steps take one row of
     # the few the chat home shows: the first the user has not dismissed.
     frigate = (
@@ -572,7 +625,7 @@ def _camera_idea_rows(ideas: list[CameraIdea]) -> list[HomeSuggestion]:
 
 
 def _dismissed_ids(suggestion_id: str) -> list[str]:
-    """What dismissing *suggestion_id* stores: a row naming several cameras
+    """What dismissing or snoozing *suggestion_id* stores: a row naming several cameras
     stands for each camera's idea, so a camera added later is still offered."""
     if not suggestion_id.startswith(_IDEA_PREFIX):
         return [suggestion_id]
@@ -585,6 +638,11 @@ def _dismissed_ids(suggestion_id: str) -> list[str]:
 async def async_dismiss_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:
     """Never offer this suggestion again."""
     await get_home_suggestion_store(hass).add("dismissed", _dismissed_ids(suggestion_id))
+
+
+async def async_snooze_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:
+    """Stop offering this suggestion for a while; snoozing again restarts the wait."""
+    await get_home_suggestion_store(hass).add("snoozed", _dismissed_ids(suggestion_id))
 
 
 class HomeSuggestionNotifier:

@@ -15,6 +15,10 @@ function flatten(node) {
     });
     return out;
   }
+  // A directive (keyed) renders its last value.
+  if (typeof node === "object" && Array.isArray(node.values)) {
+    return flatten(node.values.at(-1));
+  }
   if (typeof node === "function") return "";
   return String(node);
 }

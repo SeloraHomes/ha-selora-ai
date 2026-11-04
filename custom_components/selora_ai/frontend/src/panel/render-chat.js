@@ -29,6 +29,7 @@ import {
 } from "./refine-guide.js";
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
+import { renderIntegrationAddedCard } from "./integration-added-card.js";
 import { renderRestoreCard } from "./restore-card.js";
 import { renderCameraEventsCard } from "./camera-events-card.js";
 import {
@@ -1518,6 +1519,7 @@ export function renderMessage(host, msg, idx) {
                       : ""
                   }
                   ${renderRestoreCard(host, msg)}
+                  ${renderIntegrationAddedCard(host, msg)}
                   ${renderCameraEventsCard(host, msg)}
                   ${renderFaceRecognitionReply(host, msg)}
                   ${

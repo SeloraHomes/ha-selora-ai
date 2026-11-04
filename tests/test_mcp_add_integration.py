@@ -25,7 +25,7 @@ from pytest_homeassistant_custom_component.common import (
 import voluptuous as vol
 
 from custom_components.selora_ai.const import DOMAIN
-from custom_components.selora_ai.flow_sessions import keep_open
+from custom_components.selora_ai.flow_sessions import keep_open, owner_of
 from custom_components.selora_ai.mcp_server import access as mcp_access
 from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 from custom_components.selora_ai.mcp_server.names import TOOL_ADD_INTEGRATION
@@ -159,35 +159,42 @@ async def test_the_first_call_only_describes(hass: HomeAssistant, teams: None) -
     assert first["status"] == "needs_options"
 
 
-async def test_a_setup_asking_for_a_login_is_refused_and_aborted(
+async def test_a_setup_asking_for_a_login_is_handed_to_the_user(
     hass: HomeAssistant, cloud: None
 ) -> None:
     result = await _add(hass, domain="cloudy")
 
-    assert "Settings" in result["error"]
-    assert "flow_id" not in result
-    assert not hass.config_entries.flow.async_progress()
+    # The login form stays open, for the user to fill in themselves in Selora
+    # AI: the link opens it on a card there.
+    (flow,) = hass.config_entries.flow.async_progress()
+    assert result["status"] == "needs_user", result
+    assert result["flow_id"] == flow["flow_id"]
+    assert result["setup_url"].endswith(f"/selora-ai?setup_flow={flow['flow_id']}")
+    assert "client_action" not in result
+    assert owner_of(hass, flow["flow_id"]) is None
     assert not hass.config_entries.async_entries("cloudy")
 
 
-async def test_a_browser_sign_in_is_refused_and_aborted(hass: HomeAssistant) -> None:
+async def test_a_browser_sign_in_is_handed_to_the_user(hass: HomeAssistant) -> None:
     _register(hass, "signin")
     with mock_config_flow("signin", _SignInFlow):
         result = await _add(hass, domain="signin")
 
-    assert "browser" in result["error"]
-    assert not hass.config_entries.flow.async_progress()
+    (flow,) = hass.config_entries.flow.async_progress()
+    assert result["status"] == "needs_user", result
+    assert result["setup_url"].endswith(f"?setup_flow={flow['flow_id']}")
 
 
-async def test_a_login_in_the_values_is_refused_unsent(hass: HomeAssistant, teams: None) -> None:
+async def test_a_login_in_the_values_is_never_sent(hass: HomeAssistant, teams: None) -> None:
     first = await _add(hass, domain="teams")
 
-    refused = await _add(
+    withheld = await _add(
         hass, domain="teams", flow_id=first["flow_id"], fields={"league": "MLB", "api_key": "x"}
     )
 
-    assert "Settings" in refused["error"]
-    assert not hass.config_entries.flow.async_progress()
+    assert withheld["step"] == "user", withheld
+    assert "login" in withheld["note"]
+    assert not hass.config_entries.async_entries("teams")
 
 
 async def test_a_login_refusal_leaves_a_flow_held_for_something_else(

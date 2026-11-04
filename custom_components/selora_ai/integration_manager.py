@@ -2,8 +2,8 @@
 
 An integration here is a config entry: what Settings → Devices & services shows
 as one card. The devices Home Assistant discovered but nobody set up yet are
-listed with them, as that page's Discovered section shows them, and one is
-added by taking over its discovery flow. Everything goes through ``hass.config_entries``, as that page's
+listed with them, as that page's Discovered section shows them; one is added
+by taking over its discovery flow, or ignored as that section's Ignore does. Everything goes through ``hass.config_entries``, as that page's
 websocket commands do. Options are changed by driving the entry's own options
 flow the way ``helper_flow`` drives a config flow: a call without ``options``
 describes the form, a call with them submits it, so Home Assistant's own
@@ -22,10 +22,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.config_entries import (
     DISCOVERY_SOURCES,
+    SOURCE_IGNORE,
     ConfigEntryDisabler,
+    ConfigFlowContext,
     OperationNotAllowed,
     UnknownEntry,
 )
+from homeassistant.data_entry_flow import UnknownFlow
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -78,7 +81,7 @@ def _row(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
     return row
 
 
-def _discovery_flows(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any]]:
+def discovery_flows(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any]]:
     """Flows Home Assistant started on its own and waits on the user to finish.
 
     ``DISCOVERY_SOURCES`` is core's own set: the one it fires
@@ -93,13 +96,13 @@ def _discovery_flows(hass: HomeAssistant, domain: str = "") -> list[dict[str, An
     ]
 
 
-async def _discovered(hass: HomeAssistant, domain: str) -> list[dict[str, Any]]:
+async def async_list_discovered(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any]]:
     """Discovered devices, named as the Discovered cards name them: the
     integration's ``config.flow_title`` filled from the flow's
     ``title_placeholders``, else the integration's name."""
     from .repairs_manager import _fill  # noqa: PLC0415
 
-    flows = _discovery_flows(hass, domain)
+    flows = discovery_flows(hass, domain)
     if not flows:
         return []
     domains = {flow["handler"] for flow in flows}
@@ -128,6 +131,48 @@ async def _discovered(hass: HomeAssistant, domain: str) -> list[dict[str, Any]]:
     return rows
 
 
+async def async_ignore_discovered(hass: HomeAssistant, flow_id: str) -> dict[str, Any]:
+    """Ignore a discovered device as its Discovered card's Ignore does.
+
+    Home Assistant's own ``config_entries/ignore_flow``: an ``ignore`` flow for
+    the device's unique id makes an ignored entry, which ends the discovery and
+    stops it coming back. The user brings it back from the Ignored list.
+    """
+    flow_id = str(flow_id or "").strip()
+    flow = next((f for f in discovery_flows(hass) if f["flow_id"] == flow_id), None)
+    if flow is None:
+        return {
+            "error": (
+                "No discovered device has that flow_id; list the discovered devices "
+                "again, as it may have been set up or gone."
+            )
+        }
+    if "unique_id" not in flow["context"]:
+        return {
+            "error": (
+                "Home Assistant cannot ignore this one: its integration gives the "
+                "device no unique id, so nothing would stop it being found again."
+            )
+        }
+    row = next(
+        r for r in await async_list_discovered(hass, flow["handler"]) if r["flow_id"] == flow_id
+    )
+    context = ConfigFlowContext(source=SOURCE_IGNORE)
+    if "discovery_key" in flow["context"]:
+        context["discovery_key"] = flow["context"]["discovery_key"]
+    await hass.config_entries.flow.async_init(
+        flow["handler"],
+        context=context,
+        data={"unique_id": flow["context"]["unique_id"], "title": row["title"]},
+    )
+    return {
+        "status": "ignored",
+        "domain": row["domain"],
+        "title": row["title"],
+        "hint": "Settings → Devices & services lists it under Ignored, where it can be brought back.",
+    }
+
+
 async def async_list_integrations(
     hass: HomeAssistant, domain: str | None = None, *, problems_only: bool = False
 ) -> dict[str, Any]:
@@ -146,7 +191,7 @@ async def async_list_integrations(
         "not_working": sum(1 for r in rows if r["state"] in _PROBLEM_STATES),
     }
     if not problems_only:
-        result["discovered"] = await _discovered(hass, wanted)
+        result["discovered"] = await async_list_discovered(hass, wanted)
     return result
 
 
@@ -250,7 +295,7 @@ async def async_integration_options(
     ``None`` describes; an empty mapping is a submission — some options forms
     take ``{}`` on purpose (clearing optional credentials).
     """
-    from .flow_sessions import async_drive  # noqa: PLC0415
+    from .flow_sessions import async_drive, async_step_texts  # noqa: PLC0415
 
     entry = _entry(hass, entry_id, "change the options of")
     if isinstance(entry, str):
@@ -269,11 +314,95 @@ async def async_integration_options(
         values=options,
         values_param="options",
         errors=_FLOW_ERRORS,
+        texts=await async_step_texts(hass, entry.domain, "options"),
     )
     if "done" not in outcome:
         return {"entry_id": entry.entry_id, **outcome}
     await hass.async_block_till_done()
     return {"status": "saved", **_row(hass, entry)}
+
+
+async def async_setup_card(hass: HomeAssistant, flow_id: str) -> dict[str, Any]:
+    """The ``integration_setup`` client action for a setup in progress, or an
+    error: what a link handed out over MCP opens in the chat."""
+    try:
+        flow = hass.config_entries.flow.async_get(flow_id)
+    except UnknownFlow:
+        return {"error": "That setup is no longer open."}
+    domain = str(flow["handler"])
+    try:
+        name = (await async_get_integration(hass, domain)).name
+    except IntegrationNotFound:
+        name = domain
+    steps = hass.data.get(DOMAIN, {}).get(_STEPS_KEY, {}).get(flow_id)
+    return {
+        "kind": "integration_setup",
+        "flow_id": flow_id,
+        "domain": domain,
+        "label": sanitize_untrusted_text(name, 80),
+        **({"steps": steps} if steps else {}),
+    }
+
+
+_LOGIN_HINT: Final = (
+    "This step takes a login or a sign-in, which never goes through an "
+    "assistant: the user fills it in on the setup card shown with this "
+    "answer. Do not ask them for it."
+)
+_STEPS_HINT: Final = (
+    "This step is the user's: it asks them to do something themselves (on the "
+    "device or in its app), or whether to go on without it. Never answer it "
+    "for them. Call again with this flow_id and `steps`: how to do what it "
+    "asks on this very device, in order, one short plain-text action each (the "
+    "app or menu, then the setting's name and the value to pick), as far as you "
+    "know them. They are shown on a setup card with two buttons: Continue "
+    "answers this step once it is done; Check again starts the setup over, for "
+    "a change Home Assistant only checks when the setup starts (an access or "
+    "pairing setting). End with which one to press."
+)
+_DEVICE_HINT: Final = (
+    "This step is the user's, on the setup card shown with this answer, with "
+    "the steps you gave. Do not repeat them; say in one sentence what the card "
+    "is for."
+)
+# The steps written for a step handed over, by flow_id, for the card a link
+# opens. Bounded: a setup abandoned mid-way leaves its steps behind.
+_STEPS_KEY: Final = "_setup_steps"
+_STEPS_KEPT: Final = 50
+_STEPS_MAX: Final = 8
+
+
+def _clean_steps(steps: list[Any]) -> list[str]:
+    cleaned = (sanitize_untrusted_text(str(step), 200).strip() for step in steps)
+    return [step for step in cleaned if step][:_STEPS_MAX]
+
+
+def _keep_steps(hass: HomeAssistant, flow_id: str, steps: list[str]) -> None:
+    kept: dict[str, list[str]] = hass.data.setdefault(DOMAIN, {}).setdefault(_STEPS_KEY, {})
+    kept.pop(flow_id, None)
+    kept[flow_id] = steps
+    while len(kept) > _STEPS_KEPT:
+        kept.pop(next(iter(kept)))
+
+
+def _hand_over(
+    domain: str, name: str, outcome: dict[str, Any], hint: str, steps: list[str]
+) -> dict[str, Any]:
+    """A step for the user to fill in themselves, on a card in the chat."""
+    flow_id = str(outcome["flow_id"])
+    return {
+        "requires_approval": True,
+        "status": "needs_user",
+        "domain": domain,
+        **{k: outcome[k] for k in ("flow_id", "step", "title", "description") if outcome.get(k)},
+        "client_action": {
+            "kind": "integration_setup",
+            "flow_id": flow_id,
+            "domain": domain,
+            "label": sanitize_untrusted_text(name, 80),
+        },
+        "hint": hint,
+    }
 
 
 def _asks_for_credential(fields: list[dict[str, Any]]) -> bool:
@@ -297,21 +426,23 @@ async def async_add_integration(
     kind: str | None,
     fields: dict[str, Any] | None,
     flow_id: str | None = None,
+    steps: list[Any] | None = None,
 ) -> dict[str, Any]:
     """Describe the step an integration's setup is on, or answer it.
 
     The setup is the integration's own config flow, started as Settings → Add
     integration starts it and walked one step per call by ``flow_id``
-    (``flow_sessions``). A step that needs the browser (an account sign-in) or
-    asks for a login is refused and the flow aborted: logins never reach the
-    model.
+    (``flow_sessions``). A step that asks for a login or needs the browser (an
+    account sign-in) is handed to the user, never answered here: the result
+    carries an ``integration_setup`` client action, a card in the chat on
+    which the user fills that step in. Logins never reach the model.
 
     A discovered device's ``flow_id`` (from the listing's ``discovered``) takes
     over the flow Home Assistant started for it, as pressing Add on its
     Discovered card does, so what the discovery found is kept. That flow is
     never aborted: a refused or abandoned one stays under Discovered.
     """
-    from .flow_sessions import async_drive, owner_of, release  # noqa: PLC0415
+    from .flow_sessions import async_drive, async_step_texts, owner_of, release  # noqa: PLC0415
     from .helper_flow import _DEDICATED  # noqa: PLC0415
 
     domain = str(domain or "").strip().lower()
@@ -335,25 +466,13 @@ async def async_add_integration(
 
     manager = hass.config_entries.flow
     discovery = bool(flow_id) and any(
-        flow["flow_id"] == flow_id for flow in _discovery_flows(hass, domain)
+        flow["flow_id"] == flow_id for flow in discovery_flows(hass, domain)
     )
     adopt = discovery and owner_of(hass, str(flow_id)) is None
-    where = (
-        "finish it under Settings → Devices & services, where it is listed as discovered"
-        if discovery
-        else "add it under Settings → Devices & services → Add integration"
-    )
-    refused = {
-        "error": (
-            f"Adding {shown} asks for a password, API key or other login, which "
-            f"never goes through an assistant. Tell the user to {where}, and not "
-            "to type the login into this chat."
-        )
-    }
-    if fields and _carries_credential(fields):
-        if flow_id and owner_of(hass, flow_id) == ("integration", domain):
-            release(hass, flow_id, abort=True)
-        return refused
+    withheld = bool(fields) and _carries_credential(fields or {})
+    if withheld:
+        # Never submitted: the step is described again, and goes to the card.
+        fields = None
 
     outcome = await async_drive(
         hass,
@@ -374,13 +493,103 @@ async def async_add_integration(
         values_param="fields",
         errors=_FLOW_ERRORS,
         adopted=adopt,
+        texts=await async_step_texts(hass, domain, "config"),
+        hand_over=True,
     )
-    if _asks_for_credential(outcome.get("fields") or []):
-        release(hass, outcome.get("flow_id"), abort=True)
-        return refused
+    if outcome.get("reason") == "already_in_progress" and not adopt:
+        # Home Assistant is already setting this device up from its discovery,
+        # and a second setup of it is refused: that one is continued instead,
+        # as pressing Add on its Discovered card would.
+        waiting = [
+            row
+            for row in await async_list_discovered(hass, domain)
+            if owner_of(hass, row["flow_id"]) is None
+        ]
+        if len(waiting) == 1:
+            continued = await async_add_integration(hass, domain, None, None, waiting[0]["flow_id"])
+            return {
+                **continued,
+                "note": (
+                    "Home Assistant was already setting this device up from its "
+                    "discovery, so that setup was continued."
+                ),
+            }
+        if waiting:
+            return {
+                "domain": domain,
+                "status": "pick_discovered",
+                "discovered": [{"flow_id": r["flow_id"], "title": r["title"]} for r in waiting],
+                "hint": (
+                    "Home Assistant is already setting these up from their discovery. "
+                    "Call again with the flow_id of the one the user means."
+                ),
+            }
+    login = outcome.get("status") == "needs_browser" or _asks_for_credential(
+        outcome.get("fields") or []
+    )
+    # A step with nothing to fill in, reached by answering one, asks the user
+    # to act: press the device's button, allow access in its app, or say
+    # whether to go on without it. Confirming it for them skips a pairing they
+    # could still allow, and a setup left with nothing paired fails. Home
+    # Assistant only says what to allow, not where on the device, so the model
+    # is asked for those steps first (the flow stays held), and the card shows
+    # them.
+    held = bool(flow_id) and not adopt
+    confirming = outcome.get("status") == "needs_confirmation"
+    written = _clean_steps(steps) if held and fields is None and steps is not None else None
+    if held and confirming and fields is not None and not login:
+        return {"domain": domain, **outcome, "status": "needs_steps", "hint": _STEPS_HINT}
+    if login or (confirming and written is not None):
+        # Let go, not aborted: the card continues this very flow.
+        handed = str(outcome.get("flow_id"))
+        release(hass, handed, abort=False)
+        if written:
+            _keep_steps(hass, handed, written)
+        return _hand_over(
+            domain,
+            integration.name,
+            outcome,
+            _LOGIN_HINT if login else _DEVICE_HINT,
+            written or [],
+        )
+    if not flow_id and "done" not in outcome and "error" not in outcome:
+        waiting = [
+            {"flow_id": r["flow_id"], "title": r["title"]}
+            for r in await async_list_discovered(hass, domain)
+            if owner_of(hass, r["flow_id"]) is None
+        ]
+        if waiting:
+            outcome = {
+                **outcome,
+                "discovered": waiting,
+                "discovered_hint": (
+                    "Home Assistant already found these: when the user means one, "
+                    "call again with its flow_id alone, which continues its setup."
+                ),
+            }
     if "done" not in outcome:
-        return {"domain": domain, **outcome}
+        note = (
+            {
+                "note": "Those values held a login, so none were sent: a login never goes "
+                "through an assistant."
+            }
+            if withheld
+            else {}
+        )
+        return {"domain": domain, **outcome, **note}
     # The flow sets the entry up before it returns, so its state is final here.
     entry = outcome["done"]["result"]
     _LOGGER.info("Added %s integration '%s'", domain, entry.title)
-    return {"status": "added", **_row(hass, entry)}
+    if discovery:
+        from .telemetry import record_activity  # noqa: PLC0415
+
+        record_activity(hass, "devices_paired")
+    return {
+        "status": "added",
+        "name": sanitize_untrusted_text(integration.name, 80),
+        **_row(hass, entry),
+        "hint": (
+            "Done: the chat shows it added, with a tick. Say so in one sentence; "
+            "the steps it went through are over, so do not repeat what they said."
+        ),
+    }

@@ -74,13 +74,39 @@ async def _tool_add_integration(hass: HomeAssistant, arguments: dict[str, Any]) 
     from ..tool_executor import _opt_str  # noqa: PLC0415
 
     fields = arguments.get("fields")
-    return await async_add_integration(
+    result = await async_add_integration(
         hass,
         str(arguments.get("domain") or ""),
         _opt_str(arguments.get("type")),
         fields if isinstance(fields, dict) else None,
         _opt_str(arguments.get("flow_id")),
+        steps if isinstance(steps := arguments.get("steps"), list) else None,
     )
+    if "client_action" not in result:
+        return result
+    # No chat card here: a link opens the same card in Selora AI.
+    from ..const import PANEL_PATH  # noqa: PLC0415
+    from ..frigate.media import async_link_base  # noqa: PLC0415
+
+    base = await async_link_base(hass) or ""
+    handed = {k: v for k, v in result.items() if k not in ("requires_approval", "client_action")}
+    return {
+        **handed,
+        "setup_url": f"{base}/{PANEL_PATH}?setup_flow={result['flow_id']}",
+        "hint": (
+            "This step is the user's: a login or a sign-in, which never goes "
+            "through an assistant, or something to do on the device itself. Give "
+            "them setup_url: it opens Selora AI on a card where they do it. Never "
+            "ask them for a login; for anything on the device, tell them how to do "
+            "it on this very device, step by step."
+        ),
+    }
+
+
+async def _tool_ignore_discovered(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    from ..integration_manager import async_ignore_discovered  # noqa: PLC0415
+
+    return await async_ignore_discovered(hass, str(arguments.get("flow_id") or ""))
 
 
 async def _tool_check_system(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:

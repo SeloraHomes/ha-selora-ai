@@ -90,6 +90,7 @@ from .names import (
     TOOL_HACS_REMOVE,
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
+    TOOL_IGNORE_DISCOVERED,
     TOOL_IGNORE_REPAIR,
     TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
@@ -292,6 +293,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_REMOVE_INTEGRATION,
         TOOL_SET_INTEGRATION_OPTIONS,
         TOOL_ADD_INTEGRATION,
+        TOOL_IGNORE_DISCOVERED,
         TOOL_REMOVE_DEVICE,
         TOOL_REMOVE_ENTITY,
         # Read-only, but admin-gated as Home Assistant's update/release_notes is.

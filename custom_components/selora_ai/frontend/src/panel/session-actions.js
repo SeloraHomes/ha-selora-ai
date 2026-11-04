@@ -239,6 +239,33 @@ export function _checkTabParam() {
     url.searchParams.delete("home_suggestions");
     window.history.replaceState({}, "", url);
   }
+
+  // A setup step handed out over MCP: the link opens a chat holding its card.
+  const setupFlow = params.get("setup_flow");
+  if (setupFlow) {
+    this._openingChatHome = true;
+    if (this.hass) this._openSetupFlow(setupFlow);
+    else this._pendingSetupFlow = setupFlow;
+    const url = new URL(window.location);
+    url.searchParams.delete("setup_flow");
+    window.history.replaceState({}, "", url);
+  }
+}
+
+export async function _openSetupFlow(flowId) {
+  try {
+    const { session_id } = await this.hass.callWS({
+      type: "selora_ai/integration_setup_open",
+      flow_id: flowId,
+      ...(this.hass.language ? { language: this.hass.language } : {}),
+    });
+    this._setActiveTab("chat");
+    await this._openSession(session_id);
+  } catch (err) {
+    this._showToast?.(err?.message || String(err), "error");
+  } finally {
+    this._openingChatHome = false;
+  }
 }
 
 // -------------------------------------------------------------------------
@@ -246,6 +273,9 @@ export function _checkTabParam() {
 // -------------------------------------------------------------------------
 
 export async function _openChatHome() {
+  // The chat home always opens on the top suggestions.
+  this._homeSuggestionPage = 0;
+  this._homeSuggestionsTurned = false;
   try {
     await this._newSession();
   } finally {
