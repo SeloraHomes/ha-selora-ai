@@ -40,12 +40,6 @@ export const automationsStyles = css`
     animation: fadeOutCard 0.6s ease forwards;
     pointer-events: none;
   }
-  .suggestions-section .automations-grid .card {
-    animation: slideInCard 0.4s ease both;
-  }
-  .suggestions-section .automations-grid .card.fading-out {
-    animation: fadeOutCard 0.6s ease forwards;
-  }
   .auto-row-main {
     display: flex;
     align-items: center;
@@ -924,24 +918,6 @@ export const automationsStyles = css`
     accent-color: var(--selora-accent);
     cursor: pointer;
   }
-
-  /* ---- Suggestions/automations grid ----
-     Auto-fill with a minimum card width so the grid drops columns based on
-     its actual rendered width, not window.innerWidth. This avoids the
-     case where HA's sidebar is open and the panel container is narrow
-     while the window is wide — we'd render 3 columns and the action
-     buttons inside cards would overflow. 280px is the minimum width that
-     keeps the Accept/Dismiss button row from spilling. */
-  .automations-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    align-items: start;
-    gap: 20px;
-    margin-bottom: 16px;
-  }
-  .automations-grid .masonry-col {
-    display: contents;
-  }
   .pagination {
     display: flex;
     align-items: center;
@@ -976,143 +952,6 @@ export const automationsStyles = css`
   }
   .per-page-select:hover {
     border-color: rgba(251, 191, 36, 0.5);
-  }
-  .automations-grid .card {
-    margin-bottom: 0;
-    padding: 16px 18px;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-  /* A suggestion's Flow/YAML opens in a detail row under the card's row, not
-     inside the card: a 280px column cuts every entity_id and leaves the YAML
-     readable only through a horizontal scrollbar, and a card that spans the
-     row itself drops below its neighbours and strands them in half-empty
-     rows. The detail follows the last card of its row in the DOM, so focus
-     order matches what is on screen; dense placement keeps the rows whole
-     when a resize changes the column count that order was built for.
-     Rows are spaced by card margins rather than row-gap, so a detail at
-     0fr adds no gap of its own while it opens and closes. */
-  .automations-grid.suggestions-grid {
-    grid-auto-flow: row dense;
-    row-gap: 0;
-    margin-bottom: 0;
-  }
-  .automations-grid.suggestions-grid > .card {
-    margin-bottom: 20px;
-  }
-  .automations-grid .card.card-open {
-    border-color: var(--selora-accent);
-  }
-  .automations-grid .card-detail {
-    grid-column: 1 / -1;
-    min-width: 0;
-  }
-  .automations-grid .card-detail.fading-out {
-    animation: fadeOutCard 0.6s ease forwards;
-    pointer-events: none;
-  }
-  .automations-grid .card-detail-body {
-    margin-bottom: 20px;
-    padding: 12px 18px 16px;
-    border-radius: 16px;
-    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.3));
-    background: var(--selora-zinc-800);
-  }
-  /* Grow/shrink on open and close. A grid row animated between 0fr and 1fr is
-     how an auto-height panel gets a transition at all: an auto height has
-     nothing to interpolate. 260ms here is PANEL_ANIM_MS in
-     render-suggestions.js; the two have to agree. */
-  .automations-grid .card-panel {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  .automations-grid .card-panel.open {
-    grid-template-rows: 1fr;
-  }
-  /* The detail row is mounted already open, so the grow starts from here. */
-  @starting-style {
-    .automations-grid .card-panel.open {
-      grid-template-rows: 0fr;
-    }
-  }
-  .automations-grid .card-panel-inner {
-    min-height: 0;
-    overflow: hidden;
-  }
-  /* Clipping is only needed while the panel is moving. Left on, it would cut
-     off the code editor's entity autocomplete where the list falls past the
-     panel's bottom edge. */
-  .automations-grid .card-panel.settled .card-panel-inner {
-    overflow: visible;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .automations-grid .card-panel {
-      transition: none;
-    }
-  }
-  /* Title, description and the tab strip all toggle the panel, so the pointer
-     is on the whole disclosure rather than on the chevron alone. */
-  .automations-grid .card-disclosure {
-    cursor: pointer;
-  }
-  .automations-grid .card-yaml {
-    min-width: 0;
-  }
-  .automations-grid .card-yaml ha-code-editor {
-    display: block;
-    width: 100%;
-  }
-  .automations-grid .card-header {
-    margin-bottom: 0;
-    align-items: center;
-  }
-  .automations-grid .card h3 {
-    font-size: 13px;
-    line-height: 1.3;
-    flex: 1;
-    min-width: 0;
-    /* Wrap up to 2 lines on desktop (avoid layout breakage in the masonry
-       grid). Native title attribute / DOM tooltip reveals the full text. */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-  }
-  /* On touch devices the suggestion cards stack full-width, so let the
-     title wrap freely instead of clamping. */
-  @media (hover: none) {
-    .automations-grid .card h3 {
-      -webkit-line-clamp: unset;
-      line-clamp: unset;
-      display: block;
-      overflow: visible;
-    }
-  }
-  /* Suggestion click-to-expand: subtitle shares the 2-line clamp, and the
-     .expanded modifier unclamps both the subtitle and the h3 rule above. */
-  .automations-grid .card .clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-  }
-  .automations-grid .card h3.expanded,
-  .automations-grid .card .clamp-2.expanded {
-    display: block;
-    -webkit-line-clamp: unset;
-    line-clamp: unset;
-    overflow: visible;
-  }
-  .automations-grid .card-meta {
-    font-size: 11px;
-    color: var(--secondary-text-color);
-    opacity: 0.7;
   }
 
   /* ---- Automation detail drawer (below grid) ---- */

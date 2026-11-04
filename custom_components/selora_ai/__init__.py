@@ -6876,6 +6876,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     new_state.state,
                     old_state.state,
                     new_state.last_changed.isoformat(),
+                    auto=new_state.context.parent_id is not None,
                 )
 
         unsub_state_listener = hass.bus.async_listen("state_changed", _state_change_listener)

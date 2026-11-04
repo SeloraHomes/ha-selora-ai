@@ -22,7 +22,6 @@ const host = () => ({
   _loadConfig: vi.fn(async () => {}),
   _loadRecipesCatalog: vi.fn(),
   _triggerPatternScan: vi.fn(async () => {}),
-  _triggerGenerateSuggestions: vi.fn(async () => {}),
   hass: {
     callWS: vi.fn(async (msg) =>
       msg.type === "selora_ai/frigate/scan"
@@ -96,10 +95,8 @@ describe("developer console", () => {
     installDevConsole(h);
 
     await globalThis.selora.scanPatterns();
-    await globalThis.selora.generateSuggestions();
 
     expect(h._triggerPatternScan).toHaveBeenCalledOnce();
-    expect(h._triggerGenerateSuggestions).toHaveBeenCalledOnce();
   });
 
   it("sets and resets the recipes catalog URL, refetching each time", () => {

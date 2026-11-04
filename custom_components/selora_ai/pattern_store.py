@@ -251,12 +251,17 @@ class PatternStore:
         new_state: str,
         old_state: str,
         timestamp: str,
+        *,
+        auto: bool = False,
     ) -> None:
         """Append a state change to the ring buffer for this entity."""
         data = await self._get_loaded_data()
         history = data["state_history"]
         entries = history.setdefault(entity_id, [])
-        entries.append({"state": new_state, "prev": old_state, "ts": timestamp})
+        change: StateChange = {"state": new_state, "prev": old_state, "ts": timestamp}
+        if auto:
+            change["auto"] = True
+        entries.append(change)
 
         # Enforce ring buffer limit
         if len(entries) > PATTERN_HISTORY_MAX_PER_ENTITY:

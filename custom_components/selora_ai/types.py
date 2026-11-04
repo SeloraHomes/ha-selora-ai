@@ -257,6 +257,9 @@ class StateChange(TypedDict):
     state: str
     prev: str
     ts: str
+    # Set when an automation or script made the change (its context has a
+    # parent), so a co-action of the automation's is not taken for the user's.
+    auto: NotRequired[bool]
 
 
 class RecorderHistoryRecord(TypedDict):
@@ -377,19 +380,29 @@ class HomeSuggestionEntity(TypedDict):
     # add_to_frigate only: a camera found on the network, which has no entity
     # (entity_id is empty) and is named by its address.
     address: NotRequired[str]
+    # create_scene only: the state the scene sets it to.
+    state: NotRequired[str]
 
 
 class HomeSuggestionCollection(TypedDict):
     """The group or automation a home suggestion changes."""
 
     source: str  # "group_helper" | "automation" | "frigate" | "camera" | "discovery"
-    # (named by the integration that found the device)
+    # (named by the integration that found the device) | "pattern" | "usage"
     name: str
     # The group's entity_id, or the automation's entity_id (its config id when
     # the automation is not loaded).
     ref: str
     # Automations only: the config id the panel loads into the chat to edit.
     automation_id: NotRequired[str]
+
+
+class HomeSuggestionAutomation(TypedDict):
+    """The automation an automation_idea row proposes."""
+
+    alias: str
+    description: str
+    yaml: str
 
 
 class HomeSuggestion(TypedDict):
@@ -400,8 +413,10 @@ class HomeSuggestion(TypedDict):
     "add_to_frigate" (cameras Frigate does not have yet), "camera_idea" (an
     automation or scene a camera's detection could drive), "describe_cameras"
     (cameras nobody was asked about describing yet), "recognize_faces" (face
-    recognition off, or on with nobody to recognize) or "set_up_discovered"
-    (a device Home Assistant discovered, not set up yet).
+    recognition off, or on with nobody to recognize), "set_up_discovered"
+    (a device Home Assistant discovered, not set up yet), "automation_idea"
+    (a pattern engine suggestion) or "create_scene" (devices the user keeps
+    setting together); the last two are usage_suggestions.py.
     """
 
     suggestion_id: str
@@ -421,6 +436,11 @@ class HomeSuggestion(TypedDict):
     # set_up_discovered only: the other discovered devices, shown one at a
     # time after this one.
     waiting: NotRequired[int]
+    # automation_idea only: the automation to propose, and what was observed.
+    automation: NotRequired[HomeSuggestionAutomation]
+    evidence: NotRequired[str]
+    # create_scene only: on how many days the user set these together.
+    days: NotRequired[int]
 
 
 # ── Chat attachments ──────────────────────────────────────────────────

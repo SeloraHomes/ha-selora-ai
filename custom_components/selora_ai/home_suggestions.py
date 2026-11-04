@@ -22,6 +22,9 @@ together, so the intent is inferred from coverage instead of stored:
   Face Library (``frigate.faces``).
 * **set_up_discovered** — a device Home Assistant discovered that nobody set
   up or ignored yet: one of its Discovered cards.
+* **automation_idea**, **create_scene** — what the home's usage suggests
+  (``usage_suggestions``): the pattern engine's automations, and scenes for
+  devices the user keeps setting together.
 
 The Frigate set-up steps (describe, faces, add cameras) show one at a time,
 in that order: the first one not dismissed. So do discovered devices, each
@@ -71,6 +74,7 @@ from .group_manager import (
     group_entity_id,
     group_entries,
 )
+from .usage_suggestions import async_put_away_pattern_suggestion, async_usage_suggestions
 
 if TYPE_CHECKING:
     from .types import CameraIdea, HomeSuggestion, HomeSuggestionCollection
@@ -588,6 +592,7 @@ async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     )
     found += [s for s in frigate if s["suggestion_id"] not in dismissed][:1]
     found = [s for s in found if s["suggestion_id"] not in dismissed]
+    found += await async_usage_suggestions(hass, automations, dismissed)
     ideas = [i for i in await async_camera_ideas(hass) if i["idea_id"] not in dismissed]
     return found + _camera_idea_rows(ideas)
 
@@ -638,11 +643,15 @@ def _dismissed_ids(suggestion_id: str) -> list[str]:
 async def async_dismiss_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:
     """Never offer this suggestion again."""
     await get_home_suggestion_store(hass).add("dismissed", _dismissed_ids(suggestion_id))
+    await async_put_away_pattern_suggestion(hass, suggestion_id, "dismiss")
 
 
 async def async_snooze_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:
     """Stop offering this suggestion for a while; snoozing again restarts the wait."""
     await get_home_suggestion_store(hass).add("snoozed", _dismissed_ids(suggestion_id))
+    await async_put_away_pattern_suggestion(
+        hass, suggestion_id, "snooze", dt_util.utcnow() + _SNOOZE_FOR
+    )
 
 
 class HomeSuggestionNotifier:

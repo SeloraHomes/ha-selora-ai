@@ -4,8 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { renderSceneCard } from "../render-scenes.js";
 
-// Templates are serialized rather than mounted — these tests run in node, the
-// same way render-suggestions.test.js reads its markup.
+// Templates are serialized rather than mounted: these tests run in node.
 function ser(value) {
   if (value == null || typeof value === "boolean") return "";
   if (typeof value === "string" || typeof value === "number")

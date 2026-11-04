@@ -1,5 +1,7 @@
-// "I noticed a few things I can help with" — suggestions drawn from how the home is organised
-// (home_suggestions.py), shown on the chat home.
+// "I noticed a few things I can help with" — suggestions drawn from how the
+// home is organised (home_suggestions.py) and how it is used
+// (usage_suggestions.py), shown on the chat home. They are the only place
+// Selora proposes something unasked: the Automations tab lists what exists.
 //
 // A row opens to say why Selora suggests it and what it changes; acting on it
 // is an ordinary chat request: the prompt names the entities and the group or
@@ -186,12 +188,51 @@ function nameList(host, entities) {
   }
 }
 
+// The pattern engine's suggestion: its own words for the title and the why,
+// and its YAML for the model to start from, so the chat proposes the
+// automation that was observed rather than one it imagines.
+function describeAutomationIdea(host, s) {
+  const auto = s.automation || {};
+  const values = {
+    name: auto.alias || auto.description || "",
+    description: auto.description || auto.alias || "",
+    evidence: s.evidence || "",
+    yaml: auto.yaml || "",
+  };
+  const tv = (key, fallback) => interpolate(host._t(key, fallback), values);
+  const why = [
+    values.evidence
+      ? tv("home_suggestion_automation_why", "Selora noticed: {evidence}.")
+      : tv(
+          "home_suggestion_automation_why_plain",
+          "You do this often, so Selora can do it for you.",
+        ),
+  ];
+  if (values.description !== values.name) why.unshift(values.description);
+  return {
+    icon: "mdi:robot-outline",
+    title: values.name,
+    prompt: tv(
+      values.yaml
+        ? "home_suggestion_automation_prompt"
+        : "home_suggestion_automation_prompt_plain",
+      values.yaml
+        ? "Create the automation {name}: {description} Start from this YAML, and change it only where an entity no longer fits:\n{yaml}"
+        : "Create the automation {name}: {description}",
+    ),
+    why,
+  };
+}
+
 // { icon, title, prompt, why: [sentences] } for a suggestion, or null for a
 // type this bundle does not know (a newer backend).
 function describe(host, s) {
   const grouping = s.type === "group_entities";
   const listsEntities =
-    grouping || s.type === "add_to_frigate" || s.type === "describe_cameras";
+    grouping ||
+    s.type === "add_to_frigate" ||
+    s.type === "describe_cameras" ||
+    s.type === "create_scene";
   const values = {
     entity: names(s.entities),
     entity_id: ids(s.entities),
@@ -201,8 +242,30 @@ function describe(host, s) {
     members: nameList(host, listsEntities ? s.entities : s.members || []),
     area: s.area || "",
     waiting: s.waiting || 0,
+    days: s.days || 0,
   };
   const t = (key, fallback) => interpolate(host._t(key, fallback), values);
+  if (s.type === "automation_idea") return describeAutomationIdea(host, s);
+  if (s.type === "create_scene") {
+    // Each device with the state the scene sets it to, for the model.
+    values.settings = s.entities
+      .map((e) => `${e.name} (${e.entity_id}): ${e.state}`)
+      .join(", ");
+    return {
+      icon: "mdi:palette-outline",
+      title: t("home_suggestion_scene", "Make a scene for {members}"),
+      prompt: t(
+        "home_suggestion_scene_prompt",
+        "Create a scene that sets {settings}. Name it after what it is for, and the room if they share one.",
+      ),
+      why: [
+        t(
+          "home_suggestion_scene_why",
+          "On {days} different days you set {members} the same way, within a couple of minutes. A scene does it in one tap.",
+        ),
+      ],
+    };
+  }
   if (grouping) {
     return {
       icon: "mdi:group",

@@ -107,23 +107,3 @@ describe("buildSearchRegistry lookup cost", () => {
     expect(matchesSearchFields(fields, ["hallway"]).match).toBe(true);
   });
 });
-
-describe("panel teardown", () => {
-  // `_cardPanelTimers` entries are otherwise cleared only by a later toggle of
-  // the SAME card, so leaving the panel inside PANEL_SETTLE_MS left a callback
-  // writing to a detached host and the map kept one key per card ever opened.
-  // Asserted against the source because instantiating the whole panel element
-  // to observe a 320ms timer is a worse test than reading the teardown.
-  it("clears the suggestion-card panel timers on disconnect", async () => {
-    const fs = await import("node:fs");
-    const url = await import("node:url");
-    const src = fs.readFileSync(
-      url.fileURLToPath(new URL("../../panel.js", import.meta.url)),
-      "utf8",
-    );
-    const body = src.slice(src.indexOf("disconnectedCallback()"));
-    const end = body.indexOf("\n  }\n");
-    expect(end).toBeGreaterThan(-1);
-    expect(body.slice(0, end)).toMatch(/_cardPanelTimers/);
-  });
-});

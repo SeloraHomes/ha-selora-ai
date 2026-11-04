@@ -28,7 +28,6 @@ import {
 } from "./render-proposal-diff.js";
 import { renderSearchMatchReason } from "./search-match.js";
 import { interpolate } from "../shared/i18n.js";
-import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { renderTrashList, renderTrashTab, trashItems } from "./trash.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
@@ -1317,7 +1316,6 @@ export function renderAutomations(host) {
               : ""
           }
         </div>
-        ${renderSuggestionsSection(host)}
         <div class="page-section-title">
           ${host._t("automations_section_title", "Your Automations")}
         </div>
