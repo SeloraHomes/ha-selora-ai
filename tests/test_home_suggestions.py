@@ -26,6 +26,7 @@ from custom_components.selora_ai.home_suggestions import (
     HomeSuggestionNotifier,
     async_dismiss_home_suggestion,
     async_home_suggestions,
+    async_snooze_home_suggestion,
 )
 
 
@@ -373,6 +374,25 @@ async def test_a_dismissed_suggestion_stays_dismissed(
     await async_dismiss_home_suggestion(home, suggestion["suggestion_id"])
 
     assert await async_home_suggestions(home) == []
+
+
+async def test_a_snoozed_suggestion_comes_back_after_a_week(
+    home: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    a = _add(home, freezer, "binary_sensor.leak_a", "moisture")
+    b = _add(home, freezer, "binary_sensor.leak_b", "moisture")
+    await _group(home, "Water Leak Sensors", [a, b])
+    _add(home, freezer, "binary_sensor.leak_new", "moisture")
+    [suggestion] = await async_home_suggestions(home)
+
+    await async_snooze_home_suggestion(home, suggestion["suggestion_id"])
+    assert await async_home_suggestions(home) == []
+
+    freezer.tick(timedelta(days=6))
+    assert await async_home_suggestions(home) == []
+
+    freezer.tick(timedelta(days=2))
+    assert await async_home_suggestions(home) == [suggestion]
 
 
 async def test_a_new_entity_is_notified_once(

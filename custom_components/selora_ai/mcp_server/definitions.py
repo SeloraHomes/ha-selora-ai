@@ -94,6 +94,7 @@ from .names import (
     TOOL_HACS_REMOVE,
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
+    TOOL_IGNORE_DISCOVERED,
     TOOL_IGNORE_REPAIR,
     TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
@@ -1064,6 +1065,8 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_IGNORE_REPAIR: "ignore_repair",
     TOOL_CHECK_SYSTEM: "check_system",
     TOOL_RELOAD_INTEGRATION: "reload_integration",
+    TOOL_ADD_INTEGRATION: "add_integration",
+    TOOL_IGNORE_DISCOVERED: "ignore_discovered_device",
     # Has had a handler since it was written but no definition, so it never
     # appeared in tools/list and no MCP client could reach it. Deriving it here
     # is the whole fix; see ``test_every_mcp_handler_is_declared``.
@@ -2229,7 +2232,8 @@ _TOOL_DEFINITIONS.extend(
                 "lists the devices Home Assistant found on the network (or Bluetooth, "
                 "USB …) that are not set up yet, as the page's Discovered section "
                 "does: each with a flow_id, its domain and a title; set one up with "
-                "selora_add_integration and that flow_id once the user wants it."
+                "selora_add_integration and that flow_id once the user wants it, or "
+                "selora_ignore_discovered when they want it gone."
             ),
             inputSchema={
                 "type": "object",
@@ -2280,7 +2284,8 @@ _TOOL_DEFINITIONS.extend(
                 "section's name. Then call again with `options` holding the fields "
                 "to set. An options flow with more steps returns the next one with a "
                 "flow_id: pass it back with that step's `options` (or `type` for a "
-                "menu). Requires admin access."
+                "menu). A step's `title` and `description` are what Home Assistant's "
+                "own dialog says. Requires admin access."
             ),
             inputSchema={
                 "type": "object",
@@ -2294,49 +2299,6 @@ _TOOL_DEFINITIONS.extend(
                     "options": {
                         "type": "object",
                         "description": "The form's values, keyed by its field names.",
-                    },
-                    "flow_id": {
-                        "type": "string",
-                        "description": "From a previous call, to answer the flow's next step.",
-                    },
-                },
-            },
-        ),
-        MCPTool(
-            name=TOOL_ADD_INTEGRATION,
-            description=(
-                "Add an installed integration, as Settings → Devices & services → Add "
-                "integration does — also a second entry of one the home already has "
-                "(another team, account or location). Call first with just `domain`: it "
-                "returns the setup form's fields (or the choices, when it starts with a "
-                "menu — then pass `type`) and a flow_id. Call again with that flow_id "
-                "and `fields` holding the values; each further step comes back the same "
-                "way until status is added. Ask the user for values you do not know "
-                "rather than guessing. For a device under `discovered` in "
-                "selora_list_integrations, pass its domain and flow_id on the first "
-                "call: that continues Home Assistant's own setup for it, keeping what "
-                "the discovery found (its address), and the user can still finish it "
-                "in Settings. A setup that asks for a password, API key or "
-                "other login, or a sign-in in the browser, is refused: the user adds "
-                "it in Settings. A custom integration is installed with "
-                "selora_hacs_install first. Helpers use selora_create_helper. Requires "
-                "admin access."
-            ),
-            inputSchema={
-                "type": "object",
-                "required": ["domain"],
-                "properties": {
-                    "domain": {
-                        "type": "string",
-                        "description": "The integration's domain, e.g. 'teamtracker'.",
-                    },
-                    "type": {
-                        "type": "string",
-                        "description": "When the step is a menu: the choice.",
-                    },
-                    "fields": {
-                        "type": "object",
-                        "description": "The step's values, keyed by its field names.",
                     },
                     "flow_id": {
                         "type": "string",

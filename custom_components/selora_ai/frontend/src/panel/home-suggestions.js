@@ -8,10 +8,17 @@
 // the user types; entity ids ride along so the model needs no search to find
 // them. The bubble shows the row's title and folds the prompt away.
 //
+// The chat home has room for three rows, so the rest come a page at a time:
+// "Other ideas" swaps in the next three, on demand, never on a timer, and
+// wraps back to the first. The page is not remembered; the chat home opens on
+// the top three. A row is put away for good (dismiss) or for a week (snooze,
+// the server's ``_SNOOZE_FOR``), and the next one moves up into its place.
+//
 // A suggestion that changes an automation opens it the way "Refine in chat"
 // does: a fresh chat only edits what it was given, so without the automation
 // loaded the model can make the group but never propose the edited rule.
 import { html } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 
 import { renderActionButton } from "../shared/action-button.js";
 import { renderCardIcon } from "../shared/card-heading.js";
@@ -33,18 +40,30 @@ export async function loadHomeSuggestions(host) {
   }
 }
 
-async function dismiss(host, suggestion) {
+/** Take *suggestion* off the list; *how* is "dismiss" (for good) or "snooze". */
+async function putAway(host, suggestion, how) {
   host._homeSuggestions = (host._homeSuggestions || []).filter(
     (s) => s.suggestion_id !== suggestion.suggestion_id,
   );
   try {
     await host.hass.callWS({
-      type: "selora_ai/home_suggestions/dismiss",
+      type: `selora_ai/home_suggestions/${how}`,
       suggestion_id: suggestion.suggestion_id,
     });
   } catch (err) {
-    console.error("Failed to dismiss home suggestion", err);
+    console.error(`Failed to ${how} home suggestion`, err);
+    return;
   }
+  // Discovered devices and Frigate steps come one at a time: the server has
+  // the next one in line, which the list held here never had.
+  await loadHomeSuggestions(host);
+}
+
+/** Show the page after *shown*, the one on screen, not the one stored: putting rows away may have clamped it. */
+function turnPage(host, shown, pages) {
+  host._homeSuggestionPage = (shown + 1) % pages;
+  host._homeSuggestionsTurned = true;
+  host._expandedHomeSuggestion = null;
 }
 
 function toggle(host, suggestion) {
@@ -181,6 +200,7 @@ function describe(host, s) {
     count: s.entities.length,
     members: nameList(host, listsEntities ? s.entities : s.members || []),
     area: s.area || "",
+    waiting: s.waiting || 0,
   };
   const t = (key, fallback) => interpolate(host._t(key, fallback), values);
   if (grouping) {
@@ -204,6 +224,33 @@ function describe(host, s) {
           "It then runs when the group as a whole changes, not again for each device while another one is still active.",
         ),
       ],
+    };
+  }
+  if (s.type === "set_up_discovered") {
+    // One device per chat, named as its Discovered card names it: the model
+    // finds the discovery itself, so the bubble carries no ids.
+    const why = [
+      t(
+        "home_suggestion_discovered_why",
+        "Home Assistant found {entity} through {collection}, but nobody has set it up yet. Selora walks you through it; a password or a sign-in, you type in yourself, right in the chat.",
+      ),
+    ];
+    if (values.waiting) {
+      why.push(
+        t(
+          "home_suggestion_discovered_waiting",
+          "Other devices Home Assistant found, waiting after this one: {waiting}.",
+        ),
+      );
+    }
+    return {
+      icon: "mdi:plus-network-outline",
+      title: t("home_suggestion_discovered", "Set up {entity}"),
+      prompt: t(
+        "home_suggestion_discovered_prompt",
+        "Set up {entity}, which Home Assistant discovered through {collection}.",
+      ),
+      why,
     };
   }
   if (s.type === "camera_idea") {
@@ -405,10 +452,13 @@ function renderStarters(host, starters) {
 
 /** The chat home's suggestions, or *starters* ({label, value, icon}) when there are none. */
 export function renderHomeSuggestions(host, starters = []) {
-  const rows = (host._homeSuggestions || [])
+  const all = (host._homeSuggestions || [])
     .map((s) => [s, describe(host, s)])
-    .filter(([, d]) => d)
-    .slice(0, MAX_SHOWN);
+    .filter(([, d]) => d);
+  const pages = Math.ceil(all.length / MAX_SHOWN);
+  // Putting rows away can leave the last page empty: show the one before.
+  const page = Math.min(host._homeSuggestionPage || 0, Math.max(pages - 1, 0));
+  const rows = all.slice(page * MAX_SHOWN, (page + 1) * MAX_SHOWN);
   if (!rows.length) {
     const out = renderStarters(host, starters);
     if (!out) host._homeSuggestionsPending = true;
@@ -424,55 +474,82 @@ export function renderHomeSuggestions(host, starters = []) {
             "I noticed a few things I can help with",
           )}
         </div>
-        ${rows.map(([s, d]) => {
-          const open = host._expandedHomeSuggestion === s.suggestion_id;
-          return html`
-            <div class="home-suggestion ${open ? "open" : ""}">
-              <div class="home-suggestion-row">
-                <button
-                  class="home-suggestion-main"
-                  aria-expanded=${open ? "true" : "false"}
-                  @click=${() => toggle(host, s)}
-                >
-                  ${renderCardIcon(d.icon)}
-                  <span class="home-suggestion-title">${d.title}</span>
-                  <ha-icon
-                    class="home-suggestion-chevron"
-                    icon="mdi:chevron-down"
-                  ></ha-icon>
-                </button>
-                <button
-                  class="home-suggestion-dismiss"
-                  title=${host._t("home_suggestion_dismiss", "Dismiss")}
-                  aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
-                  @click=${() => dismiss(host, s)}
-                >
-                  <ha-icon icon="mdi:close"></ha-icon>
-                </button>
-              </div>
-              ${
-                open
-                  ? html`<div class="home-suggestion-detail">
-                      ${d.why.map((line) => html`<p>${line}</p>`)}
-                      <div class="home-suggestion-footer">
-                        ${renderActionButton({
-                          label:
-                            d.act ||
-                            host._t(
-                              "home_suggestion_do_it",
-                              "Ask Selora to do it",
-                            ),
-                          tone: "primary",
-                          onClick: () => act(host, s, d),
-                        })}
-                      </div>
-                    </div>`
-                  : ""
-              }
-            </div>
-          `;
-        })}
+        ${keyed(
+          page,
+          html`<div
+            class="home-suggestions-page ${
+              host._homeSuggestionsTurned ? "turned" : ""
+            }"
+          >
+            ${rows.map(([s, d]) => renderRow(host, s, d))}
+          </div>`,
+        )}
+        ${
+          pages > 1
+            ? html`<button
+                class="home-suggestions-other"
+                @click=${() => turnPage(host, page, pages)}
+              >
+                <ha-icon icon="mdi:refresh"></ha-icon>
+                ${host._t("home_suggestions_other", "Other ideas")}
+              </button>`
+            : ""
+        }
       </div>
     `,
   );
+}
+
+function renderRow(host, s, d) {
+  const open = host._expandedHomeSuggestion === s.suggestion_id;
+  return html`
+    <div class="home-suggestion ${open ? "open" : ""}">
+      <div class="home-suggestion-row">
+        <button
+          class="home-suggestion-main"
+          aria-expanded=${open ? "true" : "false"}
+          @click=${() => toggle(host, s)}
+        >
+          ${renderCardIcon(d.icon)}
+          <span class="home-suggestion-title">${d.title}</span>
+          <ha-icon
+            class="home-suggestion-chevron"
+            icon="mdi:chevron-down"
+          ></ha-icon>
+        </button>
+        <button
+          class="home-suggestion-dismiss"
+          title=${host._t("home_suggestion_snooze", "Remind me in a week")}
+          aria-label=${host._t("home_suggestion_snooze", "Remind me in a week")}
+          @click=${() => putAway(host, s, "snooze")}
+        >
+          <ha-icon icon="mdi:clock-outline"></ha-icon>
+        </button>
+        <button
+          class="home-suggestion-dismiss"
+          title=${host._t("home_suggestion_dismiss", "Dismiss")}
+          aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
+          @click=${() => putAway(host, s, "dismiss")}
+        >
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+      ${
+        open
+          ? html`<div class="home-suggestion-detail">
+              ${d.why.map((line) => html`<p>${line}</p>`)}
+              <div class="home-suggestion-footer">
+                ${renderActionButton({
+                  label:
+                    d.act ||
+                    host._t("home_suggestion_do_it", "Ask Selora to do it"),
+                  tone: "primary",
+                  onClick: () => act(host, s, d),
+                })}
+              </div>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
 }

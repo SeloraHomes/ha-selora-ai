@@ -14,6 +14,7 @@
  * user's session.
  */
 import { CameraLoginError, addFrigateCameras } from "./frigate-cameras.js";
+import { SetupStepError, submitIntegrationSetup } from "./integration-setup.js";
 
 /**
  * Whether the dashboard sitting there is the one this action was built for.
@@ -91,6 +92,9 @@ const HANDLERS = {
   // Sends only the plan id and the logins typed into the card; the backend
   // holds which cameras and settings were proposed.
   add_frigate_cameras: addFrigateCameras,
+  // Posts the step straight to Home Assistant's flow; only the new entry's id
+  // comes back for the report, never what was typed.
+  integration_setup: submitIntegrationSetup,
   create_helper: async (hass, action) => {
     const domain = String(action.domain || "");
     const allowed = HELPER_FIELDS[domain];
@@ -264,8 +268,10 @@ export async function runClientAction(hass, action) {
       kind,
       detail: err?.message || String(err),
       // A login the camera refused is the user's to fix on the card, not an
-      // outcome to record: the card stays open.
-      ...(err instanceof CameraLoginError ? { retry: true } : {}),
+      // outcome to record: the card stays open. So is a setup's next step.
+      ...(err instanceof CameraLoginError || err instanceof SetupStepError
+        ? { retry: true }
+        : {}),
     };
   }
 }
@@ -280,7 +286,7 @@ export async function runClientAction(hass, action) {
 // resumed turn added the same cameras again, while Frigate was still
 // restarting from the first time. The server refuses the same case; skipping
 // it here avoids an error bubble.
-const SELF_CONTAINED = new Set(["add_frigate_cameras"]);
+const SELF_CONTAINED = new Set(["add_frigate_cameras", "integration_setup"]);
 
 function resumes(approval) {
   const kinds = (approval?.client_actions || []).map((a) => String(a?.kind));

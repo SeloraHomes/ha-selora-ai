@@ -61,9 +61,8 @@ _TOOL_STEP_ICONS: dict[str, str] = {
     "list_dashboards": "mdi:view-dashboard-outline",
     "insert_dashboard_card": "mdi:view-dashboard-outline",
     "discover_network_devices": "mdi:radar",
-    "list_discovered_flows": "mdi:devices",
-    "start_device_flow": "mdi:plus-network-outline",
-    "accept_device_flow": "mdi:check-network-outline",
+    "add_integration": "mdi:plus-network-outline",
+    "ignore_discovered_device": "mdi:eye-off-outline",
     "list_suggestions": "mdi:lightbulb-outline",
     "accept_suggestion": "mdi:lightbulb-on-outline",
 }

@@ -141,7 +141,7 @@ CASES = (
     Case(
         "setup-integration",
         "Set up the Philips Hue integration",
-        calls=("start_device_flow",),
+        calls=("add_integration",),
     ),
     # A Matter node id is looked up, not answered with Settings directions.
     Case(

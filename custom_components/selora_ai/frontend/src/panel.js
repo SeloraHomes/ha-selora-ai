@@ -246,6 +246,7 @@ class SeloraAIPanel extends LitElement {
       _sessions: { type: Array },
       _homeSuggestions: { type: Array },
       _expandedHomeSuggestion: { type: String },
+      _homeSuggestionPage: { type: Number },
       _activeSessionId: { type: String },
 
       // Message view
@@ -2263,6 +2264,11 @@ class SeloraAIPanel extends LitElement {
     if (this.hass && this._pendingChatHome) {
       this._pendingChatHome = false;
       this._openChatHome();
+    }
+    if (this.hass && this._pendingSetupFlow) {
+      const flowId = this._pendingSetupFlow;
+      this._pendingSetupFlow = null;
+      this._openSetupFlow(flowId);
     }
     if (this.hass && this._pendingNewAutomation) {
       const name = this._pendingNewAutomation;

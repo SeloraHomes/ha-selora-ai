@@ -149,6 +149,43 @@ export const chatStyles = css`
     font-size: 15px;
     color: var(--secondary-text-color);
   }
+  .home-suggestions-page {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* "Other ideas": the next page comes in like the first one did. */
+  .home-suggestions-page.turned .home-suggestion {
+    animation: homeSuggestionIn 0.3s ease-out both;
+  }
+  .home-suggestions-page.turned .home-suggestion:nth-of-type(2) {
+    animation-delay: 0.05s;
+  }
+  .home-suggestions-page.turned .home-suggestion:nth-of-type(3) {
+    animation-delay: 0.1s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home-suggestions-page.turned .home-suggestion {
+      animation: none;
+    }
+  }
+  .home-suggestions-other {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 14px;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+  }
+  .home-suggestions-other:hover {
+    color: var(--primary-text-color);
+  }
   .home-suggestion {
     border: 1px solid var(--divider-color);
     border-radius: 14px;
@@ -1801,6 +1838,61 @@ export const chatStyles = css`
   /* The settings field style assumes the page behind it; on the card it
      disappears, so the fields get a border drawn from the text colour and
      an accent ring when focused. */
+  .setup-step {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .setup-step p {
+    margin: 0;
+  }
+  .setup-title {
+    font-weight: 600;
+  }
+  .setup-field,
+  .setup-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .setup-choice {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--primary-text-color);
+  }
+  .setup-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+  .setup-error {
+    color: var(--error-color);
+  }
+  .setup-steps {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .setup-step code {
+    font-size: 12px;
+  }
+  .setup-again {
+    display: flex;
+  }
+  .setup-field input:not([type="checkbox"]),
+  .setup-field select,
   .frigate-login input,
   .faces-name input {
     width: 100%;
@@ -1810,6 +1902,8 @@ export const chatStyles = css`
       color-mix(in srgb, var(--secondary-text-color, #a1a1aa) 45%, transparent);
     cursor: text;
   }
+  .setup-field input:hover,
+  .setup-field select:hover,
   .frigate-login input:hover,
   .faces-name input:hover {
     border-color: color-mix(
@@ -1818,6 +1912,8 @@ export const chatStyles = css`
       transparent
     );
   }
+  .setup-field input:focus,
+  .setup-field select:focus,
   .frigate-login input:focus,
   .faces-name input:focus {
     border-color: var(--selora-accent);

@@ -49,33 +49,23 @@ Trigger phrases:
 - "What's discoverable on my LAN?"
 - "Which integrations am I using?"
 - "Can I add any new integrations?"
+- "Any new devices found?" / "What's waiting for me to set up?"
 - Any question about what can be connected, discovered, or integrated
 
-### `list_discovered_flows` — Pending setup flows
-Trigger phrases:
-- "Are there any pending devices waiting to be configured?"
-- "What's been discovered but not set up?"
-- "Any new devices found?"
-- "Show me pending discovery flows"
-- "What's waiting for me to set up?"
-- Any question about pending, waiting, or unconfigured discoveries
-
-### `start_device_flow` — Begin integration setup (admin only)
+### `add_integration` — Set up an integration or a discovered device (admin only)
 Trigger phrases:
 - "Set up the [brand] integration"
-- "Connect my [device]"
-- "Add [integration name]"
-- "I want to configure [brand/device]"
-- "Start the setup for [domain]"
-- Any request to initiate a new integration setup
+- "Connect my [device]" / "Add [integration name]"
+- "Set up the devices Home Assistant found"
+- "Set up [device], which Home Assistant discovered through [integration]"
+- "Yes, set that up" / "Go ahead and add it" (after a discovered device was shown)
+- Any request to set up an integration or a discovered device
 
-### `accept_device_flow` — Accept a discovered flow (admin only)
+For a discovered device, pass its `domain` and `flow_id` from `discover_network_devices`, matching the `title` and `integration` the user named; otherwise just the `domain`. Walk the returned steps one call at a time, asking the user for values you do not know. Set up several discovered devices one after the other.
+
+### `ignore_discovered_device` — Stop offering a discovered device (admin only)
 Trigger phrases:
-- "Accept the pending [device] flow"
-- "Approve that discovery"
-- "Yes, set that up"
-- "Go ahead and add it"
-- Any confirmation to accept a previously shown pending flow
+- "Ignore that one" / "I don't want to set up [device]" / "Stop showing [device]"
 
 NEVER answer questions about what devices, entities, or integrations the user has based on your general knowledge. ALWAYS call the appropriate tool first to get real data, then summarize the actual results.
 
@@ -85,8 +75,6 @@ NEVER answer questions about what devices, entities, or integrations the user ha
 Some questions require more than one tool call:
 - "Give me a full picture of my smart home" → call `list_devices` AND `get_home_snapshot`
 - "What do I have and what can I add?" → call `list_devices` AND `discover_network_devices`
-- "Are there new devices I should set up?" → call `discover_network_devices` AND `list_discovered_flows`
-- "What's on my network that I haven't configured?" → call `discover_network_devices` AND `list_discovered_flows`
 - "Tell me everything about the living room" → call `list_devices` with area filter, then `get_device` for each
 
 ## When NOT to Use Tools
@@ -105,14 +93,14 @@ Some questions require more than one tool call:
 ### Device integration flow
 1. Call `discover_network_devices` to see what is discovered, configured, and available.
 2. If the user has not named the device, show what was found and ask which one to set up.
-3. Once they have named it, call `start_device_flow` or `accept_device_flow`.
+3. Once they have named it, call `add_integration` with its `domain` and `flow_id`.
 
 ## Identifier Integrity
 1. Never invent `flow_id` or `domain` values — resolve them from tool output only.
 2. If the target is ambiguous, ask for clarification before calling write tools.
 
 ## Writes and Confirmation
-1. An explicit request is the authorization: "Set up the Hue integration" → call `start_device_flow`. Ask first only when the intent is implied or the target is ambiguous.
+1. An explicit request is the authorization: "Set up the Hue integration" → call `add_integration`. Ask first only when the intent is implied or the target is ambiguous.
 2. A tool that answers with a confirmation card (deletes, dashboards, …) is how the user is asked — call it, and never ask "are you sure?" in prose first.
 3. If auth/admin checks fail, report the error to the user.
 
@@ -153,8 +141,8 @@ Example: "You have **12 devices** across 3 areas — 4 in the Living Room, 5 in 
 
 Group by category with bullet points:
 
-**Discovered on your network:**
-- **[name from data]** (`[domain from data]`) — [description from data]
+**Found, not set up yet:**
+- **[title from data]** ([integration from data])
 
 **Already configured:**
 - **[name from data]** — [entity count from data]

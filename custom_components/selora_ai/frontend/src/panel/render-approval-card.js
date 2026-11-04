@@ -19,6 +19,7 @@ import { renderCreatedCheck } from "../shared/created-check.js";
 
 import { resolveClientActions } from "./client-actions.js";
 import { renderFrigateCameraRows } from "./frigate-cameras.js";
+import { renderIntegrationSetupRow } from "./integration-setup.js";
 import { renderConfirmChip } from "./quick-actions.js";
 import {
   actionIcon,
@@ -184,6 +185,14 @@ const _CONFIRM_VARIANTS = {
           icon: "mdi:cctv",
           labelKey: "client_action_add_to_frigate",
           labelFallback: "Add to Frigate",
+        },
+        // Each press answers one step of the setup; the card stays until the
+        // last one.
+        integration_setup: {
+          tone: "primary",
+          icon: "mdi:arrow-right",
+          labelKey: "client_action_continue",
+          labelFallback: "Continue",
         },
       },
       tone: "approve",
@@ -617,6 +626,9 @@ const _CLIENT_ACTION_ICONS = {
 function _renderClientActionRow(host, action) {
   if (action.kind === "add_frigate_cameras") {
     return renderFrigateCameraRows(host, action);
+  }
+  if (action.kind === "integration_setup") {
+    return renderIntegrationSetupRow(host, action);
   }
   return html`
     <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">

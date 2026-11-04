@@ -282,16 +282,32 @@ Devices & services does.
   `flow_id` like an options flow, so a second entry (another team, account or
   location) is added the same way. Helpers go to `create_helper`, Selora AI
   itself is refused.
-  - **Logins never reach the model.** A step with a credential field (the
-    `is_set` marker `_describe_serialized` gives one) is refused and the flow
-    aborted, pointing the user at Settings. Submitted values with a
-    credential-like name are refused too, for a form that could not be
-    described.
+  - **Logins never reach the model, and the user never leaves Selora AI.**
+    A step with a credential field (the `is_set` marker `_describe_serialized`
+    gives one) or a browser sign-in (`async_drive(hand_over=True)`) is let go,
+    not aborted, and handed to the user as an `integration_setup` client
+    action: a card in the chat (`panel/integration-setup.js`) that reads the
+    step from Home Assistant's flow endpoint, in the integration's own
+    translations, and posts what the user types straight back to it — the
+    same calls Home Assistant's dialog makes. Only the new entry's id comes
+    back in the report, and `client_action_result` checks that entry exists
+    in that integration before it records anything. Sending users to Settings
+    instead had them leave the chat for the one step it could not do.
+  - **Over MCP there is no card**, so the result carries `setup_url`:
+    `?setup_flow=<flow_id>` on the panel (from `async_link_base`, the address
+    a browser can reach), which `selora_ai/integration_setup_open` turns into
+    a new chat holding the card.
+  - Submitted values with a credential-like name are never sent, for a form
+    that could not be described; the step is described again, with a note.
   - **The call that starts the flow submits nothing**, even with `fields`:
     `async_drive` would otherwise submit the first form before it was ever
-    described, so before a login in it could be refused.
-  - A browser step (OAuth sign-in) is refused by `async_drive`, as it is for
-    every flow.
+    described, so before a login in it could be handed over.
+  - A flow handed over and then abandoned stays in progress, as one closed
+    mid-way in Home Assistant's own dialog would without its Cancel; the card
+    has no Cancel, since a discovery's flow must never be aborted.
+- **Adding and ignoring are chat tools too** (`add_integration`,
+  `ignore_discovered_device`), the MCP definitions derived from them. Chat's
+  `discover_network_devices` reports the same `discovered` rows.
 - **Discovered devices are listed with the integrations** (`discovered`), as
   the page's Discovered section shows them: flows whose source is in core's
   `DISCOVERY_SOURCES`, titled from the integration's `config.flow_title` and
@@ -301,8 +317,47 @@ Devices & services does.
   `add_integration` with its `flow_id` reads the step with
   `async_configure(flow_id)`, as core's flow view does when Add is pressed on
   the card. A fresh `user` flow would lose what the discovery found (address,
-  unique id) and often abort `already_in_progress` beside it. The same login
-  refusal applies, pointing the user at the Discovered card, which stays.
+  unique id) and often abort `already_in_progress` beside it. A login step
+  goes to the setup card the same way, on the discovery's own flow.
+  - **A setup refused as `already_in_progress` continues the discovery's.**
+    Asked to set a discovered device up, the model can skip the listing and
+    start a fresh flow, which Home Assistant refuses while the discovery's
+    is open. The one such discovery for the domain is adopted instead (several
+    come back as `pick_discovered`), and a first call without `flow_id`
+    already lists the domain's discoveries.
+- **A step says what Home Assistant's dialog says**: `async_step_texts` reads
+  the integration's own translations, so a step carries its `title` and
+  `description` (placeholders filled, each sanitized: the device supplies
+  them), errors their sentences and an abort its reason's.
+- **A step with no fields, reached by answering one, goes to the setup card**
+  like a login: it asks the user to act (press the bridge's button, allow
+  access in the device's app) or whether to go on without something. Apple
+  TV's `protocol_disabled` is one; the model confirmed it for each protocol
+  in turn and the setup failed with nothing paired. The first step of a
+  discovery (its confirm) stays with the model: the user's request already
+  answered it.
+  - **The card shows the model's steps for the device.** Home Assistant says
+    what to allow, never where ("allow all devices on the local network"),
+    so reaching such a step answers `needs_steps` with the flow still held,
+    and the model calls again with `steps`. Kept by flow_id
+    (`_keep_steps`, bounded) so a link opened over MCP shows them too.
+  - **Check again ends the flow and starts a fresh `user` one**, from the
+    card. Some settings are read only when a setup starts — Apple TV scans
+    a device's access (`acl`, `rpfl`) once — so Continue after changing
+    the device just skips what is now allowed. Pressed by the user, it may
+    end a discovery's flow, as closing Home Assistant's dialog does; the
+    device is discovered again when it next announces itself.
+- **Ignoring is Home Assistant's own** `config_entries/ignore_flow`: an
+  `ignore` flow for the device's unique id (and `discovery_key`), which ends
+  the discovery and keeps it from coming back. A discovery without a unique id
+  cannot be ignored, as in Home Assistant.
+- **The chat home suggests setting them up** (`set_up_discovered`), one device
+  at a time, each in a chat of its own: one chat asked for thirteen devices ran
+  out of tool rounds after two. A row is named by the device's
+  `domain:unique_id`, and its request names the device as its Discovered card
+  does, with the integration; the model finds the `flow_id` itself, so the
+  bubble's details carry no ids. Dismissing a row shows the next device, and is
+  not ignoring — the device stays under Discovered.
 - Listing is read-only access, as `config_entries/get` is in Home Assistant;
   every change needs admin.
 

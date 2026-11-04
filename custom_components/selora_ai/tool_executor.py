@@ -104,9 +104,8 @@ class ToolExecutor:
         return {
             "get_home_snapshot": self._get_home_snapshot,
             "discover_network_devices": self._discover_network_devices,
-            "list_discovered_flows": self._list_discovered_flows,
-            "start_device_flow": self._start_device_flow,
-            "accept_device_flow": self._accept_device_flow,
+            "add_integration": self._add_integration,
+            "ignore_discovered_device": self._ignore_discovered_device,
             "list_devices": self._list_devices,
             "get_device": self._get_device,
             "get_device_triggers": self._get_device_triggers,
@@ -204,11 +203,13 @@ class ToolExecutor:
         return await _tool_get_home_snapshot(self._hass)
 
     async def _discover_network_devices(self, _arguments: dict[str, Any]) -> dict[str, Any]:
-        return await self._device_manager.discover_network_devices()
+        from .integration_manager import async_list_discovered
 
-    async def _list_discovered_flows(self, _arguments: dict[str, Any]) -> dict[str, Any]:
-        flows = await self._device_manager.list_discovered()
-        return {"flows": flows}
+        result = dict(await self._device_manager.discover_network_devices())
+        # Named and sanitized as the Discovered cards are: a device's
+        # advertised name is untrusted text.
+        result["discovered"] = await async_list_discovered(self._hass)
+        return result
 
     async def _list_devices(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server.entities import _tool_list_devices
@@ -942,18 +943,23 @@ class ToolExecutor:
             expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
         )
 
-    async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        domain = str(arguments.get("domain", "")).strip()
-        host = str(arguments.get("host", "")).strip()
-        if not domain:
-            return {"error": "domain is required"}
-        return await self._device_manager.start_device_flow(domain, host)
+    async def _add_integration(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .integration_manager import async_add_integration
 
-    async def _accept_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        flow_id = str(arguments.get("flow_id", "")).strip()
-        if not flow_id:
-            return {"error": "flow_id is required"}
-        return await self._device_manager.accept_flow(flow_id)
+        fields = arguments.get("fields")
+        return await async_add_integration(
+            self._hass,
+            str(arguments.get("domain") or ""),
+            _opt_str(arguments.get("type")),
+            fields if isinstance(fields, dict) else None,
+            _opt_str(arguments.get("flow_id")),
+            steps if isinstance(steps := arguments.get("steps"), list) else None,
+        )
+
+    async def _ignore_discovered_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .integration_manager import async_ignore_discovered
+
+        return await async_ignore_discovered(self._hass, str(arguments.get("flow_id") or ""))
 
 
 def _as_list(value: Any) -> list[str]:

@@ -1,14 +1,13 @@
 """Device discovery & integration orchestration for Selora AI.
 
-Wraps HA's config_entries.flow API so Selora AI can list discovered
-devices, accept/pair them (including PIN entry), and complete integration
-through authenticated Home Assistant flows.
+Wraps HA's config_entries.flow API for Selora AI's own onboarding (its
+config flow's device step and the hub buttons):
+  1. discover_network_devices() finds pending discovery flows
+  2. accept_flow() confirms one with empty user input
+  3. configure_step() completes a multi-step one from a cloned entry
 
-All devices go through the same generic flow:
-  1. discover_network_devices() finds pending config flows
-  2. accept_flow() confirms discovery with empty user input
-  3. submit_pin() handles any PIN prompts
-  4. configure_step() handles arbitrary multi-step flows
+A chat or MCP setup goes through ``integration_manager`` instead, one step
+per call.
 """
 
 from __future__ import annotations
@@ -44,25 +43,6 @@ class DeviceManager:
         self._api_key = api_key
         self._model = model
 
-    async def list_discovered(self) -> list[dict[str, Any]]:
-        """Return all pending discovery / config flows."""
-        progress = self.hass.config_entries.flow.async_progress()
-        results: list[dict[str, Any]] = []
-        for flow in progress:
-            results.append(
-                {
-                    "flow_id": flow["flow_id"],
-                    "handler": flow.get("handler", ""),
-                    "step_id": flow.get("step_id", ""),
-                    "context": {
-                        k: v
-                        for k, v in flow.get("context", {}).items()
-                        if k in ("source", "unique_id", "title_placeholders")
-                    },
-                }
-            )
-        return results
-
     def _count_if_paired(self, result: FlowResult) -> FlowResult:
         """Record a pairing when a flow step completed with a created entry.
 
@@ -78,22 +58,6 @@ class DeviceManager:
     async def accept_flow(self, flow_id: str) -> FlowResult:
         """Confirm a discovered flow with empty user input (single-step)."""
         result = await self.hass.config_entries.flow.async_configure(flow_id, user_input={})
-        return self._count_if_paired(self._normalise_result(result))
-
-    async def start_device_flow(self, domain: str, host: str) -> FlowResult:
-        """Manually kick off a config flow by domain + host IP."""
-        result = await self.hass.config_entries.flow.async_init(
-            domain,
-            context={"source": "user"},
-            data={"host": host},
-        )
-        return self._count_if_paired(self._normalise_result(result))
-
-    async def submit_pin(self, flow_id: str, pin: str) -> FlowResult:
-        """Submit a PIN for a pairing step (e.g. Android TV)."""
-        result = await self.hass.config_entries.flow.async_configure(
-            flow_id, user_input={"pin": pin}
-        )
         return self._count_if_paired(self._normalise_result(result))
 
     async def configure_step(self, flow_id: str, user_input: dict[str, Any]) -> FlowResult:
@@ -132,7 +96,11 @@ class DeviceManager:
         active_initiated = await self._trigger_active_discovery()
 
         # ── Discovered (pending config flows from SSDP/mDNS + active) ──
-        progress = self.hass.config_entries.flow.async_progress()
+        # Only what Home Assistant found itself: a flow the user (or a Selora
+        # tool) started by hand, or a re-login, is not a discovery.
+        from .integration_manager import discovery_flows  # noqa: PLC0415
+
+        progress = discovery_flows(self.hass)
         discovered: list[dict[str, Any]] = []
         discovered_domains: set[str] = set()
         for flow in progress:

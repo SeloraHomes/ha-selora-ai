@@ -32,7 +32,7 @@ from .const import DOMAIN
 from .helpers import sanitize_untrusted_text
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Mapping
 
     from homeassistant.core import HomeAssistant
 
@@ -117,6 +117,31 @@ def async_close_all(hass: HomeAssistant) -> None:
 # ── Walking a flow across calls ────────────────────────────────────────────
 
 
+# A text from the flow's integration catalog by key under its category
+# ("step.<id>.description", "error.<key>", "abort.<reason>"), placeholders
+# filled; empty when the integration has none.
+type StepTexts = Callable[[str, Mapping[str, Any] | None], str]
+
+
+async def async_step_texts(hass: HomeAssistant, domain: str, category: str) -> StepTexts:
+    """What Home Assistant's dialog would say at each step of *domain*'s
+    ``config`` or ``options`` flow: the integration's own translations, so a
+    step that only explains itself (no fields) is not a bare step id."""
+    from homeassistant.helpers.translation import async_get_translations  # noqa: PLC0415
+
+    from .repairs_manager import _fill  # noqa: PLC0415
+
+    catalog = await async_get_translations(hass, hass.config.language, category, [domain])
+    prefix = f"component.{domain}.{category}."
+
+    def text(key: str, placeholders: Mapping[str, Any] | None) -> str:
+        # Placeholders are what the device or service reported about itself.
+        values = {k: sanitize_untrusted_text(v, 80) for k, v in (placeholders or {}).items()}
+        return sanitize_untrusted_text(_fill(catalog.get(prefix + key, ""), values), 800)
+
+    return text
+
+
 async def async_drive(
     hass: HomeAssistant,
     manager: Any,
@@ -129,6 +154,8 @@ async def async_drive(
     values_param: str,
     errors: tuple[type[Exception], ...],
     adopted: bool = False,
+    texts: StepTexts | None = None,
+    hand_over: bool = False,
 ) -> dict[str, Any]:
     """Start a flow or continue an open one by one step, and say where it is.
 
@@ -141,6 +168,13 @@ async def async_drive(
     flow (Home Assistant's own flow view reads its step the same way, with
     ``async_configure(flow_id)``), and nothing here ever aborts it.
 
+    With ``texts``, a step carries the words Home Assistant's dialog shows for
+    it (title, description, errors), and an abort its reason's sentence.
+
+    With ``hand_over``, a step that needs the browser (an account sign-in) is
+    let go rather than aborted, as ``{"status": "needs_browser", "flow_id"}``:
+    the caller gives it to the user to finish.
+
     Returns ``{"done": result}`` once the flow created its entry, or the
     response to give: the next menu or form (with ``flow_id``), or an error.
     """
@@ -149,7 +183,12 @@ async def async_drive(
     def _waiting(result: dict[str, Any]) -> dict[str, Any]:
         current = str(result.get("flow_id") or flow_id)
         keep_open(hass, manager, current, owner, result, adopted=adopted)
-        step = {"flow_id": current, "step": result.get("step_id")}
+        step: dict[str, Any] = {"flow_id": current, "step": result.get("step_id")}
+        placeholders = result.get("description_placeholders")
+        if texts:
+            for part in ("title", "description"):
+                if said := texts(f"step.{result.get('step_id')}.{part}", placeholders):
+                    step[part] = said
         if result.get("type") == "menu":
             return {
                 "status": "needs_type",
@@ -169,7 +208,10 @@ async def async_drive(
             ),
         }
         if result.get("errors"):
-            response["errors"] = result["errors"]
+            response["errors"] = {
+                field: (texts and texts(f"error.{key}", placeholders)) or key
+                for field, key in result["errors"].items()
+            }
         return response
 
     try:
@@ -223,13 +265,22 @@ async def async_drive(
     if kind == "create_entry":
         release(hass, flow_id, abort=False)
         return {"done": result}
+    browser = kind in ("external", "progress", "external_step", "show_progress")
+    if browser and hand_over and flow_id:
+        release(hass, flow_id, abort=False)
+        return {"status": "needs_browser", "flow_id": str(flow_id), "step": result.get("step_id")}
     release(hass, flow_id, abort=True)
     # One refused at its first step was never held, so release left it open;
     # one that aborted itself is already gone.
     if flow_id and not adopted:
         with contextlib.suppress(UnknownFlow):
             manager.async_abort(flow_id)
-    if kind in ("external", "progress", "external_step", "show_progress"):
+    if browser:
         return {"error": "This step needs the browser; finish it in Settings."}
-    reason = result.get("reason") or kind
-    return {"error": f"It was not completed ({sanitize_untrusted_text(str(reason))})."}
+    reason = str(result.get("reason") or kind)
+    said = texts and texts(f"abort.{reason}", result.get("description_placeholders"))
+    return {
+        "error": f"It was not completed ({sanitize_untrusted_text(reason)})."
+        + (f" Home Assistant says: {said}" if said else ""),
+        "reason": sanitize_untrusted_text(reason, 60),
+    }

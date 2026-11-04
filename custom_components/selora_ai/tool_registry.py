@@ -109,59 +109,94 @@ TOOL_DISCOVER_DEVICES = ToolDef(
     name="discover_network_devices",
     description=(
         "Discover network devices and integration status. Returns three lists: "
-        "discovered (pending config flows from mDNS/SSDP), configured (already set up), "
-        "and available (known integrations not yet found). Use this to help users "
-        "understand what devices are on their network and what can be set up."
+        "discovered (devices Home Assistant found on the network, Bluetooth or USB "
+        "that are not set up yet, each with a flow_id, domain and title), configured "
+        "(already set up), and available (known integrations not yet found). Use "
+        "this to help users understand what devices are on their network and what "
+        "can be set up."
     ),
 )
 
-TOOL_LIST_DISCOVERED = ToolDef(
-    name="list_discovered_flows",
+TOOL_ADD_INTEGRATION = ToolDef(
+    name="add_integration",
     description=(
-        "Return all pending discovery config flows with their flow_id, handler, "
-        "and current step. Use this to see what devices are waiting to be set up."
-    ),
-)
-
-TOOL_START_DEVICE_FLOW = ToolDef(
-    name="start_device_flow",
-    description=(
-        "Start an integration config flow for a specific device. Use this after "
-        "discover_network_devices reveals a device the user wants to set up. "
-        "Provide the integration domain (e.g. 'hue', 'cast') and optionally the host IP."
+        "Add an installed integration, as Settings → Devices & services → Add "
+        "integration does — also a second entry of one the home already has "
+        "(another team, account or location). Call first with just `domain`: it "
+        "returns the setup form's fields (or the choices, when it starts with a "
+        "menu — then pass `type`) and a flow_id. Call again with that flow_id "
+        "and `fields` holding the values; each further step comes back the same "
+        "way until status is added. Ask the user for values you do not know "
+        "rather than guessing. A step's `title` and `description` are what Home "
+        "Assistant's own dialog says: tell the user what they say. For a "
+        "device in the discovered list, pass its "
+        "domain and flow_id on the first call: that continues Home Assistant's "
+        "own setup for it, keeping what the discovery found (its address). A "
+        "step that asks for a password, API key or other login, or a sign-in "
+        "in the browser, goes to the user on a setup card in the chat: never "
+        "ask them for those values. So does a later step with no fields, which "
+        "asks them to do something on the device (press its button, allow "
+        "access in its app) or whether to go on without it: the answer asks "
+        "you for `steps` to show on the card. A custom integration is "
+        "installed from HACS first. Helpers use create_helper."
     ),
     params=(
         ToolParam(
             name="domain",
             type="string",
-            description="Integration domain (e.g. 'hue', 'sonos', 'cast')",
+            description="The integration's domain, e.g. 'hue'.",
             required=True,
         ),
         ToolParam(
-            name="host",
+            name="type",
             type="string",
-            description="Host IP address if known",
+            description="When the step is a menu: the choice.",
+        ),
+        ToolParam(
+            name="fields",
+            type="object",
+            description="The step's values, keyed by its field names.",
+        ),
+        ToolParam(
+            name="flow_id",
+            type="string",
+            description=(
+                "A discovered device's flow_id, or one from a previous call to "
+                "answer the flow's next step."
+            ),
+        ),
+        ToolParam(
+            name="steps",
+            type="array",
+            items_type="string",
+            description=(
+                "Only when an answer asks for them, with its flow_id: how the "
+                "user does what that step asks on the device, in order."
+            ),
         ),
     ),
     requires_admin=True,
+    large_context_only=True,
 )
 
-TOOL_ACCEPT_FLOW = ToolDef(
-    name="accept_device_flow",
+TOOL_IGNORE_DISCOVERED = ToolDef(
+    name="ignore_discovered_device",
     description=(
-        "Accept and confirm a pending device discovery flow. Use this when a user "
-        "wants to add a discovered device. Provide the flow_id from "
-        "discover_network_devices or list_discovered_flows."
+        "Ignore a device Home Assistant discovered, as Ignore on its Discovered "
+        "card does: it stops being offered for setup, and Settings → Devices & "
+        "services keeps it under Ignored, where the user can bring it back. Only "
+        "when the user asks to ignore or hide that device."
     ),
     params=(
         ToolParam(
             name="flow_id",
             type="string",
-            description="The flow_id from a discovered device",
+            description="The device's flow_id, from the discovered list.",
             required=True,
         ),
     ),
     requires_admin=True,
+    large_context_only=True,
 )
 
 TOOL_LIST_DEVICES = ToolDef(
@@ -3401,9 +3436,8 @@ TOOL_GROUP_DASHBOARD_CARDS = ToolDef(
 CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_DISCOVER_DEVICES,
-    TOOL_LIST_DISCOVERED,
-    TOOL_START_DEVICE_FLOW,
-    TOOL_ACCEPT_FLOW,
+    TOOL_ADD_INTEGRATION,
+    TOOL_IGNORE_DISCOVERED,
     TOOL_LIST_DEVICES,
     TOOL_GET_DEVICE,
     TOOL_GET_DEVICE_TRIGGERS,

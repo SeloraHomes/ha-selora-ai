@@ -13,12 +13,17 @@ function flatten(node) {
     });
     return out;
   }
+  // A directive (keyed) renders its last value.
+  if (typeof node === "object" && Array.isArray(node.values)) {
+    return flatten(node.values.at(-1));
+  }
   if (typeof node === "function") return "";
   return String(node);
 }
 
-// Every event handler in a template, in document order: a row's toggle and
-// dismiss, then the open row's "Ask Selora to do it".
+// Every event handler in a template, in document order: a row's toggle,
+// snooze and dismiss, then the open row's "Ask Selora to do it", then
+// "Other ideas".
 function handlers(node, out = []) {
   if (Array.isArray(node)) node.forEach((n) => handlers(n, out));
   else if (typeof node === "function") out.push(node);
@@ -211,6 +216,122 @@ describe("renderHomeSuggestions", () => {
     expect(out.split("home-suggestion-main").length - 1).toBe(3);
   });
 
+  const numbered = (count) =>
+    Array.from({ length: count }, (_, n) => ({
+      ...leak,
+      suggestion_id: `s${n + 1}`,
+      entities: [
+        { entity_id: `binary_sensor.leak_${n + 1}`, name: `Leak ${n + 1}` },
+      ],
+    }));
+  const titles = (out) =>
+    [...flatten(out).matchAll(/Add (Leak \d+) to/g)].map((m) => m[1]);
+
+  it("pages through the rest three at a time, and wraps around", () => {
+    const h = host(numbered(7));
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 1",
+      "Leak 2",
+      "Leak 3",
+    ]);
+
+    handlers(renderHomeSuggestions(h)).at(-1)();
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 4",
+      "Leak 5",
+      "Leak 6",
+    ]);
+    handlers(renderHomeSuggestions(h)).at(-1)();
+    expect(titles(renderHomeSuggestions(h))).toEqual(["Leak 7"]);
+    handlers(renderHomeSuggestions(h)).at(-1)();
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 1",
+      "Leak 2",
+      "Leak 3",
+    ]);
+  });
+
+  it("offers other ideas only when there are more than three", () => {
+    expect(flatten(renderHomeSuggestions(host(numbered(3))))).not.toContain(
+      "Other ideas",
+    );
+    expect(flatten(renderHomeSuggestions(host(numbered(4))))).toContain(
+      "Other ideas",
+    );
+  });
+
+  it("shows the page before when the last one empties", () => {
+    const h = { ...host(numbered(4)), _homeSuggestionPage: 1 };
+    h._homeSuggestions = numbered(3);
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 1",
+      "Leak 2",
+      "Leak 3",
+    ]);
+  });
+
+  it("turns from the page on screen, not a page that emptied", () => {
+    const h = { ...host(numbered(10)), _homeSuggestionPage: 3 };
+    h._homeSuggestions = numbered(9);
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 7",
+      "Leak 8",
+      "Leak 9",
+    ]);
+    handlers(renderHomeSuggestions(h)).at(-1)();
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 1",
+      "Leak 2",
+      "Leak 3",
+    ]);
+  });
+
+  it("reads the list again once a row is put away, for the next in line", async () => {
+    const h = host(numbered(1));
+    const next = { ...leak, suggestion_id: "discovered:next" };
+    h.hass.callWS = vi.fn(async ({ type }) =>
+      type === "selora_ai/home_suggestions" ? [next] : { snoozed: true },
+    );
+    const [, snooze] = handlers(renderHomeSuggestions(h));
+
+    await snooze();
+    expect(h._homeSuggestions).toEqual([next]);
+  });
+
+  it("snoozes a row, and the next one takes its place", async () => {
+    const h = host(numbered(4));
+    h.hass.callWS = vi.fn(async ({ type }) =>
+      type === "selora_ai/home_suggestions" ? numbered(4).slice(1) : {},
+    );
+    const [, snooze] = handlers(renderHomeSuggestions(h));
+
+    await snooze();
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/home_suggestions/snooze",
+      suggestion_id: "s1",
+    });
+    expect(titles(renderHomeSuggestions(h))).toEqual([
+      "Leak 2",
+      "Leak 3",
+      "Leak 4",
+    ]);
+  });
+
+  it("dismisses a row for good", async () => {
+    const h = host(numbered(2));
+    h.hass.callWS = vi.fn(async ({ type }) =>
+      type === "selora_ai/home_suggestions" ? numbered(2).slice(1) : {},
+    );
+    const [, , dismiss] = handlers(renderHomeSuggestions(h));
+
+    await dismiss();
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/home_suggestions/dismiss",
+      suggestion_id: "s1",
+    });
+    expect(titles(renderHomeSuggestions(h))).toEqual(["Leak 2"]);
+  });
+
   it("offers to add cameras to Frigate, asking with their ids", () => {
     const cameras = {
       suggestion_id: "frigate:camera.driveway,camera.porch",
@@ -283,6 +404,46 @@ describe("renderHomeSuggestions", () => {
     expect(messageDetails(sent)).toBe(
       "Add these cameras to Frigate: Porch, Garage Cam (camera.porch, 192.168.1.60).",
     );
+  });
+
+  it("offers one discovered device, asking without ids", () => {
+    const found = (waiting) => ({
+      suggestion_id: "discovered:hue:001788",
+      type: "set_up_discovered",
+      entities: [{ entity_id: "", name: "Hue Bridge" }],
+      collection: { source: "discovery", name: "Philips Hue", ref: "" },
+      waiting,
+    });
+    const h = host([found(12)]);
+    expect(flatten(renderHomeSuggestions(h))).toContain("Set up Hue Bridge");
+
+    handlers(renderHomeSuggestions(h))[0]();
+    const opened = flatten(renderHomeSuggestions(h));
+    expect(opened).toContain(
+      "Home Assistant found Hue Bridge through Philips Hue, but nobody has set it up yet.",
+    );
+    expect(opened).toContain(
+      "Other devices Home Assistant found, waiting after this one: 12.",
+    );
+    handlers(renderHomeSuggestions(h)).at(-1)();
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(messageDetails(sent)).toBe(
+      "Set up Hue Bridge, which Home Assistant discovered through Philips Hue.",
+    );
+  });
+
+  it("says nothing of others when it is the last discovered device", () => {
+    const h = host([
+      {
+        suggestion_id: "discovered:hue:001788",
+        type: "set_up_discovered",
+        entities: [{ entity_id: "", name: "Hue Bridge" }],
+        collection: { source: "discovery", name: "Philips Hue", ref: "" },
+        waiting: 0,
+      },
+    ]);
+    handlers(renderHomeSuggestions(h))[0]();
+    expect(flatten(renderHomeSuggestions(h))).not.toContain("waiting after");
   });
 
   it("starts face recognition, then asks for the people to recognize", async () => {
