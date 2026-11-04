@@ -1904,3 +1904,104 @@ describe("displayTriggers and disabled steps", () => {
     expect(shown).toHaveLength(1);
   });
 });
+
+describe("Action data the phrasing does not name", () => {
+  const hass = {
+    states: {
+      "media_player.str_an1000_3": {
+        attributes: { friendly_name: "STR-AN1000" },
+      },
+      "input_number.target": { attributes: { friendly_name: "Target" } },
+      "lock.front": { attributes: { friendly_name: "Front Lock" } },
+    },
+  };
+
+  it("shows the source a select_source picks", () => {
+    expect(
+      describeFlowItem(hass, {
+        action: "media_player.select_source",
+        data: { source: "TV" },
+        target: { entity_id: "media_player.str_an1000_3" },
+      }),
+    ).toBe("Select Source STR-AN1000 → TV");
+  });
+
+  it("shows the value a set_value sets", () => {
+    expect(
+      describeFlowItem(hass, {
+        action: "input_number.set_value",
+        target: { entity_id: "input_number.target" },
+        data: { value: 21 },
+      }),
+    ).toBe("Set value for Target → 21");
+  });
+
+  it("labels secondary fields with their key", () => {
+    expect(
+      describeFlowItem(hass, {
+        action: "light.turn_on",
+        target: { entity_id: "media_player.str_an1000_3" },
+        data: { brightness_pct: 40, transition: 5 },
+      }),
+    ).toBe("Turn on STR-AN1000 (at 40%, transition: 5)");
+  });
+
+  it("never shows a code or a template", () => {
+    expect(
+      describeFlowItem(hass, {
+        action: "lock.unlock",
+        target: { entity_id: "lock.front" },
+        data: { code: "1234" },
+      }),
+    ).toBe("Unlock Front Lock");
+    expect(
+      describeFlowItem(hass, {
+        action: "media_player.select_source",
+        target: { entity_id: "media_player.str_an1000_3" },
+        data: { source: "{{ states('input_select.src') }}" },
+      }),
+    ).toBe("Select Source STR-AN1000");
+  });
+});
+
+describe("Attribute triggers and conditions", () => {
+  const hass = {
+    states: {
+      "climate.living": { attributes: { friendly_name: "Thermostat" } },
+    },
+  };
+
+  it("names the attribute a numeric_state trigger watches", () => {
+    expect(
+      describeFlowItem(hass, {
+        trigger: "numeric_state",
+        entity_id: "climate.living",
+        attribute: "current_temperature",
+        above: 22,
+      }),
+    ).toContain("Thermostat current temperature");
+  });
+
+  it("names the attribute a state condition checks", () => {
+    expect(
+      describeFlowItem(hass, {
+        condition: "state",
+        entity_id: "climate.living",
+        attribute: "hvac_action",
+        state: "heating",
+      }),
+    ).toContain("Thermostat hvac action");
+  });
+});
+
+describe("Event trigger data", () => {
+  it("shows the event_data that narrows the event", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        trigger: "event",
+        event_type: "zha_event",
+        event_data: { command: "on", device_ieee: "{{ x }}" },
+      }),
+    ).toBe("When zha event happens (command: on)");
+  });
+});
