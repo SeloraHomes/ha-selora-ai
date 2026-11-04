@@ -232,6 +232,61 @@ async def test_ideas_are_home_suggestions_until_dismissed(hass: HomeAssistant, h
     assert not [s for s in await async_home_suggestions(hass) if s["type"] == "camera_idea"]
 
 
+async def test_the_same_idea_for_several_cameras_is_one_row(
+    hass: HomeAssistant, home: _Home
+) -> None:
+    home.frigate_camera("driveway", objects=("car",))
+    home.frigate_camera("street", objects=("car",))
+
+    rows = [s for s in await async_home_suggestions(hass) if s["type"] == "camera_idea"]
+    vehicle = [r for r in rows if r["idea"]["kind"] == "vehicle"]
+    assert len(vehicle) == 1
+    assert vehicle[0]["suggestion_id"] == "idea:vehicle:camera.driveway,camera.street"
+    assert [e["entity_id"] for e in vehicle[0]["entities"]] == ["camera.driveway", "camera.street"]
+    assert [i["idea_id"] for i in vehicle[0]["ideas"]] == [
+        "idea:vehicle:camera.driveway",
+        "idea:vehicle:camera.street",
+    ]
+    # The scene is one idea for the whole home: it keeps its own row.
+    assert [r["suggestion_id"] for r in rows if r["idea"]["kind"] == "watch_scene"] == [
+        "idea:watch_scene"
+    ]
+
+
+async def test_dismissing_a_shared_row_dismisses_each_camera_not_a_later_one(
+    hass: HomeAssistant, home: _Home
+) -> None:
+    home.frigate_camera("driveway", objects=("car",))
+    home.frigate_camera("street", objects=("car",))
+    await async_dismiss_home_suggestion(hass, "idea:vehicle:camera.driveway,camera.street")
+
+    def vehicle_rows(rows: list[dict[str, Any]]) -> list[str]:
+        return [
+            r["suggestion_id"]
+            for r in rows
+            if r["type"] == "camera_idea" and r["idea"]["kind"] == "vehicle"
+        ]
+
+    assert vehicle_rows(await async_home_suggestions(hass)) == []
+
+    home.frigate_camera("garage", objects=("car",))
+    assert vehicle_rows(await async_home_suggestions(hass)) == ["idea:vehicle:camera.garage"]
+
+
+async def test_a_night_light_keeps_one_row_per_camera(hass: HomeAssistant, home: _Home) -> None:
+    home.frigate_camera("driveway")
+    home.frigate_camera("street")
+    home.entity(
+        "light", "test", "garden_light", "garden_light", home.device("Lamp", "Garden"), "off"
+    )
+
+    rows = [s for s in await async_home_suggestions(hass) if s["type"] == "camera_idea"]
+    assert [r["suggestion_id"] for r in rows if r["idea"]["kind"] == "person_night_light"] == [
+        "idea:person_night_light:camera.driveway",
+        "idea:person_night_light:camera.street",
+    ]
+
+
 async def test_the_websocket_command_answers_admins_with_undismissed_ideas(
     hass: HomeAssistant, home: _Home
 ) -> None:

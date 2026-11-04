@@ -17,7 +17,7 @@ import { renderActionButton } from "../shared/action-button.js";
 import { renderCardIcon } from "../shared/card-heading.js";
 import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
-import { describeIdea } from "./camera-ideas.js";
+import { describeIdea, describeIdeas } from "./camera-ideas.js";
 
 const MAX_SHOWN = 3;
 const MAX_NAMED = 3;
@@ -28,6 +28,8 @@ export async function loadHomeSuggestions(host) {
       (await host.hass.callWS({ type: "selora_ai/home_suggestions" })) || [];
   } catch (err) {
     console.error("Failed to load home suggestions", err);
+    // Nothing to show is still loaded: the chat home offers its starters.
+    host._homeSuggestions ??= [];
   }
 }
 
@@ -205,7 +207,10 @@ function describe(host, s) {
     };
   }
   if (s.type === "camera_idea") {
-    const d = describeIdea(host, s.idea);
+    // A row naming several cameras asks for one automation covering them all.
+    const d = s.ideas
+      ? describeIdeas(host, s.ideas)
+      : describeIdea(host, s.idea);
     return d
       ? { icon: d.icon, title: d.title, prompt: d.prompt, why: d.why }
       : null;
@@ -341,68 +346,133 @@ function describe(host, s) {
   };
 }
 
-export function renderHomeSuggestions(host) {
+// The list loads after the chat home is on screen, and the home is centred:
+// shown at once, it would push the composer up in one frame. Arriving late,
+// it grows open instead (the composer slides with it) and its rows come in
+// one by one. Shown from the first frame, nothing moves, so nothing animates.
+// The class stays a moment past the animation, not for good: lit re-renders
+// often, and the element is recreated each time the chat home opens.
+const ENTER_MS = 1500;
+
+function reveal(host, content) {
+  if (host._homeSuggestionsPending) {
+    host._homeSuggestionsPending = false;
+    host._homeSuggestionsEnterAt = Date.now();
+  }
+  const entering = Date.now() - (host._homeSuggestionsEnterAt || 0) < ENTER_MS;
+  return html`<div
+    class="home-suggestions-reveal ${entering ? "entering" : ""}"
+  >
+    ${content}
+  </div>`;
+}
+
+// A home Selora has nothing to say about yet gets a few things to ask instead,
+// in the same rows: the chat home shows one list, never two. Not before the
+// suggestions have loaded, so the starters don't flash and get swapped out.
+function renderStarters(host, starters) {
+  if (!starters.length || host._homeSuggestions === undefined) return "";
+  return reveal(
+    host,
+    html`
+      <div class="home-suggestions">
+        <div class="home-suggestions-heading">
+          ${host._t("home_suggestions_starters_heading", "Try asking")}
+        </div>
+        ${starters.map(
+          (s) => html`
+            <div class="home-suggestion">
+              <div class="home-suggestion-row">
+                <button
+                  class="home-suggestion-main"
+                  @click=${() => host._quickStart(s.value)}
+                >
+                  ${renderCardIcon(s.icon)}
+                  <span class="home-suggestion-title">${s.label}</span>
+                  <ha-icon
+                    class="home-suggestion-chevron"
+                    icon="mdi:arrow-right"
+                  ></ha-icon>
+                </button>
+              </div>
+            </div>
+          `,
+        )}
+      </div>
+    `,
+  );
+}
+
+/** The chat home's suggestions, or *starters* ({label, value, icon}) when there are none. */
+export function renderHomeSuggestions(host, starters = []) {
   const rows = (host._homeSuggestions || [])
     .map((s) => [s, describe(host, s)])
     .filter(([, d]) => d)
     .slice(0, MAX_SHOWN);
-  if (!rows.length) return "";
-  return html`
-    <div class="home-suggestions">
-      <div class="home-suggestions-heading">
-        ${host._t(
-          "home_suggestions_heading",
-          "I noticed a few things I can help with",
-        )}
-      </div>
-      ${rows.map(([s, d]) => {
-        const open = host._expandedHomeSuggestion === s.suggestion_id;
-        return html`
-          <div class="home-suggestion ${open ? "open" : ""}">
-            <div class="home-suggestion-row">
-              <button
-                class="home-suggestion-main"
-                aria-expanded=${open ? "true" : "false"}
-                @click=${() => toggle(host, s)}
-              >
-                ${renderCardIcon(d.icon)}
-                <span class="home-suggestion-title">${d.title}</span>
-                <ha-icon
-                  class="home-suggestion-chevron"
-                  icon="mdi:chevron-down"
-                ></ha-icon>
-              </button>
-              <button
-                class="home-suggestion-dismiss"
-                title=${host._t("home_suggestion_dismiss", "Dismiss")}
-                aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
-                @click=${() => dismiss(host, s)}
-              >
-                <ha-icon icon="mdi:close"></ha-icon>
-              </button>
+  if (!rows.length) {
+    const out = renderStarters(host, starters);
+    if (!out) host._homeSuggestionsPending = true;
+    return out;
+  }
+  return reveal(
+    host,
+    html`
+      <div class="home-suggestions">
+        <div class="home-suggestions-heading">
+          ${host._t(
+            "home_suggestions_heading",
+            "I noticed a few things I can help with",
+          )}
+        </div>
+        ${rows.map(([s, d]) => {
+          const open = host._expandedHomeSuggestion === s.suggestion_id;
+          return html`
+            <div class="home-suggestion ${open ? "open" : ""}">
+              <div class="home-suggestion-row">
+                <button
+                  class="home-suggestion-main"
+                  aria-expanded=${open ? "true" : "false"}
+                  @click=${() => toggle(host, s)}
+                >
+                  ${renderCardIcon(d.icon)}
+                  <span class="home-suggestion-title">${d.title}</span>
+                  <ha-icon
+                    class="home-suggestion-chevron"
+                    icon="mdi:chevron-down"
+                  ></ha-icon>
+                </button>
+                <button
+                  class="home-suggestion-dismiss"
+                  title=${host._t("home_suggestion_dismiss", "Dismiss")}
+                  aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
+                  @click=${() => dismiss(host, s)}
+                >
+                  <ha-icon icon="mdi:close"></ha-icon>
+                </button>
+              </div>
+              ${
+                open
+                  ? html`<div class="home-suggestion-detail">
+                      ${d.why.map((line) => html`<p>${line}</p>`)}
+                      <div class="home-suggestion-footer">
+                        ${renderActionButton({
+                          label:
+                            d.act ||
+                            host._t(
+                              "home_suggestion_do_it",
+                              "Ask Selora to do it",
+                            ),
+                          tone: "primary",
+                          onClick: () => act(host, s, d),
+                        })}
+                      </div>
+                    </div>`
+                  : ""
+              }
             </div>
-            ${
-              open
-                ? html`<div class="home-suggestion-detail">
-                    ${d.why.map((line) => html`<p>${line}</p>`)}
-                    <div class="home-suggestion-footer">
-                      ${renderActionButton({
-                        label:
-                          d.act ||
-                          host._t(
-                            "home_suggestion_do_it",
-                            "Ask Selora to do it",
-                          ),
-                        tone: "primary",
-                        onClick: () => act(host, s, d),
-                      })}
-                    </div>
-                  </div>`
-                : ""
-            }
-          </div>
-        `;
-      })}
-    </div>
-  `;
+          `;
+        })}
+      </div>
+    `,
+  );
 }
