@@ -34,10 +34,9 @@ const COMMANDS = [
     "selora.scanCameras({ sweep: true })",
     "also ask every local address directly, for cameras that ignore the network-wide probe (otherwise once a day)",
   ],
-  ["selora.scanPatterns()", "run the pattern scan behind the suggestions now"],
   [
-    "selora.generateSuggestions()",
-    "ask the LLM for new automation suggestions now",
+    "selora.scanPatterns()",
+    "run the pattern scan now and refresh the chat home's suggestions",
   ],
   [
     "selora.catalogUrl(url)",
@@ -143,9 +142,6 @@ const api = {
   },
   async scanPatterns() {
     await _requireHost()._triggerPatternScan();
-  },
-  async generateSuggestions() {
-    await _requireHost()._triggerGenerateSuggestions();
   },
   catalogUrl(url) {
     if (url === undefined) return catalogUrlOverride() || "(default)";

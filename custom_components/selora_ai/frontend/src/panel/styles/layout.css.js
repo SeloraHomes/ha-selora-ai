@@ -168,22 +168,6 @@ export const layoutStyles = css`
     background: var(--card-background-color);
     overflow: hidden;
   }
-  /* Same reasoning for suggestion cards (they were styled via .section-card
-     .card) — restore their inner-card surface on a flat page. */
-  .page-root .suggestions-section .card {
-    background: var(--selora-inner-card-bg);
-    border: 1px solid var(--selora-inner-card-border);
-    border-radius: 14px;
-  }
-  /* A section header row: the .page-section-title on the left, action buttons
-     on the right. */
-  .page-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
   /* Flat-page tab bar: drop the full-width baseline — it would run under any
      toolbar action on the row (the "line under the button" issue). The active
      tab's accent underline is the indicator. */
@@ -232,14 +216,6 @@ export const layoutStyles = css`
     flex: 0 0 auto;
     white-space: nowrap;
   }
-  /* Title + count badge live together on the left. */
-  .section-card-title-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
   /* Right-aligned cluster of action buttons. Wraps as a unit so the
      header collapses cleanly: title row, then actions row. */
   .section-card-actions {
@@ -276,24 +252,6 @@ export const layoutStyles = css`
     .section-card .card {
       padding: 12px;
     }
-  }
-  .suggestions-section {
-  }
-  .show-more-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--selora-accent-text);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 8px 0;
-    font-family: inherit;
-  }
-  .show-more-link:hover {
-    text-decoration: underline;
   }
 
   /* Narrow overrides — sidebar overlays on small screens */

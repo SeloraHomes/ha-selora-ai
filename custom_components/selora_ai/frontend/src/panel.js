@@ -43,7 +43,6 @@ import {
   saveComposerDraft,
 } from "./panel/composer-draft.js";
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
-import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import { catalogUrlOverride, installDevConsole } from "./panel/dev-tools.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
@@ -389,7 +388,6 @@ class SeloraAIPanel extends LitElement {
       _deletingDevice: { type: Boolean },
 
       // Automations tab
-      _suggestions: { type: Array },
       _automations: { type: Array },
       // Recently deleted automations and scenes (panel/trash.js)
       _trash: { type: Array },
@@ -445,10 +443,6 @@ class SeloraAIPanel extends LitElement {
       _sortBy: { type: String },
       _sortDir: { type: String },
 
-      // Suggestion filter
-      _suggestionFilter: { type: String },
-      _suggestionSortBy: { type: String },
-
       // Burger menu
       _openBurgerMenu: { type: String },
       _openBurgerMenuStyle: { type: String },
@@ -492,15 +486,6 @@ class SeloraAIPanel extends LitElement {
       // `automation.trigger` service call is round-tripping.
       _runningAutomation: { type: Object },
 
-      // Generate suggestions loading
-      _generatingSuggestions: { type: Boolean },
-
-      // Suggestions visible count (incremental load)
-      _suggestionsVisibleCount: { type: Number },
-      // Suggestions bulk edit
-      _suggestionBulkMode: { type: Boolean },
-      _selectedSuggestionKeys: { type: Object },
-
       // Highlight newly accepted automation
       _highlightedAutomation: { type: String },
       // Highlight a newly created scene once the Scenes tab renders its row
@@ -509,16 +494,9 @@ class SeloraAIPanel extends LitElement {
       _justCreatedId: { type: String },
       // msgIndex → true while a freshly-arrived proposal card plays its reveal
       _revealingProposals: { type: Object },
-      // Fading out suggestion card keys
-      _fadingOutSuggestions: { type: Object },
 
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
-      // Last tab a suggestion card showed: its panel keeps rendering that
-      // while the close animation runs, and false _cardPanelSettled marks a
-      // card whose open/close transition is still in flight.
-      _cardLastTab: { type: Object },
-      _cardPanelSettled: { type: Object },
 
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
@@ -526,14 +504,6 @@ class SeloraAIPanel extends LitElement {
       // Inline alias editing
       _editingAlias: { type: String }, // automation_id being renamed
       _editingAliasValue: { type: String },
-
-      // Proactive suggestions (pattern-based)
-      _proactiveSuggestions: { type: Array },
-      _loadingProactive: { type: Boolean },
-      _proactiveExpanded: { type: Object },
-      _acceptingProactive: { type: Object },
-      _dismissingProactive: { type: Object },
-      _showProactive: { type: Boolean },
 
       // Delete session confirmation
       _deleteConfirmSessionId: { type: String },
@@ -551,9 +521,7 @@ class SeloraAIPanel extends LitElement {
 
       // Pagination
       _automationsPage: { type: Number },
-      _suggestionsPage: { type: Number },
       _autosPerPage: { type: Number },
-      _suggestionsPerPage: { type: Number },
 
       // Unavailable automation modal
       _unavailableAutoId: { type: String },
@@ -692,11 +660,8 @@ class SeloraAIPanel extends LitElement {
     this._recipeManageSelections = {};
     this._recipeManageBusy = false;
     this._recipeManageError = null;
-    this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
-    this._suggestionsVisibleCount = 3;
-    this._suggestionBulkMode = false;
     this._highlightedAutomation = null;
     this._highlightedScene = null;
     this._justCreatedId = null;
@@ -704,7 +669,6 @@ class SeloraAIPanel extends LitElement {
     this._revealingProposals = {};
     this._revealTimers = {};
     this._sceneHighlightTimer = null;
-    this._fadingOutSuggestions = {};
     // Health tab
     this._insightsLoading = false;
     this._insightsEnabled = true;
@@ -728,7 +692,6 @@ class SeloraAIPanel extends LitElement {
     this._auditSettling = false;
     this._deleteDeviceTarget = null;
     this._deletingDevice = false;
-    this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
@@ -764,8 +727,6 @@ class SeloraAIPanel extends LitElement {
     this._sortDir = "desc";
     this._sceneStatusFilter = "all";
     this._sceneSortDir = "desc";
-    this._suggestionFilter = "";
-    this._suggestionSortBy = "recent";
     // Burger menu
     this._openBurgerMenu = null;
     this._openBurgerMenuStyle = "";
@@ -786,25 +747,11 @@ class SeloraAIPanel extends LitElement {
     this._runningAutomation = {};
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
-    this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
-    this._cardLastTab = {};
-    this._cardPanelSettled = {};
-    // Pending settle timers, keyed by card. Deliberately not a reactive
-    // property: a timer id is bookkeeping, and rendering on it would be a
-    // render per toggle for nothing.
-    this._cardPanelTimers = {};
     this._bulkEditMode = false;
     this._editingAlias = null;
     this._editingAliasValue = "";
-    // Proactive suggestions
-    this._proactiveSuggestions = [];
-    this._loadingProactive = false;
-    this._proactiveExpanded = {};
-    this._acceptingProactive = {};
-    this._dismissingProactive = {};
-    this._showProactive = true;
     // Delete session confirmation
     this._deleteConfirmSessionId = null;
     // Bulk session delete
@@ -812,9 +759,7 @@ class SeloraAIPanel extends LitElement {
     this._selectedSessionIds = {};
     // Pagination
     this._automationsPage = 1;
-    this._suggestionsPage = 1;
     this._autosPerPage = 20;
-    this._suggestionsPerPage = 10;
     // Feedback modal
     this._showFeedbackModal = false;
     this._feedbackText = "";
@@ -897,7 +842,6 @@ class SeloraAIPanel extends LitElement {
     }
     this._checkTabParam();
     this._loadSessions();
-    this._loadSuggestions();
     this._loadAutomations();
     this._loadScenes();
     this._loadConfig();
@@ -1060,7 +1004,6 @@ class SeloraAIPanel extends LitElement {
     this._loadAutomations();
     this._loadScenes();
     this._loadConfig();
-    this._loadSuggestions();
     // A restart is what clears a code skew, and it lands here as a reconnect.
     this._loadVersionStatus();
   }
@@ -1200,14 +1143,6 @@ class SeloraAIPanel extends LitElement {
     super.disconnectedCallback();
     releasePanelContainer(this._panelContainer);
     this._panelContainer = null;
-    // Suggestion-card panel-settle timers. They are otherwise cleared only by
-    // a later toggle of the SAME card, so navigating away (or accepting the
-    // card) inside PANEL_SETTLE_MS leaves a callback writing to a detached
-    // host, and the map keeps one key per card ever opened.
-    for (const timer of Object.values(this._cardPanelTimers || {})) {
-      clearTimeout(timer);
-    }
-    this._cardPanelTimers = {};
     if (this._unsubscribeRecipeEntityRegistry) {
       this._unsubscribeRecipeEntityRegistry();
     }
@@ -1974,29 +1909,10 @@ class SeloraAIPanel extends LitElement {
     this.requestUpdate();
   }
 
-  _highlightAndScrollToNew() {
-    // Find the newest automation (last in list after sort by recent)
-    const newest = this._automations[0];
-    if (!newest) return;
-    this._highlightedAutomation = newest.entity_id;
-    this.requestUpdate();
-    requestAnimationFrame(() => {
-      const row = this.shadowRoot.querySelector(
-        `.auto-row[data-entity-id="${newest.entity_id}"]`,
-      );
-      if (row) {
-        row.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
-    setTimeout(() => {
-      this._highlightedAutomation = null;
-    }, 3000);
-  }
-
-  // Arm the row highlight for a newly created scene. Unlike the automation
-  // equivalent this can't scroll straight away: scenes are created from the
-  // chat tab, so the Scenes list isn't in the DOM yet. We just record the id
-  // and let updated() fire the scroll + expiry the moment the row mounts.
+  // Arm the row highlight for a newly created scene. It can't scroll
+  // straight away: scenes are created from the chat tab, so the Scenes list
+  // isn't in the DOM yet. We just record the id and let updated() fire the
+  // scroll + expiry the moment the row mounts.
   _markSceneCreated(sceneId) {
     if (!sceneId) return;
     if (this._sceneHighlightTimer) {
@@ -4583,10 +4499,6 @@ class SeloraAIPanel extends LitElement {
     } finally {
       this._recipesBusy = false;
     }
-  }
-
-  _renderSuggestionsSection() {
-    return renderSuggestionsSection(this);
   }
 
   _renderSettings() {

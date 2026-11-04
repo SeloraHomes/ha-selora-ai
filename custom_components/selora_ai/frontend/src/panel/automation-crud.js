@@ -399,10 +399,6 @@ export async function _createAutomationFromSuggestion(automation) {
   }
 }
 
-export function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s) => s !== suggestion);
-}
-
 // Duration of the Accept-button exit animation in ms. Mirrored by the
 // CSS keyframes in chat.css.js — if you change one, change the other,
 // or the button will either jump (anim shorter than wait) or leave a
@@ -512,54 +508,6 @@ export async function _acceptAutomationWithEdits(
       ...this._acceptAnimating,
       [msgIndex]: false,
     };
-    this.requestUpdate();
-  }
-}
-
-export async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
-  const edited = this._editedYaml[yamlKey];
-  try {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
-    this.requestUpdate();
-    let createResult;
-    if (edited && edited !== originalYaml) {
-      createResult = await this.hass.callWS({
-        type: "selora_ai/apply_automation_yaml",
-        yaml_text: edited,
-      });
-    } else {
-      createResult = await this.hass.callWS({
-        type: "selora_ai/create_automation",
-        automation: auto,
-      });
-    }
-    this._fadingOutSuggestions = {
-      ...this._fadingOutSuggestions,
-      [yamlKey]: true,
-    };
-    await this._loadAutomations();
-    const toast = _createdToast(auto.alias, createResult);
-    this._showToast(toast.message, toast.type);
-    // Wait for fade-out, then remove and scroll
-    await new Promise((r) => setTimeout(r, 650));
-    this._suggestions = this._suggestions.filter((s) => {
-      const a = s.automation || s.automation_data;
-      return `sug_${a?.alias}` !== yamlKey;
-    });
-    this._fadingOutSuggestions = {
-      ...this._fadingOutSuggestions,
-      [yamlKey]: false,
-    };
-    this._highlightAndScrollToNew();
-  } catch (err) {
-    this._showToast(
-      this._t("automation_crud_create_failed", "Failed to create automation:") +
-        " " +
-        err.message,
-      "error",
-    );
-  } finally {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
     this.requestUpdate();
   }
 }

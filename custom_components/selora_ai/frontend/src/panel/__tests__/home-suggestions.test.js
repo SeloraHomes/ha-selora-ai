@@ -590,4 +590,62 @@ describe("renderHomeSuggestions", () => {
     expect(h._openSession).toHaveBeenCalledWith("s9");
     expect(h._askInNewChat).not.toHaveBeenCalled();
   });
+
+  const scene = {
+    suggestion_id: "scene:light.ceiling=off,light.reading=on,light.sofa=on",
+    type: "create_scene",
+    entities: [
+      { entity_id: "light.ceiling", name: "Ceiling", state: "off" },
+      { entity_id: "light.reading", name: "Reading", state: "on" },
+      { entity_id: "light.sofa", name: "Sofa", state: "on" },
+    ],
+    collection: { source: "usage", name: "", ref: "" },
+    days: 4,
+  };
+
+  it("proposes a scene for devices set together, with each one's state", () => {
+    const h = host([scene]);
+    const [toggle] = handlers(renderHomeSuggestions(h));
+    toggle();
+    const opened = renderHomeSuggestions(h);
+    expect(flatten(opened)).toContain(
+      "Make a scene for Ceiling, Reading, and Sofa",
+    );
+    expect(flatten(opened)).toContain("On 4 different days you set");
+
+    handlers(opened).at(-1)();
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(messageDetails(sent)).toContain(
+      "Ceiling (light.ceiling): off, Reading (light.reading): on, Sofa (light.sofa): on",
+    );
+  });
+
+  const porch = {
+    suggestion_id: "pattern:abc",
+    type: "automation_idea",
+    entities: [{ entity_id: "light.porch", name: "Porch" }],
+    collection: { source: "pattern", name: "Porch light at dusk", ref: "" },
+    automation: {
+      alias: "Porch light at dusk",
+      description: "Turn the porch light on at 19:00.",
+      yaml: "alias: Porch light at dusk\n",
+    },
+    evidence: "Turned on around 19:00 on 9 of 10 days",
+  };
+
+  it("proposes the pattern engine's automation from its YAML", () => {
+    const h = host([porch]);
+    const [toggle] = handlers(renderHomeSuggestions(h));
+    toggle();
+    const opened = renderHomeSuggestions(h);
+    expect(flatten(opened)).toContain("Porch light at dusk");
+    expect(flatten(opened)).toContain(
+      "Selora noticed: Turned on around 19:00 on 9 of 10 days.",
+    );
+
+    handlers(opened).at(-1)();
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(stripEntityMarkers(sent)).toBe("Porch light at dusk");
+    expect(messageDetails(sent)).toContain("alias: Porch light at dusk");
+  });
 });
