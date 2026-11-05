@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "Desativada",
     "automations_toggle_unavailable": "Indisponível",
     "automations_toast_toggle_unresolved": "Não foi possível alternar: o id da automação não foi resolvido. Recarregue e tente novamente.",
+    "automations_toast_toggle_reverts": "Alternada por agora, mas esta automação define o seu próprio initial_state, por isso o Home Assistant vai revertê-la ao reiniciar. Altere initial_state onde ela está definida para manter a escolha.",
     "automations_more_actions_tooltip": "Mais ações",
     "automations_run_tooltip": "Executar automação",
     "automations_more_actions_external": "Gerida fora do Selora AI — edite-a onde está definida, por ex. numa receita instalada.",

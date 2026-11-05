@@ -158,12 +158,23 @@ export async function _bulkSoftDeleteSelected() {
 
 export async function _toggleAutomation(entityId, automationId, enabled) {
   try {
-    await this.hass.callWS({
+    const result = await this.hass.callWS({
       type: "selora_ai/toggle_automation",
-      automation_id: automationId,
+      // Absent for an automation outside automations.yaml (a package, or
+      // no `id:`); the backend then switches it without saving.
+      ...(automationId ? { automation_id: automationId } : {}),
       entity_id: entityId,
       enabled: !!enabled,
     });
+    if (result?.reverts_on_restart) {
+      this._showToast(
+        this._t(
+          "automations_toast_toggle_reverts",
+          "Switched for now, but this automation sets its own initial_state, so Home Assistant will switch it back on restart. Change initial_state where it is defined to keep it.",
+        ),
+        "warning",
+      );
+    }
     await this._loadAutomations();
   } catch (err) {
     console.error("Failed to toggle automation", err);

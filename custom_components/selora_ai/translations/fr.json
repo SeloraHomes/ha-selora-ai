@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "Désactivé",
     "automations_toggle_unavailable": "Indisponible",
     "automations_toast_toggle_unresolved": "Impossible de basculer : l'ID de l'automatisation n'a pas été résolu. Rechargez et réessayez.",
+    "automations_toast_toggle_reverts": "Basculée pour l'instant, mais cette automatisation définit son propre initial_state : Home Assistant la rebasculera au redémarrage. Modifiez initial_state là où elle est définie pour conserver ce choix.",
     "automations_more_actions_tooltip": "Plus d'actions",
     "automations_run_tooltip": "Exécuter l'automatisation",
     "automations_more_actions_external": "Gérée en dehors de Selora AI — modifiez-la là où elle est définie, par ex. une recette installée.",

@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "Disattivato",
     "automations_toggle_unavailable": "Non disponibile",
     "automations_toast_toggle_unresolved": "Impossibile cambiare stato: ID automazione non risolto. Ricarichi e riprovi.",
+    "automations_toast_toggle_reverts": "Cambiata per ora, ma questa automazione imposta il proprio initial_state, quindi Home Assistant la ripristinerà al riavvio. Modifichi initial_state dove è definita per mantenerla.",
     "automations_more_actions_tooltip": "Altre azioni",
     "automations_run_tooltip": "Esegui automazione",
     "automations_more_actions_external": "Gestita al di fuori di Selora AI — modificala dove è definita, ad es. in una ricetta installata.",

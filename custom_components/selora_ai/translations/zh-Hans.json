@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "已禁用",
     "automations_toggle_unavailable": "不可用",
     "automations_toast_toggle_unresolved": "无法切换：未能解析自动化 ID。请重新加载后再试。",
+    "automations_toast_toggle_reverts": "已暂时切换，但此自动化设置了自己的 initial_state，Home Assistant 重启后会切换回去。如需保留，请在定义它的位置修改 initial_state。",
     "automations_more_actions_tooltip": "更多操作",
     "automations_run_tooltip": "运行自动化",
     "automations_more_actions_external": "在 Selora AI 之外管理 — 请在其定义处（例如已安装的配方）进行编辑。",

@@ -1602,8 +1602,10 @@ export function renderAutomations(host) {
                       (host._versions[automationId] || []).length,
                       a.version_count || 0,
                     );
+                    // Switching needs only the entity; the id just lets the
+                    // backend also save it in automations.yaml.
                     const canToggle =
-                      hasAutomationId && !host._bulkActionInProgress;
+                      !!a.entity_id && !host._bulkActionInProgress;
                     const deleting = host._deletingAutomation[automationId];
                     const loadingChat = host._loadingToChat[automationId];
                     const runKey = automationId || a.entity_id;
@@ -1889,7 +1891,7 @@ export function renderAutomations(host) {
                               }"
                               @click=${(e) => {
                                 e.stopPropagation();
-                                if (!canToggle) {
+                                if (!a.entity_id) {
                                   host._showToast(
                                     host._t(
                                       "automations_toast_toggle_unresolved",

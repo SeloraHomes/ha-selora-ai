@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "無効",
     "automations_toggle_unavailable": "利用不可",
     "automations_toast_toggle_unresolved": "切り替えできません：オートメーション ID を解決できませんでした。再読み込みしてもう一度お試しください。",
+    "automations_toast_toggle_reverts": "一時的に切り替えましたが、このオートメーションは独自の initial_state を設定しているため、Home Assistant の再起動時に元に戻ります。維持するには、定義されている場所で initial_state を変更してください。",
     "automations_more_actions_tooltip": "その他の操作",
     "automations_run_tooltip": "オートメーションを実行",
     "automations_more_actions_external": "Selora AI の外で管理されています — 定義元（インストール済みレシピなど）で編集してください。",

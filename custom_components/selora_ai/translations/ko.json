@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "비활성화됨",
     "automations_toggle_unavailable": "사용 불가",
     "automations_toast_toggle_unresolved": "전환할 수 없습니다: 자동화 ID가 확인되지 않았습니다. 새로 고침 후 다시 시도하세요.",
+    "automations_toast_toggle_reverts": "일단 전환했지만 이 자동화는 자체 initial_state를 설정하므로 Home Assistant를 다시 시작하면 원래대로 돌아갑니다. 유지하려면 정의된 곳에서 initial_state를 변경하세요.",
     "automations_more_actions_tooltip": "추가 동작",
     "automations_run_tooltip": "자동화 실행",
     "automations_more_actions_external": "Selora AI 외부에서 관리됩니다 — 정의된 위치(설치된 레시피 등)에서 편집하세요.",
