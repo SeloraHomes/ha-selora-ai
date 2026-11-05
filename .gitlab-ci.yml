@@ -55,7 +55,7 @@ lint:ruff:
   image: python:3.14-slim
   <<: *pip-cache
   before_script:
-    - pip install ruff --quiet
+    - pip install -r requirements-lint.txt --quiet
   script:
     - echo "ruff lint"
     - ruff check custom_components/

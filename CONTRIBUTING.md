@@ -71,7 +71,10 @@ lefthook install
 ```
 
 `pre-push` runs the full suite (ruff, pytest, frontend tests + build,
-HACS/manifest/hassfest validation). Auto-fix lint and formatting with:
+HACS/manifest/hassfest validation). CI lints with the ruff version pinned in
+`requirements-lint.txt`, which Renovate keeps current; install the same one
+(`pip install -r requirements-lint.txt`) so a rule added by a newer ruff
+doesn't pass locally and fail in CI. Auto-fix lint and formatting with:
 
 ```bash
 ruff check --fix custom_components/

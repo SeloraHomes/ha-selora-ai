@@ -374,32 +374,31 @@ class AnthropicProvider(LLMProvider):
                     elif delta.get("type") == "input_json_delta":
                         tool_input_json += delta.get("partial_json", "")
 
-                elif event_type == "content_block_stop":
-                    if current_block:
-                        if current_block["type"] == "text":
-                            content_blocks.append(current_block)
-                        elif current_block["type"] == "tool_use":
-                            try:
-                                args = json.loads(tool_input_json) if tool_input_json else {}
-                            except json.JSONDecodeError:
-                                args = {}
-                            content_blocks.append(
-                                {
-                                    "type": "tool_use",
-                                    "id": current_block["id"],
-                                    "name": current_block["name"],
-                                    "input": args,
-                                }
-                            )
-                            tool_calls.append(
-                                {
-                                    "id": current_block["id"],
-                                    "name": current_block["name"],
-                                    "arguments": args,
-                                }
-                            )
-                        current_block = None
-                        tool_input_json = ""
+                elif event_type == "content_block_stop" and current_block:
+                    if current_block["type"] == "text":
+                        content_blocks.append(current_block)
+                    elif current_block["type"] == "tool_use":
+                        try:
+                            args = json.loads(tool_input_json) if tool_input_json else {}
+                        except json.JSONDecodeError:
+                            args = {}
+                        content_blocks.append(
+                            {
+                                "type": "tool_use",
+                                "id": current_block["id"],
+                                "name": current_block["name"],
+                                "input": args,
+                            }
+                        )
+                        tool_calls.append(
+                            {
+                                "id": current_block["id"],
+                                "name": current_block["name"],
+                                "arguments": args,
+                            }
+                        )
+                    current_block = None
+                    tool_input_json = ""
 
         self._report_usage(stream_usage or None)
 
