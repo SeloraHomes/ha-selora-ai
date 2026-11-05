@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "Deaktiviert",
     "automations_toggle_unavailable": "Nicht verfügbar",
     "automations_toast_toggle_unresolved": "Umschalten nicht möglich: Automatisierungs-ID konnte nicht aufgelöst werden. Laden Sie neu und versuchen Sie es erneut.",
+    "automations_toast_toggle_reverts": "Vorerst umgeschaltet, aber diese Automatisierung setzt ihren eigenen initial_state, daher schaltet Home Assistant sie beim Neustart zurück. Ändern Sie initial_state dort, wo sie definiert ist, um die Einstellung zu behalten.",
     "automations_more_actions_tooltip": "Weitere Aktionen",
     "automations_run_tooltip": "Automatisierung ausführen",
     "automations_more_actions_external": "Außerhalb von Selora AI verwaltet — bearbeite sie dort, wo sie definiert ist, z. B. in einem installierten Rezept.",

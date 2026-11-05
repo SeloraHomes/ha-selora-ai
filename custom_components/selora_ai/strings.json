@@ -427,6 +427,7 @@
     "automations_toggle_disabled": "Disabled",
     "automations_toggle_unavailable": "Unavailable",
     "automations_toast_toggle_unresolved": "Unable to toggle: automation id was not resolved. Reload and try again.",
+    "automations_toast_toggle_reverts": "Switched for now, but this automation sets its own initial_state, so Home Assistant will switch it back on restart. Change initial_state where it is defined to keep it.",
     "automations_more_actions_tooltip": "More actions",
     "automations_run_tooltip": "Run Automation",
     "automations_more_actions_external": "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",

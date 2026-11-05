@@ -447,6 +447,7 @@
     "automations_toggle_disabled": "Uitgezet",
     "automations_toggle_unavailable": "Niet beschikbaar",
     "automations_toast_toggle_unresolved": "Kan niet schakelen: automatisering-id kon niet worden opgelost. Herlaad en probeer opnieuw.",
+    "automations_toast_toggle_reverts": "Voorlopig geschakeld, maar deze automatisering stelt haar eigen initial_state in, dus Home Assistant zet haar bij een herstart terug. Wijzig initial_state waar ze is gedefinieerd om dit te behouden.",
     "automations_more_actions_tooltip": "Meer acties",
     "automations_run_tooltip": "Automatisering uitvoeren",
     "automations_more_actions_external": "Beheerd buiten Selora AI — bewerk het waar het is gedefinieerd, bijv. een geïnstalleerd recept.",

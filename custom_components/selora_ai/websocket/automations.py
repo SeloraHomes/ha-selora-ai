@@ -14,6 +14,7 @@ from typing import Any
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 from homeassistant.core import HomeAssistant
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 import yaml
 
@@ -778,7 +779,7 @@ async def _handle_websocket_get_automation_diff(
 @decorators.websocket_command(
     {
         vol.Required("type"): "selora_ai/toggle_automation",
-        vol.Required("automation_id"): str,
+        vol.Optional("automation_id"): str,
         vol.Required("entity_id"): str,
         vol.Optional("enabled"): bool,
     }
@@ -788,14 +789,28 @@ async def _handle_websocket_toggle_automation(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Toggle an automation's enabled state, persisting initial_state in automations.yaml."""
+    """Turn an automation on or off.
+
+    An entry in automations.yaml also gets its ``initial_state`` written, so
+    the change outlives a restart that would otherwise re-apply the old one.
+    Any other automation — from a package, or without an ``id`` — is switched
+    at runtime only, which HA restores itself; refusing it left the panel with
+    a toggle that could never move.
+    """
     if not _require_admin(connection, msg):
         return
 
     try:
-        from ..automation_utils import async_toggle_automation
+        from functools import partial
+        from pathlib import Path
+
+        from ..automation_utils import _read_automations_yaml, async_toggle_automation
+        from ..config_inspect import loaded_automation_config
 
         entity_id = msg["entity_id"]
+        if not entity_id.startswith("automation.") or hass.states.get(entity_id) is None:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+            return
         requested_enabled = msg.get("enabled")
         if requested_enabled is None:
             state = hass.states.get(entity_id)
@@ -805,11 +820,52 @@ async def _handle_websocket_toggle_automation(
         else:
             enable = bool(requested_enabled)
             status = "set"
-        success = await async_toggle_automation(hass, msg["automation_id"], entity_id, enable)
-        if success:
-            connection.send_result(msg["id"], {"status": status, "enabled": enable})
+        automation_id = msg.get("automation_id") or ""
+        in_yaml = False
+        if automation_id:
+            # Strict: an unreadable file is not proof the entry lives elsewhere,
+            # and a runtime-only switch would leave its initial_state to undo it.
+            existing = await hass.async_add_executor_job(
+                partial(
+                    _read_automations_yaml,
+                    Path(hass.config.config_dir) / "automations.yaml",
+                    strict=True,
+                )
+            )
+            in_yaml = any(str(a.get("id")) == automation_id for a in existing)
+        if in_yaml:
+            if not await async_toggle_automation(hass, automation_id, entity_id, enable):
+                connection.send_error(msg["id"], "unknown_error", "Failed to toggle automation")
+                return
         else:
-            connection.send_error(msg["id"], "not_found", "Automation not found")
+            await hass.services.async_call(
+                "automation",
+                "turn_on" if enable else "turn_off",
+                {"entity_id": entity_id},
+                blocking=True,
+            )
+        # An automation defined elsewhere that sets its own initial_state gets
+        # it re-applied on restart or reload, so the panel has to say the
+        # switch won't last rather than let it revert unannounced.
+        reverts = False
+        if not in_yaml:
+            initial = loaded_automation_config(hass, entity_id).get("initial_state")
+            if initial is not None:
+                # The raw config keeps a quoted "off" as a string; HA reads it
+                # with cv.boolean, so the comparison has to as well.
+                try:
+                    reverts = cv.boolean(initial) != enable
+                except vol.Invalid:
+                    reverts = False
+        connection.send_result(
+            msg["id"],
+            {
+                "status": status,
+                "enabled": enable,
+                "persisted": in_yaml,
+                "reverts_on_restart": reverts,
+            },
+        )
     except Exception as exc:
         _LOGGER.exception("Error in toggle_automation")
         connection.send_error(msg["id"], "unknown_error", str(exc))

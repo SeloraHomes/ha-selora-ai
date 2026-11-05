@@ -555,12 +555,14 @@ def _to_plain_types(obj: Any) -> Any:
     return obj
 
 
-def _read_automations_yaml(path: Path) -> list[AutomationDict]:
+def _read_automations_yaml(path: Path, *, strict: bool = False) -> list[AutomationDict]:
     """Read and parse automations.yaml (runs in executor).
 
     Uses ruamel.yaml to correctly parse double-quoted on/off/yes/no as
     strings (not booleans), then converts the result to plain Python types
     so ruamel internals never leak into HA or other serialisation paths.
+    ``strict`` re-raises a read or parse failure for a caller that must not
+    mistake an unreadable file for one without the entry it looks for.
     """
     from ruamel.yaml import YAML
 
@@ -576,6 +578,8 @@ def _read_automations_yaml(path: Path) -> list[AutomationDict]:
             return _to_plain_types(data)
     except Exception as exc:
         _LOGGER.error("Error reading automations.yaml: %s", exc)
+        if strict:
+            raise
     return []
 
 
