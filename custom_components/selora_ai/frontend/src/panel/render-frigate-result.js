@@ -116,16 +116,16 @@ function renderWaiting(host, msg, result) {
           slow
             ? host._t(
                 "frigate_result_slow",
-                "Frigate is taking longer than usual to come back.",
+                "Selora Vision is taking longer than usual to come back.",
               )
             : result.action === "updated"
               ? host._t(
                   "frigate_result_restarting",
-                  "Frigate is restarting; the camera is back in about a minute.",
+                  "Selora Vision is restarting; the camera is back in about a minute.",
                 )
               : host._t(
                   "frigate_result_waiting",
-                  "Frigate is restarting; the camera appears here in about a minute.",
+                  "Selora Vision is restarting; the camera appears here in about a minute.",
                 )
         }</span
       >
@@ -220,11 +220,11 @@ function renderLooksFor(host, camera) {
 const SAVED_TEXT = {
   saved: [
     "frigate_result_saved",
-    "Saved in Frigate; it starts with Frigate's next restart.",
+    "Saved in Selora Vision; it starts with Selora Vision's next restart.",
   ],
   update_saved: [
     "frigate_result_update_saved",
-    "Saved in Frigate; it takes effect when Frigate restarts.",
+    "Saved in Selora Vision; it takes effect when Selora Vision restarts.",
   ],
 };
 
@@ -267,11 +267,11 @@ function renderCamera(host, msg, result, camera) {
 }
 
 const TAGS = {
-  added: ["frigate_result_added", "Added to Frigate"],
-  saved: ["frigate_result_saved_tag", "Saved in Frigate"],
-  updated: ["frigate_result_updated", "Updated in Frigate"],
-  update_saved: ["frigate_result_saved_tag", "Saved in Frigate"],
-  removed: ["frigate_result_removed", "Removed from Frigate"],
+  added: ["frigate_result_added", "Added to Selora Vision"],
+  saved: ["frigate_result_saved_tag", "Saved in Selora Vision"],
+  updated: ["frigate_result_updated", "Updated in Selora Vision"],
+  update_saved: ["frigate_result_saved_tag", "Saved in Selora Vision"],
+  removed: ["frigate_result_removed", "Removed from Selora Vision"],
 };
 
 /** The result card, or "" for a message without one. */

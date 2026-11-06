@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 import contextlib
+import dataclasses
 import json
 import logging
 import re
@@ -29,6 +30,7 @@ from ..const import (
     CHAT_PROSE_BUDGET_CHARS,
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    FRIGATE_NAME_NOTE,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
@@ -1970,7 +1972,8 @@ class LLMClient:
         latency on every turn, which is what keeps the tool count from being a
         tax the whole product pays. An unknown or absent hint gets everything.
 
-        Frigate's tools need Frigate set up (``FRIGATE_TOOL_NAMES``).
+        Frigate's tools need Frigate set up (``FRIGATE_TOOL_NAMES``), and say
+        what the user calls it (``FRIGATE_NAME_NOTE``).
         """
         from ..frigate.client import frigate_available
         from ..tool_registry import CHAT_TOOLS, FRIGATE_TOOL_NAMES, TOOL_LANES
@@ -1979,7 +1982,11 @@ class LLMClient:
         lane = TOOL_LANES.get(intent_hint or "")
         frigate = frigate_available(self._hass)
         return [
-            self._provider.format_tool(t)
+            self._provider.format_tool(
+                dataclasses.replace(t, description=t.description + FRIGATE_NAME_NOTE)
+                if t.name in FRIGATE_TOOL_NAMES
+                else t
+            )
             for t in CHAT_TOOLS
             if not (low_ctx and t.large_context_only)
             and not (t.panel_only and not panel_available)

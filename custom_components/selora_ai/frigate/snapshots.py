@@ -118,7 +118,7 @@ async def async_preview_set_snapshots(
             "target_id": name,
             "entity_id": "",
             "name": friendly,
-            "label": sanitize_untrusted_text(f"{label} (Frigate restarts)", 300),
+            "label": sanitize_untrusted_text(f"{label} (Selora Vision restarts)", 300),
             "fingerprint": _fingerprint(name, current, current_days),
         },
     }
@@ -165,7 +165,7 @@ async def async_set_snapshots_confirmed(
             "camera": name,
             "name": friendly,
             "restart_failed": True,
-            "done": f"Saved: {done} once Frigate restarts. It could not restart itself.",
+            "done": f"Saved: {done} once Selora Vision restarts. It could not restart itself.",
         }
     hass.async_create_background_task(
         async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"
@@ -173,5 +173,5 @@ async def async_set_snapshots_confirmed(
     return {
         "camera": name,
         "name": friendly,
-        "done": f"{done}. Frigate is restarting, about a minute.",
+        "done": f"{done}. Selora Vision is restarting, about a minute.",
     }

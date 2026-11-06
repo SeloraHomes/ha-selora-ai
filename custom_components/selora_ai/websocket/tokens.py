@@ -414,7 +414,9 @@ async def _record_client_action_result(
             line = added_line(hass, plan_id, language)
             if line is None:
                 succeeded[-1] = False
-                lines.append(action_failed_line("Frigate has no record of these cameras", language))
+                lines.append(
+                    action_failed_line("Selora Vision has no record of these cameras", language)
+                )
             else:
                 lines.append(line)
                 frigate_result = result_for(hass, plan_id)

@@ -77,7 +77,7 @@ function renderWaiting(host, state) {
         <span
           >${host._t(
             "faces_not_back",
-            "Frigate isn't running face recognition yet. It starts after Frigate's next restart.",
+            "Selora Vision isn't running face recognition yet. It starts after Selora Vision's next restart.",
           )}</span
         >
         ${renderActionButton({
@@ -96,9 +96,9 @@ function renderWaiting(host, state) {
           state.loaded
             ? host._t(
                 "faces_waiting",
-                "Waiting for Frigate to restart with face recognition on…",
+                "Waiting for Selora Vision to restart with face recognition on…",
               )
-            : host._t("faces_checking", "Checking Frigate…")
+            : host._t("faces_checking", "Checking Selora Vision…")
         }</span
       >
     </div>
@@ -108,7 +108,7 @@ function renderWaiting(host, state) {
 function renderPeople(host, state) {
   if (!state.people.length) {
     return html`<div class="faces-nobody">
-      ${host._t("faces_nobody", "Frigate doesn't know anyone yet.")}
+      ${host._t("faces_nobody", "Selora Vision doesn't know anyone yet.")}
     </div>`;
   }
   return html`
@@ -279,7 +279,10 @@ export function renderFacesCard(host, msg) {
  * then the way into Frigate's Face Library. */
 export function renderFaceRecognitionReply(host, msg) {
   if (!faceLibraryShown(msg)) return "";
-  const title = host._t("faces_people_title", "People Frigate recognizes");
+  const title = host._t(
+    "faces_people_title",
+    "People Selora Vision recognizes",
+  );
   return html`
     <div class="describe-card faces-card faces-card--reply">
       ${renderPeopleSection(host, { title, people: true }, false)}

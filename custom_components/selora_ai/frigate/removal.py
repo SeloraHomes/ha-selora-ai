@@ -31,18 +31,18 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _REMOVED_BY_LANG: Final[dict[str, str]] = {
-    "en": "Removed {names} from Frigate.",
-    "fr": "{names} retiré(s) de Frigate.",
-    "de": "{names} aus Frigate entfernt.",
-    "es": "{names} quitada(s) de Frigate.",
-    "it": "{names} rimossa/e da Frigate.",
-    "nl": "{names} verwijderd uit Frigate.",
-    "hu": "{names} eltávolítva a Frigate-ből.",
-    "zh": "已从 Frigate 中移除 {names}。",
-    "pt": "{names} removida(s) do Frigate.",
-    "ja": "{names} を Frigate から削除しました。",
-    "ko": "{names}을(를) Frigate에서 제거했습니다.",
-    "ru": "{names} удалены из Frigate.",
+    "en": "Removed {names} from Selora Vision.",
+    "fr": "{names} retiré(s) de Selora Vision.",
+    "de": "{names} aus Selora Vision entfernt.",
+    "es": "{names} quitada(s) de Selora Vision.",
+    "it": "{names} rimossa/e da Selora Vision.",
+    "nl": "{names} verwijderd uit Selora Vision.",
+    "hu": "{names} eltávolítva a Selora Visionból.",
+    "zh": "已从 Selora Vision 中移除 {names}。",
+    "pt": "{names} removida(s) do Selora Vision.",
+    "ja": "{names} を Selora Vision から削除しました。",
+    "ko": "{names}을(를) Selora Vision에서 제거했습니다.",
+    "ru": "{names} удалены из Selora Vision.",
 }
 
 
@@ -98,7 +98,7 @@ async def async_preview_remove_camera(hass: HomeAssistant, target: str) -> dict[
     name = _camera_name(hass, cameras, target)
     if name is None:
         return {
-            "error": "Frigate has no such camera.",
+            "error": "Selora Vision has no such camera.",
             "frigate_cameras": sorted(cameras),
         }
     # The card names the camera; its kind line already says "Frigate camera".
@@ -149,7 +149,7 @@ async def async_remove_camera_confirmed(
         return {
             "removed": name,
             "restart_failed": True,
-            "note": "Frigate could not restart itself; the camera stops with its next restart.",
+            "note": "Selora Vision could not restart itself; the camera stops with its next restart.",
         }
     hass.async_create_background_task(
         async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"

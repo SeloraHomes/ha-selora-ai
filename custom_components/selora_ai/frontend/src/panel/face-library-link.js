@@ -21,7 +21,7 @@ export function renderFaceLibraryButton(host) {
     <button class="camera-event-link" @click=${() => openFrigateInHA(host)}>
       <ha-icon icon="mdi:face-recognition"></ha-icon>
       <span
-        >${host._t("camera_events_open_in_frigate", "Open in Frigate")}</span
+        >${host._t("camera_events_open_in_frigate", "Open in Selora Vision")}</span
       >
     </button>
   </div>`;

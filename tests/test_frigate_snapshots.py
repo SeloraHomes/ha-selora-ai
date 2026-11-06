@@ -86,7 +86,7 @@ async def test_snapshots_are_turned_on_on_a_card_then_written(
     )
 
     assert result["destructive"]["label"] == (
-        "Keep a snapshot of everything Front Door tracks, kept 30 days (Frigate restarts)"
+        "Keep a snapshot of everything Front Door tracks, kept 30 days (Selora Vision restarts)"
     )
     assert _written(aioclient_mock) == []
     (action,) = _pending_destructive_from_log(executor.call_log)
@@ -98,7 +98,7 @@ async def test_snapshots_are_turned_on_on_a_card_then_written(
     assert errors == []
     assert applied == [
         "Front Door keeps a snapshot of everything it tracks, kept 30 days. "
-        "Frigate is restarting, about a minute."
+        "Selora Vision is restarting, about a minute."
     ]
     (body,) = _written(aioclient_mock)
     assert body["config_data"] == {

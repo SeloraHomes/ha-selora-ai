@@ -192,60 +192,60 @@ _REPLIES: Final = {
     "en": {
         "step": "Camera {n} of {total}",
         "ask": "Should Selora AI describe what {camera} sees?",
-        "restarting": "That's every camera. Frigate is restarting to apply your answers, "
+        "restarting": "That's every camera. Selora Vision is restarting to apply your answers, "
         "about a minute.",
-        "saved": "That's every camera, and Frigate already runs your answers.",
-        "not_restarted": "That's every camera. Your answers are saved, but Frigate could "
+        "saved": "That's every camera, and Selora Vision already runs your answers.",
+        "not_restarted": "That's every camera. Your answers are saved, but Selora Vision could "
         "not restart itself: they apply after its next restart.",
     },
     "fr": {
         "step": "Caméra {n} sur {total}",
         "ask": "Selora AI doit-il décrire ce que voit {camera} ?",
-        "restarting": "C'était la dernière caméra. Frigate redémarre pour appliquer vos "
+        "restarting": "C'était la dernière caméra. Selora Vision redémarre pour appliquer vos "
         "réponses, environ une minute.",
-        "saved": "C'était la dernière caméra, et Frigate applique déjà vos réponses.",
+        "saved": "C'était la dernière caméra, et Selora Vision applique déjà vos réponses.",
         "not_restarted": "C'était la dernière caméra. Vos réponses sont enregistrées, mais "
-        "Frigate n'a pas pu redémarrer : elles s'appliqueront à son prochain redémarrage.",
+        "Selora Vision n'a pas pu redémarrer : elles s'appliqueront à son prochain redémarrage.",
     },
     "de": {
         "step": "Kamera {n} von {total}",
         "ask": "Soll Selora AI beschreiben, was {camera} sieht?",
-        "restarting": "Das war die letzte Kamera. Frigate startet neu, um deine Antworten "
+        "restarting": "Das war die letzte Kamera. Selora Vision startet neu, um deine Antworten "
         "zu übernehmen, etwa eine Minute.",
-        "saved": "Das war die letzte Kamera, und Frigate nutzt deine Antworten bereits.",
+        "saved": "Das war die letzte Kamera, und Selora Vision nutzt deine Antworten bereits.",
         "not_restarted": "Das war die letzte Kamera. Deine Antworten sind gespeichert, aber "
-        "Frigate konnte nicht neu starten: Sie gelten nach dem nächsten Neustart.",
+        "Selora Vision konnte nicht neu starten: Sie gelten nach dem nächsten Neustart.",
     },
     "es": {
         "step": "Cámara {n} de {total}",
         "ask": "¿Debe Selora AI describir lo que ve {camera}?",
-        "restarting": "Esa era la última cámara. Frigate se reinicia para aplicar tus "
+        "restarting": "Esa era la última cámara. Selora Vision se reinicia para aplicar tus "
         "respuestas, alrededor de un minuto.",
-        "saved": "Esa era la última cámara, y Frigate ya aplica tus respuestas.",
+        "saved": "Esa era la última cámara, y Selora Vision ya aplica tus respuestas.",
         "not_restarted": "Esa era la última cámara. Tus respuestas están guardadas, pero "
-        "Frigate no pudo reiniciarse: se aplicarán en su próximo reinicio.",
+        "Selora Vision no pudo reiniciarse: se aplicarán en su próximo reinicio.",
     },
     "it": {
         "step": "Telecamera {n} di {total}",
         "ask": "Selora AI deve descrivere ciò che vede {camera}?",
-        "restarting": "Era l'ultima telecamera. Frigate si riavvia per applicare le tue "
+        "restarting": "Era l'ultima telecamera. Selora Vision si riavvia per applicare le tue "
         "risposte, circa un minuto.",
-        "saved": "Era l'ultima telecamera, e Frigate applica già le tue risposte.",
-        "not_restarted": "Era l'ultima telecamera. Le tue risposte sono salvate, ma Frigate "
+        "saved": "Era l'ultima telecamera, e Selora Vision applica già le tue risposte.",
+        "not_restarted": "Era l'ultima telecamera. Le tue risposte sono salvate, ma Selora Vision "
         "non è riuscito a riavviarsi: si applicheranno al prossimo riavvio.",
     },
 }
 
 # What the opening message shows before the first question: the lead, an
-# example of one tracked object as Frigate labels it and as Selora AI describes
+# example of one tracked object as Selora Vision labels it and as Selora AI describes
 # it, then what it means for search, privacy and the allowance.
 _INTRO: Final = {
     "en": {
         "title": "Camera descriptions",
         "tagline": "Search what your cameras saw, in plain words.",
-        "lead": "Frigate tells you a car went by. With descriptions, Selora AI tells "
+        "lead": "Selora Vision tells you a car went by. With descriptions, Selora AI tells "
         "you which one, in words you can search.",
-        "seen": "Frigate sees",
+        "seen": "Selora Vision sees",
         "label": "Car",
         "described": "Selora AI describes",
         "example": "A white FedEx cargo van parked on the driveway.",
@@ -260,9 +260,9 @@ _INTRO: Final = {
     "fr": {
         "title": "Descriptions des caméras",
         "tagline": "Retrouvez ce que vos caméras ont vu, avec vos mots.",
-        "lead": "Frigate vous dit qu'une voiture est passée. Avec les descriptions, "
+        "lead": "Selora Vision vous dit qu'une voiture est passée. Avec les descriptions, "
         "Selora AI vous dit laquelle, en mots que vous pouvez rechercher.",
-        "seen": "Frigate voit",
+        "seen": "Selora Vision voit",
         "label": "Voiture",
         "described": "Selora AI décrit",
         "example": "Une camionnette de livraison FedEx blanche garée dans l'allée.",
@@ -279,9 +279,9 @@ _INTRO: Final = {
     "de": {
         "title": "Kamerabeschreibungen",
         "tagline": "Finde mit eigenen Worten, was deine Kameras gesehen haben.",
-        "lead": "Frigate sagt dir, dass ein Auto vorbeigefahren ist. Mit Beschreibungen"
+        "lead": "Selora Vision sagt dir, dass ein Auto vorbeigefahren ist. Mit Beschreibungen"
         " sagt dir Selora AI, welches, in Worten, nach denen du suchen kannst.",
-        "seen": "Frigate sieht",
+        "seen": "Selora Vision sieht",
         "label": "Auto",
         "described": "Selora AI beschreibt",
         "example": "Ein weißer FedEx-Lieferwagen parkt in der Einfahrt.",
@@ -296,9 +296,9 @@ _INTRO: Final = {
     "es": {
         "title": "Descripciones de cámaras",
         "tagline": "Busca con tus palabras lo que vieron tus cámaras.",
-        "lead": "Frigate te dice que pasó un coche. Con las descripciones, Selora AI "
+        "lead": "Selora Vision te dice que pasó un coche. Con las descripciones, Selora AI "
         "te dice cuál, con palabras que puedes buscar.",
-        "seen": "Frigate ve",
+        "seen": "Selora Vision ve",
         "label": "Coche",
         "described": "Selora AI describe",
         "example": "Una furgoneta de reparto blanca de FedEx aparcada en la entrada.",
@@ -315,9 +315,9 @@ _INTRO: Final = {
     "it": {
         "title": "Descrizioni delle telecamere",
         "tagline": "Cerca con parole tue ciò che hanno visto le telecamere.",
-        "lead": "Frigate ti dice che è passata un'auto. Con le descrizioni, Selora AI "
+        "lead": "Selora Vision ti dice che è passata un'auto. Con le descrizioni, Selora AI "
         "ti dice quale, con parole che puoi cercare.",
-        "seen": "Frigate vede",
+        "seen": "Selora Vision vede",
         "label": "Auto",
         "described": "Selora AI descrive",
         "example": "Un furgone FedEx bianco parcheggiato nel vialetto.",
@@ -914,7 +914,7 @@ async def async_preview_set_descriptions(
     if describe:
         where = f", in {', '.join(zones)} only" if zones else ""
         label = (
-            f"Restart Frigate so Selora AI describes the {_sees(running.get(name))} "
+            f"Restart Selora Vision so Selora AI describes the {_sees(running.get(name))} "
             f"{friendly} sees{where}"
         )
         if not any(_answer(saved, other) is True for other in saved_cameras):
@@ -923,7 +923,7 @@ async def async_preview_set_descriptions(
                 "and the assistant comes first"
             )
     else:
-        label = f"Restart Frigate so Selora AI stops describing what {friendly} sees"
+        label = f"Restart Selora Vision so Selora AI stops describing what {friendly} sees"
     return {
         "requires_approval": True,
         "destructive": {
@@ -985,9 +985,9 @@ async def async_set_descriptions_confirmed(
         return {
             "camera": name,
             "restart_failed": True,
-            "done": f"Saved: {done} once Frigate restarts. It could not restart itself.",
+            "done": f"Saved: {done} once Selora Vision restarts. It could not restart itself.",
         }
-    return {"camera": name, "done": f"{done}. Frigate is restarting, about a minute."}
+    return {"camera": name, "done": f"{done}. Selora Vision is restarting, about a minute."}
 
 
 async def async_describe_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
@@ -1025,7 +1025,11 @@ async def async_describe_suggestions(hass: HomeAssistant) -> list[HomeSuggestion
                         "suggestion_id": "describe:" + ",".join(unasked),
                         "type": "describe_cameras",
                         "entities": entities,
-                        "collection": {"source": "frigate", "name": "Frigate", "ref": "frigate"},
+                        "collection": {
+                            "source": "frigate",
+                            "name": "Selora Vision",
+                            "ref": "frigate",
+                        },
                     }
                 )
     except FrigateError as exc:

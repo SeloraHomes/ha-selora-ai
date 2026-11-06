@@ -83,8 +83,10 @@ export async function openFrigatePage(host, page) {
     tab?.close();
     host._showToast?.(
       interpolate(
-        host._t?.("frigate_open_failed", "Couldn't open Frigate: {error}") ??
-          "Couldn't open Frigate: {error}",
+        host._t?.(
+          "frigate_open_failed",
+          "Couldn't open Selora Vision: {error}",
+        ) ?? "Couldn't open Selora Vision: {error}",
         { error: err?.message || String(err) },
       ),
       "error",

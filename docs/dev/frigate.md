@@ -3,11 +3,26 @@
 On a Selora hub Frigate runs on the Selora OS host, not in Home Assistant, and
 Selora AI reaches it at the URL (and with the login) of the **Frigate
 integration's config entry**, which points at the host's proxy. A home without
-a hub can enter Frigate's address and login in Settings → Frigate instead
+a hub can enter Frigate's address and login in Settings → Selora Vision instead
 (`frigate_url` / `frigate_username` / `frigate_password` in the LLM entry's
 data). `frigate_connection` (`frigate/client.py`) is the one place either is
 read: the integration's entry first, then the settings; with neither, every
 Frigate feature is off.
+
+## Selora Vision is the name users see
+
+Users know Frigate as **Selora Vision** (powered by Frigate). Text a user
+reads says Selora Vision: the panel's strings, the cards' labels and `done`
+lines, and the confirmations written in code. Two things keep Frigate's name:
+**the Frigate integration**, since that is what Home Assistant calls it, and
+the version the connection test reports, which is Frigate's.
+
+Text only the model reads keeps Frigate, since it describes Frigate's config
+and API. Every Frigate tool it is offered ends with `FRIGATE_NAME_NOTE`
+(`const.py`) instead, appended where each surface filters the Frigate tools
+(`_get_tools_for_provider` for chat, `_listed` in `mcp_server/dispatch.py` for
+MCP), so a new tool needs nothing. Without it the replies said Frigate to a
+user whose panel says Selora Vision everywhere else.
 
 ## Offered only with Frigate
 

@@ -32,7 +32,7 @@ describe("renderFaceLibraryLink", () => {
     const out = flatten(
       renderFaceLibraryLink(host(), reply({ face_library: true })),
     );
-    expect(out).toContain("Open in Frigate");
+    expect(out).toContain("Open in Selora Vision");
   });
 
   it("offers nothing while face recognition is off", () => {

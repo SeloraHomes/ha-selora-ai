@@ -224,7 +224,7 @@ describe("links into Frigate's own UI", () => {
     const out = opened({
       frigate: { config: { addon: "ccab4aaf_frigate-proxy" } },
     });
-    expect(out).toContain("Open in Frigate");
+    expect(out).toContain("Open in Selora Vision");
     expect(out).toContain("Zones");
     expect(out).toContain("mdi:open-in-new");
     expect(out).toContain("mdi:vector-square");
@@ -232,7 +232,7 @@ describe("links into Frigate's own UI", () => {
 
   it("offers nothing without one", () => {
     const out = opened({});
-    expect(out).not.toContain("Open in Frigate");
+    expect(out).not.toContain("Open in Selora Vision");
   });
 
   it("closes with an icon button that still says what it does", () => {

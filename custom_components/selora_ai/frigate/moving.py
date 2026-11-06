@@ -202,7 +202,7 @@ async def async_preview_move_camera(
             "entity_id": "",
             "name": friendly,
             "label": sanitize_untrusted_text(
-                f"Restart Frigate so {friendly} is read from {where} instead of {old}", 300
+                f"Restart Selora Vision so {friendly} is read from {where} instead of {old}", 300
             ),
             "fingerprint": _card_fingerprint(config, name, host, port),
         },
@@ -289,7 +289,7 @@ async def async_move_camera_confirmed(
             "camera": name,
             "name": friendly,
             "restart_failed": True,
-            "done": f"Saved: Frigate reads {friendly} from {where} once it restarts. "
+            "done": f"Saved: Selora Vision reads {friendly} from {where} once it restarts. "
             "It could not restart itself.",
         }
     hass.async_create_background_task(
@@ -298,7 +298,7 @@ async def async_move_camera_confirmed(
     return {
         "camera": name,
         "name": friendly,
-        "done": f"Frigate now reads {friendly} from {where}; it is restarting, about a minute.",
+        "done": f"Selora Vision now reads {friendly} from {where}; it is restarting, about a minute.",
     }
 
 

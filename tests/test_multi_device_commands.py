@@ -429,6 +429,6 @@ def test_a_switch_frigate_config_disables_says_why() -> None:
     )
 
     assert text.startswith(
-        "Front Door Recordings did not turn on: it is turned off in this camera's Frigate settings"
+        "Front Door Recordings did not turn on: it is turned off in this camera's Selora Vision settings"
     )
     assert "may not have worked" not in text

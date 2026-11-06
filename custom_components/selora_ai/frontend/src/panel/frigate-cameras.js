@@ -29,7 +29,7 @@ const FIXES = {
   ],
   cloud_only: [
     "frigate_fix_cloud_only",
-    "This camera streams only through its maker's cloud, which Frigate cannot read.",
+    "This camera streams only through its maker's cloud, which Selora Vision cannot read.",
   ],
 };
 
@@ -296,7 +296,7 @@ export function renderFrigateCameraRows(host, action) {
       >
         ${host._t(
           "frigate_cameras_restart",
-          "Frigate restarts to add them, pausing its cameras for about a minute.",
+          "Selora Vision restarts to add them, pausing its cameras for about a minute.",
         )}
       </div>
     </div>

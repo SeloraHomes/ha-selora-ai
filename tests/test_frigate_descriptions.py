@@ -360,7 +360,7 @@ async def test_a_yes_goes_on_a_card_that_writes_only_the_camera(
 
     label = result["destructive"]["label"]
     assert label.startswith(
-        "Restart Frigate so Selora AI describes the people and vehicles Front Driveway "
+        "Restart Selora Vision so Selora AI describes the people and vehicles Front Driveway "
         "sees, in street only"
     )
     # The first camera turned on says what it costs.
@@ -371,7 +371,7 @@ async def test_a_yes_goes_on_a_card_that_writes_only_the_camera(
 
     assert errors == []
     assert applied == [
-        "Selora AI describes what Front Driveway sees in street. Frigate is restarting, about a minute."
+        "Selora AI describes what Front Driveway sees in street. Selora Vision is restarting, about a minute."
     ]
     (body,) = _written(aioclient_mock)
     assert body["config_data"] == {
@@ -706,7 +706,7 @@ async def test_the_last_answer_restarts_frigate_once_if_it_changes_what_runs(
     result = await async_answer(hass, "living_room", False, [], "fr")
 
     assert result["said"] == "Laisse Living Room désactivée"
-    assert "Frigate redémarre" in result["reply"]
+    assert "Selora Vision redémarre" in result["reply"]
     # The panel shows how it ended with a tick, not as plain text.
     assert result["card"] == {"done": "restarting"}
     assert "quick_actions" not in result

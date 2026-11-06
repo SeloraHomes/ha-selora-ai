@@ -64,12 +64,12 @@ const _DELETE_KIND_LABELS = {
   helper: "helper",
   entity: "entity",
   device: "device",
-  frigate_camera: "Frigate camera",
-  frigate_objects: "Frigate camera",
-  frigate_move: "Frigate camera",
-  frigate_snapshots: "Frigate camera",
-  frigate_descriptions: "Frigate camera",
-  frigate_faces: "Frigate",
+  frigate_camera: "Selora Vision camera",
+  frigate_objects: "Selora Vision camera",
+  frigate_move: "Selora Vision camera",
+  frigate_snapshots: "Selora Vision camera",
+  frigate_descriptions: "Selora Vision camera",
+  frigate_faces: "Selora Vision",
 };
 
 const _DELETE_KIND_ICONS = {
@@ -184,7 +184,7 @@ const _CONFIRM_VARIANTS = {
           tone: "primary",
           icon: "mdi:cctv",
           labelKey: "client_action_add_to_frigate",
-          labelFallback: "Add to Frigate",
+          labelFallback: "Add to Selora Vision",
         },
         // Each press answers one step of the setup; the card stays until the
         // last one.

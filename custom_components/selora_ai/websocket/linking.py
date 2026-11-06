@@ -348,7 +348,9 @@ async def _handle_websocket_update_config(
             )
         elif (url := normalize_frigate_url(str(new_data[CONF_FRIGATE_URL]))) is None:
             connection.send_error(
-                msg["id"], "invalid_frigate_url", "Frigate's address must be http(s)://host:port"
+                msg["id"],
+                "invalid_frigate_url",
+                "Selora Vision's address must be http(s)://host:port",
             )
             return
         else:

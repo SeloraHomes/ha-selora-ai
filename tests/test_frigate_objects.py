@@ -64,7 +64,7 @@ async def test_a_car_is_added_on_a_card_then_written_and_frigate_restarts(
     result, action = await _card(hass, {"camera": "Wyze Cam V3", "add": ["Car"]})
 
     label = result["destructive"]["label"]
-    assert label == "Wyze Cam V3 starts looking for car (Frigate restarts)"
+    assert label == "Wyze Cam V3 starts looking for car (Selora Vision restarts)"
     assert _written(aioclient_mock) == []
 
     with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
@@ -72,7 +72,7 @@ async def test_a_car_is_added_on_a_card_then_written_and_frigate_restarts(
 
     assert errors == []
     assert applied == [
-        "Wyze Cam V3 now looks for car, person. Frigate is restarting, about a minute."
+        "Wyze Cam V3 now looks for car, person. Selora Vision is restarting, about a minute."
     ]
     (sent,) = _written(aioclient_mock)
     body = sent if isinstance(sent, dict) else json.loads(sent)
@@ -186,7 +186,7 @@ async def test_a_frigate_that_cannot_restart_says_the_change_waits(
     (done,), errors = await _apply_destructive_actions(hass, [action])
 
     assert errors == []
-    assert done.startswith("Saved: Wyze Cam V3 now looks for car, person once Frigate restarts")
+    assert done.startswith("Saved: Wyze Cam V3 now looks for car, person once Selora Vision restarts")
 
 
 async def test_two_cards_confirmed_at_once_write_only_the_first(
@@ -227,7 +227,7 @@ async def test_a_change_saved_before_frigate_restarts_is_what_the_next_card_star
     after, _action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["dog"]})
 
     assert "changed since it was shown" in errors[0]
-    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Frigate restarts)"
+    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Selora Vision restarts)"
 
 
 async def test_a_list_changed_in_frigate_since_beats_the_one_saved(
@@ -244,7 +244,7 @@ async def test_a_list_changed_in_frigate_since_beats_the_one_saved(
 
     after, _action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["dog"]})
 
-    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Frigate restarts)"
+    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Selora Vision restarts)"
 
 
 async def test_a_replacement_says_what_it_stops_looking_for(
@@ -258,7 +258,7 @@ async def test_a_replacement_says_what_it_stops_looking_for(
 
     assert result["destructive"]["label"] == (
         "Wyze Cam V3 starts looking for car and stops looking for person; "
-        "it then looks for car only (Frigate restarts)"
+        "it then looks for car only (Selora Vision restarts)"
     )
 
 
@@ -371,5 +371,5 @@ async def test_a_label_already_tracked_can_still_be_removed(
     result, _action = await _card(hass, {"camera": "wyze_cam_v3", "remove": ["bus"]})
 
     assert result["destructive"]["label"] == (
-        "Wyze Cam V3 stops looking for bus; it then looks for car, person only (Frigate restarts)"
+        "Wyze Cam V3 stops looking for bus; it then looks for car, person only (Selora Vision restarts)"
     )

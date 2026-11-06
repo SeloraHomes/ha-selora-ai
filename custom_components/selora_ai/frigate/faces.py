@@ -121,12 +121,12 @@ _INTRO: Final = {
     "en": {
         "title": "Face recognition",
         "tagline": "Know who is at the door.",
-        "lead": "Frigate tells you a person is at the door. With face recognition, it "
+        "lead": "Selora Vision tells you a person is at the door. With face recognition, it "
         "tells you who.",
         "who": "Ask \u201cWas Alice home at noon?\u201d and get an answer, or be told "
         "only when someone you don't know comes by.",
         "privacy": "It runs on your hub: no face leaves the house.",
-        "photos": "Frigate knows only the people you add, with a few clear photos of "
+        "photos": "Selora Vision knows only the people you add, with a few clear photos of "
         "each. You add them right here.",
         "people": "It looks for a face on the people your cameras see, so it works "
         "best on a camera close enough to see one, like the front door.",
@@ -135,12 +135,12 @@ _INTRO: Final = {
     "fr": {
         "title": "Reconnaissance faciale",
         "tagline": "Sachez qui est à la porte.",
-        "lead": "Frigate vous dit qu'une personne est à la porte. Avec la "
+        "lead": "Selora Vision vous dit qu'une personne est à la porte. Avec la "
         "reconnaissance faciale, il vous dit qui.",
         "who": "Demandez \u00ab\u00a0Alice était-elle là à midi\u00a0?\u00a0\u00bb, ou "
         "soyez prévenu seulement quand passe quelqu'un d'inconnu.",
         "privacy": "Elle fonctionne sur votre hub : aucun visage ne quitte la maison.",
-        "photos": "Frigate ne reconnaît que les personnes que vous ajoutez, avec "
+        "photos": "Selora Vision ne reconnaît que les personnes que vous ajoutez, avec "
         "quelques photos nettes de chacune. Vous les ajoutez ici même.",
         "people": "Elle cherche un visage sur les personnes que voient vos caméras : "
         "elle marche mieux sur une caméra assez proche pour en voir un, comme "
@@ -150,12 +150,12 @@ _INTRO: Final = {
     "de": {
         "title": "Gesichtserkennung",
         "tagline": "Wisse, wer an der Tür ist.",
-        "lead": "Frigate sagt dir, dass jemand an der Tür ist. Mit Gesichtserkennung "
+        "lead": "Selora Vision sagt dir, dass jemand an der Tür ist. Mit Gesichtserkennung "
         "sagt es dir, wer.",
         "who": "Frag \u201eWar Alice mittags zu Hause?\u201c, oder lass dich nur "
         "benachrichtigen, wenn jemand Unbekanntes kommt.",
         "privacy": "Sie läuft auf deinem Hub: Kein Gesicht verlässt das Haus.",
-        "photos": "Frigate kennt nur die Personen, die du hinzufügst, mit ein paar "
+        "photos": "Selora Vision kennt nur die Personen, die du hinzufügst, mit ein paar "
         "klaren Fotos von jeder. Du fügst sie gleich hier hinzu.",
         "people": "Sie sucht ein Gesicht bei den Personen, die deine Kameras sehen, "
         "und funktioniert am besten mit einer Kamera, die nah genug ist, etwa an "
@@ -165,12 +165,12 @@ _INTRO: Final = {
     "es": {
         "title": "Reconocimiento facial",
         "tagline": "Sabe quién está en la puerta.",
-        "lead": "Frigate te dice que hay una persona en la puerta. Con el "
+        "lead": "Selora Vision te dice que hay una persona en la puerta. Con el "
         "reconocimiento facial, te dice quién.",
         "who": "Pregunta \u00ab\u00bfEstaba Alice en casa a mediodía?\u00bb, o recibe "
         "un aviso solo cuando pasa alguien que no conoces.",
         "privacy": "Funciona en tu hub: ninguna cara sale de casa.",
-        "photos": "Frigate solo reconoce a las personas que añades, con unas cuantas "
+        "photos": "Selora Vision solo reconoce a las personas que añades, con unas cuantas "
         "fotos nítidas de cada una. Las añades aquí mismo.",
         "people": "Busca una cara en las personas que ven tus cámaras, así que "
         "funciona mejor con una cámara lo bastante cerca para ver una, como la de "
@@ -180,12 +180,12 @@ _INTRO: Final = {
     "it": {
         "title": "Riconoscimento facciale",
         "tagline": "Sappi chi è alla porta.",
-        "lead": "Frigate ti dice che c'è una persona alla porta. Con il riconoscimento "
+        "lead": "Selora Vision ti dice che c'è una persona alla porta. Con il riconoscimento "
         "facciale, ti dice chi.",
         "who": "Chiedi \u00abAlice era a casa a mezzogiorno?\u00bb, o ricevi un avviso "
         "solo quando passa qualcuno che non conosci.",
         "privacy": "Funziona sul tuo hub: nessun volto lascia la casa.",
-        "photos": "Frigate riconosce solo le persone che aggiungi, con alcune foto "
+        "photos": "Selora Vision riconosce solo le persone che aggiungi, con alcune foto "
         "nitide di ciascuna. Le aggiungi proprio qui.",
         "people": "Cerca un volto sulle persone che vedono le tue telecamere, quindi "
         "funziona meglio con una telecamera abbastanza vicina da vederne uno, come "
@@ -197,49 +197,49 @@ _INTRO: Final = {
 # What the conversation says after the answer, and above the people card.
 _REPLIES: Final = {
     "en": {
-        "restarting": "Face recognition is on. Frigate is restarting, about a minute.",
-        "not_restarted": "Face recognition is saved on, but Frigate could not restart "
-        "itself: it starts with Frigate's next restart.",
+        "restarting": "Face recognition is on. Selora Vision is restarting, about a minute.",
+        "not_restarted": "Face recognition is saved on, but Selora Vision could not restart "
+        "itself: it starts with Selora Vision's next restart.",
         "declined": "OK, it stays off. Ask me any time to turn it on.",
-        "add": "Add the people Frigate should recognize: a name, then 5 to 10 clear "
+        "add": "Add the people Selora Vision should recognize: a name, then 5 to 10 clear "
         "photos of their face, well lit, without a hat or sunglasses. Varied photos "
         "help more than many.",
     },
     "fr": {
-        "restarting": "La reconnaissance faciale est activée. Frigate redémarre, "
+        "restarting": "La reconnaissance faciale est activée. Selora Vision redémarre, "
         "environ une minute.",
-        "not_restarted": "La reconnaissance faciale est enregistrée, mais Frigate n'a "
+        "not_restarted": "La reconnaissance faciale est enregistrée, mais Selora Vision n'a "
         "pas pu redémarrer : elle démarrera à son prochain redémarrage.",
         "declined": "D'accord, elle reste désactivée. Demandez-moi quand vous voulez.",
-        "add": "Ajoutez les personnes que Frigate doit reconnaître : un nom, puis 5 à "
+        "add": "Ajoutez les personnes que Selora Vision doit reconnaître : un nom, puis 5 à "
         "10 photos nettes de leur visage, bien éclairées, sans chapeau ni lunettes "
         "de soleil. Des photos variées aident plus que beaucoup de photos.",
     },
     "de": {
-        "restarting": "Die Gesichtserkennung ist an. Frigate startet neu, etwa eine Minute.",
-        "not_restarted": "Die Gesichtserkennung ist gespeichert, aber Frigate konnte "
+        "restarting": "Die Gesichtserkennung ist an. Selora Vision startet neu, etwa eine Minute.",
+        "not_restarted": "Die Gesichtserkennung ist gespeichert, aber Selora Vision konnte "
         "nicht neu starten: Sie beginnt mit dem nächsten Neustart.",
         "declined": "Gut, sie bleibt aus. Frag mich jederzeit, um sie einzuschalten.",
-        "add": "Füge die Personen hinzu, die Frigate erkennen soll: einen Namen, dann "
+        "add": "Füge die Personen hinzu, die Selora Vision erkennen soll: einen Namen, dann "
         "5 bis 10 klare Fotos ihres Gesichts, gut beleuchtet, ohne Hut oder "
         "Sonnenbrille. Abwechslung hilft mehr als Menge.",
     },
     "es": {
-        "restarting": "El reconocimiento facial está activado. Frigate se reinicia, "
+        "restarting": "El reconocimiento facial está activado. Selora Vision se reinicia, "
         "alrededor de un minuto.",
-        "not_restarted": "El reconocimiento facial está guardado, pero Frigate no pudo "
+        "not_restarted": "El reconocimiento facial está guardado, pero Selora Vision no pudo "
         "reiniciarse: empezará con su próximo reinicio.",
         "declined": "De acuerdo, sigue apagado. Pídemelo cuando quieras.",
-        "add": "Añade a las personas que Frigate debe reconocer: un nombre y luego 5 a "
+        "add": "Añade a las personas que Selora Vision debe reconocer: un nombre y luego 5 a "
         "10 fotos nítidas de su cara, bien iluminadas, sin gorra ni gafas de sol. "
         "Las fotos variadas ayudan más que muchas.",
     },
     "it": {
-        "restarting": "Il riconoscimento facciale è attivo. Frigate si riavvia, circa un minuto.",
-        "not_restarted": "Il riconoscimento facciale è salvato, ma Frigate non è "
+        "restarting": "Il riconoscimento facciale è attivo. Selora Vision si riavvia, circa un minuto.",
+        "not_restarted": "Il riconoscimento facciale è salvato, ma Selora Vision non è "
         "riuscito a riavviarsi: partirà al prossimo riavvio.",
         "declined": "D'accordo, resta spento. Chiedimelo quando vuoi.",
-        "add": "Aggiungi le persone che Frigate deve riconoscere: un nome, poi da 5 a "
+        "add": "Aggiungi le persone che Selora Vision deve riconoscere: un nome, poi da 5 a "
         "10 foto nitide del volto, ben illuminate, senza cappello né occhiali da "
         "sole. Foto varie aiutano più di tante foto.",
     },
@@ -310,7 +310,7 @@ async def async_face_recognition(hass: HomeAssistant, adding: str = ON_CARD) -> 
         "add_people": _ADD_PEOPLE[adding],
     }
     if on and not _enabled(config):
-        result["note"] = "It is saved on and starts with Frigate's next restart."
+        result["note"] = "It is saved on and starts with Selora Vision's next restart."
     if on:
         try:
             people = _people(await client.get_faces())
@@ -320,7 +320,7 @@ async def async_face_recognition(hass: HomeAssistant, adding: str = ON_CARD) -> 
         result["people"] = people
         if not people:
             result["next"] = (
-                "Nobody is in the Face Library yet: Frigate recognizes no one until they are added."
+                "Nobody is in the Face Library yet: Selora Vision recognizes no one until they are added."
             )
         result["face_library"] = True
     else:
@@ -349,10 +349,10 @@ async def async_preview_set_face_recognition(
         state = "on" if current else "off"
         return {"unchanged": True, "note": f"Face recognition is already {state}."}
     label = (
-        "Restart Frigate to recognize the faces of people added to its Face Library. "
+        "Restart Selora Vision to recognize the faces of people added to its Face Library. "
         "It runs on the hub: no face leaves the house"
         if enabled
-        else "Restart Frigate with face recognition off. The Face Library is kept"
+        else "Restart Selora Vision with face recognition off. The Face Library is kept"
     )
     return {
         "requires_approval": True,
@@ -400,9 +400,9 @@ async def async_set_face_recognition_confirmed(
         _LOGGER.warning("Frigate saved face recognition but did not restart: %s", exc)
         return {
             "restart_failed": True,
-            "done": f"Saved: {done} once Frigate restarts. It could not restart itself.",
+            "done": f"Saved: {done} once Selora Vision restarts. It could not restart itself.",
         }
-    return {"done": f"{done}. Frigate is restarting, about a minute."}
+    return {"done": f"{done}. Selora Vision is restarting, about a minute."}
 
 
 async def async_face_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
@@ -434,7 +434,11 @@ async def async_face_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
                         "suggestion_id": f"faces:{state}",
                         "type": "recognize_faces",
                         "entities": [],
-                        "collection": {"source": "frigate", "name": "Frigate", "ref": "frigate"},
+                        "collection": {
+                            "source": "frigate",
+                            "name": "Selora Vision",
+                            "ref": "frigate",
+                        },
                         "state": state,
                     }
                 )

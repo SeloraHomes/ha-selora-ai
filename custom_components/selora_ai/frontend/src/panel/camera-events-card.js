@@ -217,7 +217,7 @@ function renderFrigateLinks(host, event) {
     ${link(
       eventPage(event.id),
       "mdi:open-in-new",
-      host._t("camera_events_open_in_frigate", "Open in Frigate"),
+      host._t("camera_events_open_in_frigate", "Open in Selora Vision"),
     )}
     ${
       event.camera

@@ -17,6 +17,7 @@ from custom_components.selora_ai.const import (
     CONF_FRIGATE_URL,
     CONF_FRIGATE_USERNAME,
     DOMAIN,
+    FRIGATE_NAME_NOTE,
 )
 from custom_components.selora_ai.frigate import client as frigate_client
 from custom_components.selora_ai.frigate.client import (
@@ -62,19 +63,30 @@ async def _call(hass: HomeAssistant, name: str, **arguments: Any) -> dict[str, A
     return json.loads(result["content"][0]["text"])
 
 
-async def _listed(hass: HomeAssistant) -> set[str]:
+async def _listed_descriptions(hass: HomeAssistant) -> dict[str, str]:
     result = await mcp_dispatch._jsonrpc_dispatch(hass, "tools/list", None, ADMIN)
-    return {t["name"] for t in result["tools"]}
+    return {t["name"]: t["description"] for t in result["tools"]}
 
 
-def _chat_tools(hass: HomeAssistant) -> set[str]:
+async def _listed(hass: HomeAssistant) -> set[str]:
+    return set(await _listed_descriptions(hass))
+
+
+def _chat_descriptions(hass: HomeAssistant) -> dict[str, str]:
     from custom_components.selora_ai.llm_client.client import LLMClient
 
     llm = MagicMock(spec=LLMClient)
     llm._hass = hass
     llm._provider = MagicMock(is_low_context=False)
-    llm._provider.format_tool = lambda t: {"name": t.name}
-    return {t["name"] for t in LLMClient._get_tools_for_provider(llm, panel_available=True)}
+    llm._provider.format_tool = lambda t: {"name": t.name, "description": t.description}
+    return {
+        t["name"]: t["description"]
+        for t in LLMClient._get_tools_for_provider(llm, panel_available=True)
+    }
+
+
+def _chat_tools(hass: HomeAssistant) -> set[str]:
+    return set(_chat_descriptions(hass))
 
 
 # ── The connection ────────────────────────────────────────────────────────────
@@ -132,6 +144,18 @@ async def test_frigate_s_tools_are_offered_only_with_frigate(hass: HomeAssistant
 
     assert _chat_tools(hass) >= FRIGATE_TOOL_NAMES
     assert await _listed(hass) >= FRIGATE_TOOLS
+
+
+async def test_frigate_s_tools_say_what_the_user_calls_it(hass: HomeAssistant) -> None:
+    """The panel says Selora Vision, so a reply saying Frigate reads as another product."""
+    _settings(hass)
+
+    for offered, frigate_tools in (
+        (_chat_descriptions(hass), FRIGATE_TOOL_NAMES),
+        (await _listed_descriptions(hass), FRIGATE_TOOLS),
+    ):
+        named = {name for name, text in offered.items() if text.endswith(FRIGATE_NAME_NOTE)}
+        assert named == frigate_tools
 
 
 async def test_the_server_version_moves_with_frigate(hass: HomeAssistant) -> None:

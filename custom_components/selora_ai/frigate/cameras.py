@@ -129,7 +129,7 @@ FIXES: Final = {
         "Assistant with it and live view on, then ask again."
     ),
     "cloud_only": (
-        "This camera streams only through its maker's cloud, which Frigate cannot read."
+        "This camera streams only through its maker's cloud, which Selora Vision cannot read."
     ),
 }
 _NO_STREAM_FIX: Final = {
@@ -144,11 +144,11 @@ _LENS: Final = re.compile(r"_lens\d+$")
 
 
 def _fix(platform: str, reason: str) -> str | None:
-    if reason == "it is already in Frigate":
+    if reason == "it is already in Selora Vision":
         return None
     if platform in _CLOUD_ONLY:
         return "cloud_only"
-    if reason == "it has no stream Frigate can read":
+    if reason == "it has no stream Selora Vision can read":
         return _NO_STREAM_FIX.get(platform)
     return None
 
@@ -390,22 +390,22 @@ async def async_camera_candidates(
         for entry in entries:
             url = await _async_stream_source(hass, entry.entity_id)
             if not url:
-                reasons.append("it has no stream Frigate can read")
+                reasons.append("it has no stream Selora Vision can read")
             elif urlsplit(url).scheme.lower() not in _SCHEMES:
-                reasons.append("its stream is in a format Frigate cannot read")
+                reasons.append("its stream is in a format Selora Vision cannot read")
             elif not _is_local(url):
                 reasons.append("it streams from the internet, not your network")
             elif source_key(url) in in_frigate:
-                reasons.append("it is already in Frigate")
+                reasons.append("it is already in Selora Vision")
             else:
                 streams.append((entry, url))
         if not streams:
             # The most telling reason: one stream already in Frigate means the
             # camera is, even if another entity of it has no stream.
             order = (
-                "it is already in Frigate",
+                "it is already in Selora Vision",
                 "it streams from the internet, not your network",
-                "its stream is in a format Frigate cannot read",
+                "its stream is in a format Selora Vision cannot read",
             )
             reason = next((r for r in order if r in reasons), reasons[0])
             skipped.append(
@@ -546,7 +546,7 @@ def _streamless_cameras(hass: HomeAssistant, ignored: set[str]) -> list[Skipped]
             Skipped(
                 device_id,
                 str(device.name_by_user or device.name or device_id),
-                "it has no stream Frigate can read",
+                "it has no stream Selora Vision can read",
                 fix,
             )
         )
