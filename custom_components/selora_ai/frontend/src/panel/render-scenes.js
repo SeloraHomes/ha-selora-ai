@@ -15,6 +15,7 @@ import {
   searchTerms,
 } from "../shared/entity-search.js";
 import { renderSearchMatchReason } from "./search-match.js";
+import { saveSortPref } from "./sort-prefs.js";
 import { interpolate } from "../shared/i18n.js";
 import { renderTrashList, renderTrashTab, trashItems } from "./trash.js";
 
@@ -602,6 +603,7 @@ export function renderScenes(host) {
                       .value=${host._sceneSortBy || "recent"}
                       @change=${(e) => {
                         host._sceneSortBy = e.target.value;
+                        saveSortPref(host, "scenes");
                       }}
                     >
                       <option value="recent">
@@ -624,6 +626,7 @@ export function renderScenes(host) {
                       @click=${() => {
                         host._sceneSortDir =
                           sortDir === "desc" ? "asc" : "desc";
+                        saveSortPref(host, "scenes");
                       }}
                     >
                       <ha-icon
@@ -701,8 +704,11 @@ export function renderScenes(host) {
                           <div class="auto-row-lead">
                             <ha-icon
                               class="auto-row-icon"
-                              icon="mdi:palette"
-                              style="color:var(--selora-accent);"
+                              icon=${
+                                host.hass?.states?.[sceneEntityId]?.attributes
+                                  ?.icon || "mdi:palette"
+                              }
+                              style="color:var(--primary-text-color);"
                             ></ha-icon>
                             <div class="auto-row-name">
                               <div class="auto-row-title-row">

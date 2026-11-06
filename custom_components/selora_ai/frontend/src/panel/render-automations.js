@@ -31,6 +31,7 @@ import { interpolate } from "../shared/i18n.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { renderTrashList, renderTrashTab, trashItems } from "./trash.js";
 import { renderFlowDeviceLink, renderFlowEntityLink } from "./entity-link.js";
+import { saveSortPref } from "./sort-prefs.js";
 import {
   activeRefinement,
   prefillComposer,
@@ -1411,6 +1412,7 @@ export function renderAutomations(host) {
                       .value=${host._sortBy}
                       @change=${(e) => {
                         host._sortBy = e.target.value;
+                        saveSortPref(host, "automations");
                       }}
                     >
                       <option value="recent">
@@ -1435,6 +1437,7 @@ export function renderAutomations(host) {
                       }
                       @click=${() => {
                         host._sortDir = sortDir === "desc" ? "asc" : "desc";
+                        saveSortPref(host, "automations");
                       }}
                     >
                       <ha-icon
@@ -1634,7 +1637,12 @@ export function renderAutomations(host) {
                           }
                           ${renderAutomationIdentity(a.alias, a.description, {
                             isSelora: !!a.is_selora,
-                            icon: !isOn ? "mdi:robot-off" : "mdi:robot",
+                            // The icon the user gave it is how they spot it;
+                            // the robot is only for one without.
+                            icon:
+                              host.hass?.states?.[a.entity_id]?.attributes
+                                ?.icon ||
+                              (!isOn ? "mdi:robot-off" : "mdi:robot"),
                             titleSuffix: html`
                               ${
                                 a.recipe_title
