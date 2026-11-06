@@ -620,6 +620,45 @@ describe("renderHomeSuggestions", () => {
     );
   });
 
+  it("links each device in the reason to its more-info dialog", () => {
+    const h = {
+      ...host([
+        {
+          ...scene,
+          entities: [
+            ...scene.entities,
+            { entity_id: "light.desk", name: "Desk", state: "on" },
+          ],
+        },
+      ]),
+      requestUpdate: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+    h.hass.states = {
+      "light.ceiling": { attributes: { friendly_name: "Ceiling" } },
+      "light.reading": { attributes: { friendly_name: "Reading" } },
+      "light.sofa": { attributes: { friendly_name: "Sofa" } },
+      "light.desk": { attributes: { friendly_name: "Desk" } },
+    };
+    handlers(renderHomeSuggestions(h))[0]();
+    // toggle, snooze, dismiss, three links, "1 more", then "Ask Selora".
+    const opened = handlers(renderHomeSuggestions(h));
+    expect(opened).toHaveLength(8);
+    opened[3]({ stopPropagation: vi.fn() });
+    expect(h.dispatchEvent.mock.calls[0][0].detail).toEqual({
+      entityId: "light.ceiling",
+    });
+    expect(flatten(renderHomeSuggestions(h))).not.toContain("light.desk");
+
+    opened[6]();
+    expect(h.requestUpdate).toHaveBeenCalled();
+    // The rest are links too, and "more" is gone.
+    expect(handlers(renderHomeSuggestions(h))).toHaveLength(8);
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Open Desk (light.desk)",
+    );
+  });
+
   const porch = {
     suggestion_id: "pattern:abc",
     type: "automation_idea",
