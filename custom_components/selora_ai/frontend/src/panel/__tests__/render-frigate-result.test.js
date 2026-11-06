@@ -64,8 +64,8 @@ describe("the Frigate result card", () => {
   it("waits for Frigate while the camera is not in Home Assistant yet", () => {
     const out = flatten(renderFrigateResult(host(), message("added")));
 
-    expect(out).toContain("Added to Frigate");
-    expect(out).toContain("Frigate is restarting");
+    expect(out).toContain("Added to Selora Vision");
+    expect(out).toContain("Selora Vision is restarting");
     expect(out).toContain("spinner");
     expect(out).not.toContain("camera_proxy");
   });
@@ -112,7 +112,7 @@ describe("the Frigate result card", () => {
         name: "Person",
       },
     });
-    expect(out).not.toContain("Frigate is restarting");
+    expect(out).not.toContain("Selora Vision is restarting");
   });
 
   it("opens the camera's live view from its name and its snapshot", () => {
@@ -162,15 +162,15 @@ describe("the Frigate result card", () => {
   it("says a camera Frigate could not restart for starts later", () => {
     const out = flatten(renderFrigateResult(host(), message("saved")));
 
-    expect(out).toContain("Saved in Frigate");
-    expect(out).toContain("starts with Frigate's next restart");
+    expect(out).toContain("Saved in Selora Vision");
+    expect(out).toContain("starts with Selora Vision's next restart");
     expect(out).not.toContain("spinner");
   });
 
   it("confirms a removal without a preview", () => {
     const out = flatten(renderFrigateResult(host(), message("removed")));
 
-    expect(out).toContain("Removed from Frigate");
+    expect(out).toContain("Removed from Selora Vision");
     expect(out).toContain("E1 Zoom");
     expect(out).not.toContain("<img");
   });
@@ -191,7 +191,7 @@ describe("the Frigate result card", () => {
     waiting.hass.entities = entities;
 
     expect(flatten(renderFrigateResult(waiting, message("added")))).toContain(
-      "Frigate is restarting",
+      "Selora Vision is restarting",
     );
 
     const ready = host({
@@ -229,7 +229,7 @@ describe("a camera changed in Frigate", () => {
     // The card replaces the message that said it, and the new sensors only
     // appear once Frigate is back.
     const out = flatten(renderFrigateResult(host(), changed("updated")));
-    expect(out).toContain("Updated in Frigate");
+    expect(out).toContain("Updated in Selora Vision");
     expect(out).toContain("Looks for");
     expect(out).toContain("Bus");
     expect(out).toContain("Car");
@@ -257,14 +257,14 @@ describe("a camera changed in Frigate", () => {
 
   it("says a change Frigate could not restart for takes effect later", () => {
     const out = flatten(renderFrigateResult(host(), changed("update_saved")));
-    expect(out).toContain("Saved in Frigate");
-    expect(out).toContain("it takes effect when Frigate restarts");
+    expect(out).toContain("Saved in Selora Vision");
+    expect(out).toContain("it takes effect when Selora Vision restarts");
     expect(out).not.toContain("the camera is back");
   });
 
   it("names no objects for a camera that was only moved", () => {
     const out = flatten(renderFrigateResult(host(), changed("updated", [])));
-    expect(out).toContain("Updated in Frigate");
+    expect(out).toContain("Updated in Selora Vision");
     expect(out).not.toContain("Looks for");
   });
 });

@@ -498,7 +498,16 @@ export const settingsStyles = css`
     cursor: default;
   }
 
-  /* Settings → Frigate: who connects it, as the account's "Linked" row. */
+  /* Settings → Selora Vision: the product name, then what it runs on. */
+  .section-card-header:has(.frigate-powered-by) {
+    align-items: baseline;
+  }
+  .frigate-powered-by {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+
+  /* Settings → Selora Vision: who connects it, as the account's "Linked" row. */
   .frigate-connected {
     display: flex;
     align-items: center;

@@ -16,6 +16,7 @@ from homeassistant.exceptions import Unauthorized
 
 from ..const import (
     DOMAIN,
+    FRIGATE_NAME_NOTE,
 )
 from ..selora_auth import SeloraAuthContext
 from .access import FRIGATE_TOOLS, _can_access_tool, _check_tool_access
@@ -297,7 +298,7 @@ from .pipelines import (
     _tool_list_assist_pipelines,
     _tool_set_assist_pipeline,
 )
-from .protocol import MCPImageContent, MCPTextContent, ToolImage
+from .protocol import MCPImageContent, MCPTextContent, MCPTool, ToolImage
 from .registry import (
     _tool_assign_area,
     _tool_assign_category,
@@ -395,14 +396,19 @@ async def _async_server_version(hass: HomeAssistant) -> str:
     return f"{release}+{_tool_set_hash()}{'.frigate' if frigate_available(hass) else ''}"
 
 
+def _listed(tool: MCPTool) -> dict[str, Any]:
+    """*tool* as ``tools/list`` gives it: a Frigate tool says what the user calls Frigate."""
+    description = tool.description
+    if tool.name in FRIGATE_TOOLS:
+        description += FRIGATE_NAME_NOTE
+    return {"name": tool.name, "description": description, "inputSchema": tool.inputSchema}
+
+
 @functools.cache
 def _tool_set_hash() -> str:
     """Content hash of every tool definition; they are fixed once imported."""
     payload = json.dumps(
-        [
-            {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
-            for t in sorted(_TOOL_DEFINITIONS, key=lambda t: t.name)
-        ],
+        [_listed(t) for t in sorted(_TOOL_DEFINITIONS, key=lambda t: t.name)],
         sort_keys=True,
     )
     return hashlib.sha256(payload.encode()).hexdigest()[:8]
@@ -433,7 +439,7 @@ async def _jsonrpc_dispatch(
         frigate = frigate_available(hass)
         return {
             "tools": [
-                {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
+                _listed(t)
                 for t in _TOOL_DEFINITIONS
                 if _can_access_tool(auth_ctx, t.name) and (frigate or t.name not in FRIGATE_TOOLS)
             ]

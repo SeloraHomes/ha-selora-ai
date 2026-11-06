@@ -93,7 +93,7 @@ describe("renderFacesCard", () => {
 
     const out = flatten(renderFacesCard(h, msg));
 
-    expect(out).toContain("Waiting for Frigate to restart");
+    expect(out).toContain("Waiting for Selora Vision to restart");
     expect(out).not.toContain("Add photos");
     clearTimeout(peopleState(h).timer);
   });
@@ -124,7 +124,7 @@ describe("renderFaceRecognitionReply", () => {
       ],
     };
     expect(flatten(renderFaceRecognitionReply(h, msg))).toContain(
-      "People Frigate recognizes",
+      "People Selora Vision recognizes",
     );
   });
 

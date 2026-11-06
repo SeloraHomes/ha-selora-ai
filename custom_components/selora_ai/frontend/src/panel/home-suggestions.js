@@ -330,16 +330,19 @@ function describe(host, s) {
       icon: "mdi:cctv",
       title:
         s.entities.length === 1
-          ? t("home_suggestion_frigate_one", "Add {entity} to Frigate")
-          : t("home_suggestion_frigate", "Add {count} cameras to Frigate"),
+          ? t("home_suggestion_frigate_one", "Add {entity} to Selora Vision")
+          : t(
+              "home_suggestion_frigate",
+              "Add {count} cameras to Selora Vision",
+            ),
       prompt: t(
         "home_suggestion_frigate_prompt",
-        "Add these cameras to Frigate: {entity} ({entity_id}).",
+        "Add these cameras to Selora Vision: {entity} ({entity_id}).",
       ),
       why: [
         t(
           "home_suggestion_frigate_why",
-          "Frigate is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
+          "Selora Vision is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
         ),
       ],
     };
@@ -364,7 +367,7 @@ function describe(host, s) {
       why: [
         t(
           "home_suggestion_describe_why",
-          "Frigate only knows it saw “a car” or “a person”. Selora AI can describe each one, like “a white FedEx van in the driveway” or “someone leaving a parcel at the door”, so you can simply ask “Did a delivery come today?”",
+          "Selora Vision only knows it saw “a car” or “a person”. Selora AI can describe each one, like “a white FedEx van in the driveway” or “someone leaving a parcel at the door”, so you can simply ask “Did a delivery come today?”",
         ),
         t(
           "home_suggestion_describe_how",
@@ -384,16 +387,16 @@ function describe(host, s) {
           icon: "mdi:face-recognition",
           title: t(
             "home_suggestion_faces_empty",
-            "Add the people Frigate should recognize",
+            "Add the people Selora Vision should recognize",
           ),
           prompt: t(
             "home_suggestion_faces_empty_prompt",
-            "Help me add the people Frigate should recognize: where to add them, and which photos work best.",
+            "Help me add the people Selora Vision should recognize: where to add them, and which photos work best.",
           ),
           why: [
             t(
               "home_suggestion_faces_empty_why",
-              "Face recognition is on, but Frigate does not know anyone yet. Add a few photos of each person in its Face Library.",
+              "Face recognition is on, but Selora Vision does not know anyone yet. Add a few photos of each person in its Face Library.",
             ),
           ],
         }
@@ -405,12 +408,12 @@ function describe(host, s) {
           ),
           prompt: t(
             "home_suggestion_faces_prompt",
-            "Help me set up face recognition in Frigate: tell me what it does and what it needs, then ask me before turning it on.",
+            "Help me set up face recognition in Selora Vision: tell me what it does and what it needs, then ask me before turning it on.",
           ),
           why: [
             t(
               "home_suggestion_faces_why",
-              "Frigate can tell who is at the door once it knows their faces. It runs on your hub, and needs a few photos of each person.",
+              "Selora Vision can tell who is at the door once it knows their faces. It runs on your hub, and needs a few photos of each person.",
             ),
           ],
         };

@@ -1,28 +1,31 @@
-# Frigate
+# Selora Vision
 
-[Frigate](https://frigate.video) is a video recorder that detects people, cars,
-animals and other objects on your cameras. With Frigate connected, Selora AI
-can add cameras to it, change what they look for, point a camera at a new
-address, remove one, and tell you what the cameras saw. You can ask in Selora
-AI's chat, through Assist, or from an MCP client such as Claude.
+Selora Vision records your cameras and detects people, cars, animals and other
+objects on them. It is powered by [Frigate](https://frigate.video), so this
+page, the tool names and the configuration below say Frigate where they mean
+the recorder itself; the panel and the assistant say Selora Vision. With it
+connected, Selora AI can add cameras, change what they look for, point a
+camera at a new address, remove one, and tell you what the cameras saw. You
+can ask in Selora AI's chat, through Assist, or from an MCP client such as
+Claude.
 
-The Frigate tools only show up once Frigate is connected. Before that, neither
-the chat model nor an MCP client is offered them.
+The Selora Vision tools only show up once Frigate is connected. Before that,
+neither the chat model nor an MCP client is offered them.
 
 ## Connecting Frigate
 
 **On a Selora hub** there is nothing to set up. Frigate runs on the hub, and
-the hub connects it. Settings → Frigate says "Set up by your Selora hub".
+the hub connects it. Settings → Selora Vision says "Set up by your Selora hub".
 
 **Without a Selora hub**, Selora AI connects to Frigate in one of two ways:
 
 - **The Frigate integration** ([HACS](https://github.com/blakeblackshear/frigate-hass-integration)).
   When it is installed and connected, Selora AI uses its connection, and
-  Settings → Frigate says so. To change the address or login, change them in
+  Settings → Selora Vision says so. To change the address or login, change them in
   the Frigate integration. This is the recommended setup, because the
   integration also gives each camera its Home Assistant entities: the camera,
   its recording and detection switches, and a sensor for each tracked object.
-- **Selora AI's settings.** Open Settings → Frigate and enter Frigate's address
+- **Selora AI's settings.** Open Settings → Selora Vision and enter Frigate's address
   (for example `http://192.168.1.10:5000`), plus a username and password if
   Frigate asks for a login. Test the connection, then save it. Selora AI then
   talks to Frigate directly. Without the integration, Frigate's cameras have

@@ -137,10 +137,10 @@ describe("the Frigate cameras card", () => {
         skipped: [
           {
             name: "Garage",
-            reason: "it has no stream Frigate can read",
+            reason: "it has no stream Selora Vision can read",
             fix: "unifiprotect_rtsp",
           },
-          { name: "Hall", reason: "it has no stream Frigate can read" },
+          { name: "Hall", reason: "it has no stream Selora Vision can read" },
           { name: "Shed", reason: "something new", fix: "unknown_fix" },
         ],
       }),
@@ -226,7 +226,7 @@ describe("the Frigate cameras card", () => {
     );
   });
 
-  it("makes Add to Frigate the filled button, not a quiet chip", () => {
+  it("makes Add to Selora Vision the filled button, not a quiet chip", () => {
     const out = flatten(
       renderApprovalCard(
         host(),
@@ -241,6 +241,6 @@ describe("the Frigate cameras card", () => {
     );
 
     expect(out).toContain("action-btn--primary");
-    expect(out).toContain("Add to Frigate");
+    expect(out).toContain("Add to Selora Vision");
   });
 });

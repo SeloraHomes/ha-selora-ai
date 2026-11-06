@@ -107,7 +107,7 @@ async def test_a_camera_is_moved_on_a_card_keeping_its_login(
     result, action = await _card(hass, {"camera": "Wyze Cam v3", "host": "192.168.2.205"})
 
     assert result["destructive"]["label"] == (
-        "Restart Frigate so Wyze Cam v3 is read from 192.168.2.205 instead of 192.168.2.113"
+        "Restart Selora Vision so Wyze Cam v3 is read from 192.168.2.205 instead of 192.168.2.113"
     )
     assert _written(aioclient_mock) == []
 
@@ -115,7 +115,7 @@ async def test_a_camera_is_moved_on_a_card_keeping_its_login(
 
     assert errors == []
     assert applied == [
-        "Frigate now reads Wyze Cam v3 from 192.168.2.205; it is restarting, about a minute."
+        "Selora Vision now reads Wyze Cam v3 from 192.168.2.205; it is restarting, about a minute."
     ]
     assert _written(aioclient_mock) == [
         {"go2rtc": {"streams": {"wyze_cam_v3": [f"rtspx://{LOGIN}@192.168.2.205:322/stream0"]}}}
@@ -211,7 +211,7 @@ async def test_a_frigate_that_cannot_restart_says_the_move_waits(
     (done,), errors = await _confirm(hass, action)
 
     assert errors == []
-    assert done.startswith("Saved: Frigate reads Wyze Cam v3 from 192.168.2.205 once it restarts")
+    assert done.startswith("Saved: Selora Vision reads Wyze Cam v3 from 192.168.2.205 once it restarts")
 
 
 async def test_only_an_admin_may_move_a_camera(

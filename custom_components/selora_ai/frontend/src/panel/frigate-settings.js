@@ -68,8 +68,11 @@ export async function saveFrigateSettings(host, { disconnect = false } = {}) {
       host,
       "success",
       disconnect
-        ? host._t("settings_frigate_disconnected", "Frigate disconnected.")
-        : host._t("settings_frigate_saved", "Frigate settings saved."),
+        ? host._t(
+            "settings_frigate_disconnected",
+            "Selora Vision disconnected.",
+          )
+        : host._t("settings_frigate_saved", "Selora Vision settings saved."),
     );
   } catch (err) {
     setStatus(host, "error", err.message);
@@ -97,7 +100,7 @@ function renderFields(host) {
   return html`
     <div class="form-group">
       ${textInput({
-        label: host._t("settings_frigate_url_label", "Frigate address"),
+        label: host._t("settings_frigate_url_label", "Selora Vision address"),
         value: config.frigate_url,
         placeholder: "http://192.168.1.10:5000",
         oninput: (e) => host._updateConfig("frigate_url", e.target.value),
@@ -107,7 +110,7 @@ function renderFields(host) {
       ${textInput({
         label: host._t(
           "settings_frigate_username_label",
-          "Username (if Frigate asks for a login)",
+          "Username (if Selora Vision asks for a login)",
         ),
         value: config.frigate_username,
         oninput: (e) => host._updateConfig("frigate_username", e.target.value),
@@ -130,7 +133,7 @@ function renderFields(host) {
     <p class="section-card-subtitle">
       ${host._t(
         "settings_frigate_no_integration_note",
-        "Without the Frigate integration, Frigate's cameras have no Home Assistant entities: install it from HACS for their switches and live views.",
+        "Without the Frigate integration, Selora Vision's cameras have no Home Assistant entities: install it from HACS for their switches and live views.",
       )}
     </p>
     <div class="card-save-bar">
@@ -200,7 +203,7 @@ function renderConnected(host, source) {
             hub
               ? host._t(
                   "settings_frigate_hub_desc",
-                  "Frigate runs on your hub and Selora keeps it connected. There is nothing to configure.",
+                  "Selora Vision runs on your hub and Selora keeps it connected. There is nothing to configure.",
                 )
               : host._t(
                   "settings_frigate_integration_desc",
@@ -218,7 +221,10 @@ export function renderFrigateSettings(host) {
   return html`
     <div class="section-card settings-section">
       <div class="section-card-header">
-        <h3>${host._t("settings_frigate_heading", "Frigate")}</h3>
+        <h3>${host._t("settings_frigate_heading", "Selora Vision")}</h3>
+        <span class="frigate-powered-by"
+          >${host._t("settings_frigate_powered_by", "Powered by Frigate")}</span
+        >
       </div>
       <p class="section-card-subtitle">
         ${host._t(

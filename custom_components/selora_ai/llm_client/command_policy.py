@@ -2379,18 +2379,18 @@ _UNCONFIRMED_BY_LANG: dict[str, str] = {
 # The camera's Frigate config disables the feature, so the switch cannot turn
 # it on (see frigate/controls.py).
 _DISABLED_IN_FRIGATE_BY_LANG: dict[str, str] = {
-    "en": "{target} did not turn on: it is turned off in this camera's Frigate settings, which have to enable it first.",
-    "fr": "{target} ne s'est pas activé : la fonction est désactivée dans les réglages Frigate de cette caméra, qui doivent d'abord l'activer.",
-    "de": "{target} wurde nicht eingeschaltet: Die Funktion ist in den Frigate-Einstellungen dieser Kamera deaktiviert und muss dort zuerst aktiviert werden.",
-    "es": "{target} no se activó: está desactivado en los ajustes de Frigate de esta cámara, que primero deben habilitarlo.",
-    "it": "{target} non si è attivato: è disattivato nelle impostazioni Frigate di questa telecamera, che devono prima abilitarlo.",
-    "nl": "{target} is niet ingeschakeld: het staat uit in de Frigate-instellingen van deze camera, die het eerst moeten inschakelen.",
-    "hu": "{target} nem kapcsolt be: ennek a kamerának a Frigate-beállításaiban ki van kapcsolva, előbb ott kell engedélyezni.",
-    "zh": "{target} 未能开启：此摄像头的 Frigate 设置中已关闭该功能，需先在其中启用。",
-    "pt": "{target} não foi ativado: está desativado nas definições do Frigate desta câmara, que têm de o ativar primeiro.",
-    "ja": "{target} はオンになりませんでした。このカメラの Frigate 設定で無効になっているため、先にそちらで有効にする必要があります。",
-    "ko": "{target}이(가) 켜지지 않았습니다. 이 카메라의 Frigate 설정에서 꺼져 있어 먼저 그곳에서 켜야 합니다.",
-    "ru": "{target} не включилось: функция отключена в настройках Frigate для этой камеры, сначала её нужно включить там.",
+    "en": "{target} did not turn on: it is turned off in this camera's Selora Vision settings, which have to enable it first.",
+    "fr": "{target} ne s'est pas activé : la fonction est désactivée dans les réglages Selora Vision de cette caméra, qui doivent d'abord l'activer.",
+    "de": "{target} wurde nicht eingeschaltet: Die Funktion ist in den Selora-Vision-Einstellungen dieser Kamera deaktiviert und muss dort zuerst aktiviert werden.",
+    "es": "{target} no se activó: está desactivado en los ajustes de Selora Vision de esta cámara, que primero deben habilitarlo.",
+    "it": "{target} non si è attivato: è disattivato nelle impostazioni Selora Vision di questa telecamera, che devono prima abilitarlo.",
+    "nl": "{target} is niet ingeschakeld: het staat uit in de Selora Vision-instellingen van deze camera, die het eerst moeten inschakelen.",
+    "hu": "{target} nem kapcsolt be: ennek a kamerának a Selora Vision-beállításaiban ki van kapcsolva, előbb ott kell engedélyezni.",
+    "zh": "{target} 未能开启：此摄像头的 Selora Vision 设置中已关闭该功能，需先在其中启用。",
+    "pt": "{target} não foi ativado: está desativado nas definições do Selora Vision desta câmara, que têm de o ativar primeiro.",
+    "ja": "{target} はオンになりませんでした。このカメラの Selora Vision 設定で無効になっているため、先にそちらで有効にする必要があります。",
+    "ko": "{target}이(가) 켜지지 않았습니다. 이 카메라의 Selora Vision 설정에서 꺼져 있어 먼저 그곳에서 켜야 합니다.",
+    "ru": "{target} не включилось: функция отключена в настройках Selora Vision для этой камеры, сначала её нужно включить там.",
 }
 
 # Sentence template per locale. Non-EN locales use a colon-separator so

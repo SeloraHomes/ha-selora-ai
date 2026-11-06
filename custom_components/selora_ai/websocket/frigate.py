@@ -176,7 +176,8 @@ async def _handle_websocket_frigate_test_connection(
     url = normalize_frigate_url(msg["url"])
     if url is None:
         connection.send_result(
-            msg["id"], {"ok": False, "error": "Frigate's address must be http(s)://host:port."}
+            msg["id"],
+            {"ok": False, "error": "Selora Vision's address must be http(s)://host:port."},
         )
         return
     username, password = msg["username"].strip(), msg["password"]

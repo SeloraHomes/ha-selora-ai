@@ -185,7 +185,7 @@ async def async_preview_set_objects(
         if detect.get("enabled") is False
         else ""
     )
-    label = f"{_change(friendly, tracked, wanted)}{off} (Frigate restarts)"
+    label = f"{_change(friendly, tracked, wanted)}{off} (Selora Vision restarts)"
     return {
         "requires_approval": True,
         "destructive": {
@@ -243,7 +243,7 @@ async def async_set_objects_confirmed(
             "name": friendly,
             "looks_for": wanted,
             "restart_failed": True,
-            "done": f"Saved: {looks_for} once Frigate restarts. It could not restart itself.",
+            "done": f"Saved: {looks_for} once Selora Vision restarts. It could not restart itself.",
         }
     hass.async_create_background_task(
         async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"
@@ -252,5 +252,5 @@ async def async_set_objects_confirmed(
         "camera": name,
         "name": friendly,
         "looks_for": wanted,
-        "done": f"{looks_for}. Frigate is restarting, about a minute.",
+        "done": f"{looks_for}. Selora Vision is restarting, about a minute.",
     }

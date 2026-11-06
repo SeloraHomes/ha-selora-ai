@@ -750,6 +750,15 @@ CONF_NEXT_PROMPT_ENABLED = "next_prompt_enabled"
 CONF_FRIGATE_URL = "frigate_url"
 CONF_FRIGATE_USERNAME = "frigate_username"
 CONF_FRIGATE_PASSWORD = "frigate_password"
+# What the user knows Frigate as. The model keeps Frigate's own name, since the
+# tools describe Frigate's config and API, so every Frigate tool it is offered
+# (chat and MCP) ends with this, or its replies said "Frigate" to a user whose
+# panel says Selora Vision everywhere.
+FRIGATE_PRODUCT_NAME = "Selora Vision"
+FRIGATE_NAME_NOTE = (
+    f" The user knows Frigate as {FRIGATE_PRODUCT_NAME} (powered by Frigate): "
+    f"call it {FRIGATE_PRODUCT_NAME}."
+)
 # Optional endpoint override (epic #56 wants configurable endpoints).
 CONF_TELEMETRY_ENDPOINT = "telemetry_endpoint"
 TELEMETRY_STORE_VERSION = 1

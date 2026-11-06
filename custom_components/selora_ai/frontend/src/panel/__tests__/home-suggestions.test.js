@@ -344,23 +344,23 @@ describe("renderHomeSuggestions", () => {
     };
     const h = host([cameras]);
     expect(flatten(renderHomeSuggestions(h))).toContain(
-      "Add 2 cameras to Frigate",
+      "Add 2 cameras to Selora Vision",
     );
 
     handlers(renderHomeSuggestions(h))[0]();
     const opened = renderHomeSuggestions(h);
     expect(flatten(opened)).toContain(
-      "Frigate is not watching Porch and Driveway yet.",
+      "Selora Vision is not watching Porch and Driveway yet.",
     );
     handlers(opened).at(-1)();
     const [sent] = h._askInNewChat.mock.calls[0];
     expect(messageDetails(sent)).toBe(
-      "Add these cameras to Frigate: Porch, Driveway (camera.porch, camera.driveway).",
+      "Add these cameras to Selora Vision: Porch, Driveway (camera.porch, camera.driveway).",
     );
     // A Frigate setup guide opens under its banner, named like the row.
     expect(h._askInNewChat.mock.calls[0][1].guide).toEqual({
       icon: "mdi:cctv",
-      title: "Add 2 cameras to Frigate",
+      title: "Add 2 cameras to Selora Vision",
       subtitle: "",
       banner: "frigate",
     });
@@ -379,7 +379,7 @@ describe("renderHomeSuggestions", () => {
         ]),
       ),
     );
-    expect(out).toContain("Add Porch to Frigate");
+    expect(out).toContain("Add Porch to Selora Vision");
   });
 
   it("names a camera found on the network by its address", () => {
@@ -396,13 +396,13 @@ describe("renderHomeSuggestions", () => {
     ]);
     handlers(renderHomeSuggestions(h))[0]();
     expect(flatten(renderHomeSuggestions(h))).toContain(
-      "Frigate is not watching Porch and Garage Cam (192.168.1.60) yet.",
+      "Selora Vision is not watching Porch and Garage Cam (192.168.1.60) yet.",
     );
     handlers(renderHomeSuggestions(h)).at(-1)();
 
     const [sent] = h._askInNewChat.mock.calls[0];
     expect(messageDetails(sent)).toBe(
-      "Add these cameras to Frigate: Porch, Garage Cam (camera.porch, 192.168.1.60).",
+      "Add these cameras to Selora Vision: Porch, Garage Cam (camera.porch, 192.168.1.60).",
     );
   });
 
@@ -472,7 +472,7 @@ describe("renderHomeSuggestions", () => {
     );
 
     expect(flatten(renderHomeSuggestions(faces("empty")))).toContain(
-      "Add the people Frigate should recognize",
+      "Add the people Selora Vision should recognize",
     );
   });
 

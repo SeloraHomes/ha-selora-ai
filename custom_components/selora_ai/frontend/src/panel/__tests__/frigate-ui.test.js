@@ -89,7 +89,7 @@ describe("Frigate's own UI", () => {
     expect(tab.close).toHaveBeenCalled();
     expect(tab.location.href).toBe("");
     expect(host._showToast).toHaveBeenCalledWith(
-      "Couldn't open Frigate: supervisor down",
+      "Couldn't open Selora Vision: supervisor down",
       "error",
     );
   });

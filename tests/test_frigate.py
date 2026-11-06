@@ -136,8 +136,8 @@ async def test_cameras_frigate_cannot_use_are_skipped_with_a_reason(
     assert candidates == []
     assert {s.name: s.reason for s in skipped} == {
         "Doorbell": "it streams from the internet, not your network",
-        "Blink": "it has no stream Frigate can read",
-        "Shed": "it is already in Frigate",
+        "Blink": "it has no stream Selora Vision can read",
+        "Shed": "it is already in Selora Vision",
     }
 
 
@@ -286,7 +286,7 @@ async def test_cameras_with_no_stream_entity_say_what_to_turn_on(
         "Stale": "reolink_rtsp",
         "Nursery": "tapo_camera_account",
     }
-    assert {s.reason for s in skipped} == {"it has no stream Frigate can read"}
+    assert {s.reason for s in skipped} == {"it has no stream Selora Vision can read"}
     # Teardown would unload them through the real TP-Link integration.
     for entry in (tapo, plug):
         entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
@@ -302,7 +302,7 @@ async def test_the_model_is_told_how_to_fix_a_skipped_camera(
         "add_cameras_to_frigate", {}
     )
 
-    assert result["error"] == "No camera can be added to Frigate."
+    assert result["error"] == "No camera can be added to Selora Vision."
     (row,) = result["skipped"]
     assert row["how_to_fix"] == FIXES["unifiprotect_rtsp"]
 
@@ -318,7 +318,7 @@ async def test_a_source_go2rtc_already_wraps_counts_as_in_frigate(
 
     candidates, skipped = await async_camera_candidates(hass, frigate_config)
 
-    assert candidates == [] and skipped[0].reason == "it is already in Frigate"
+    assert candidates == [] and skipped[0].reason == "it is already in Selora Vision"
 
 
 async def test_frigate_and_ignored_cameras_are_not_candidates(
@@ -524,7 +524,7 @@ async def test_ha_cameras_are_carded_without_credentials_then_written(
     assert config["go2rtc"]["streams"]["porch"] == [f"rtsp://admin:{PASSWORD}@192.168.1.20/main"]
     assert config["cameras"]["porch"]["objects"]["track"] == ["car", "person"]
     assert any(str(c[1]).endswith("/api/restart") for c in aioclient_mock.mock_calls)
-    assert "Added Porch to Frigate" in frigate_setup.added_line(hass, action["plan_id"], "en")
+    assert "Added Porch to Selora Vision" in frigate_setup.added_line(hass, action["plan_id"], "en")
 
 
 async def test_a_camera_changed_since_the_card_is_not_written(
@@ -697,7 +697,7 @@ async def test_a_network_camera_already_in_frigate_is_skipped(
     )
 
     assert result["skipped"] == [
-        {"camera": "192.168.1.60", "name": "Garage Cam", "reason": "it is already in Frigate"}
+        {"camera": "192.168.1.60", "name": "Garage Cam", "reason": "it is already in Selora Vision"}
     ]
 
 
@@ -768,7 +768,7 @@ async def test_a_camera_already_in_frigate_answers_with_its_switches(
         "add_cameras_to_frigate", {"entity_ids": [camera]}
     )
 
-    assert result["skipped"][0]["reason"] == "it is already in Frigate"
+    assert result["skipped"][0]["reason"] == "it is already in Selora Vision"
     assert result["already_in_frigate"][camera] == [
         {"entity_id": switch.entity_id, "name": "Front Door Recordings", "state": "off"}
     ]
@@ -929,7 +929,7 @@ async def test_the_conversation_records_the_cameras_the_plan_added(
 
     assert connection.send_result.call_args[0][1] == {"ok": True}
     messages = (await store.get_session(session_id))["messages"]
-    assert messages[-1]["content"].startswith("Added Porch to Frigate.")
+    assert messages[-1]["content"].startswith("Added Porch to Selora Vision.")
     assert "Anything" not in messages[-1]["content"]
 
 
@@ -1017,7 +1017,7 @@ async def test_a_frigate_that_cannot_restart_still_keeps_the_cameras(
     assert result == {"status": "saved", "cameras": ["Porch"], "restart_failed": True}
     assert _sent_config(aioclient_mock) is not None
     assert frigate_setup.added_line(hass, action["plan_id"], "en").startswith(
-        "Saved Porch in Frigate, but Frigate could not restart itself"
+        "Saved Porch in Selora Vision, but Selora Vision could not restart itself"
     )
 
 
@@ -1274,7 +1274,7 @@ async def test_removing_a_camera_says_so_and_gives_the_panel_its_card(
         )
 
     message = (await store.get_session("sess-1"))["messages"][-1]
-    assert message["content"] == "Removed Reolink Lumus Pro from Frigate."
+    assert message["content"] == "Removed Reolink Lumus Pro from Selora Vision."
     assert message["frigate_result"]["action"] == "removed"
     assert message["frigate_result"]["cameras"][0]["camera_entity"] == "camera.reolink_lumus_pro"
 
@@ -1394,7 +1394,7 @@ async def test_a_card_with_another_action_keeps_its_text(
 
     message = (await store.get_session("sess-1"))["messages"][-1]
     assert "frigate_result" not in message
-    assert "Added Porch to Frigate" in message["content"]
+    assert "Added Porch to Selora Vision" in message["content"]
 
 
 def test_a_stream_is_named_by_its_query_but_not_its_login() -> None:

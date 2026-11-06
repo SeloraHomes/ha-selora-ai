@@ -99,34 +99,34 @@ _PLANS: Final = "_frigate_plans"
 _PLAN_TTL: Final = 1800
 
 _ADDED_BY_LANG: Final[dict[str, str]] = {
-    "en": "Added {names} to Frigate. Frigate is restarting; they appear in Home Assistant in about a minute.",
-    "fr": "{names} ajouté(s) à Frigate. Frigate redémarre ; elles apparaîtront dans Home Assistant d'ici une minute environ.",
-    "de": "{names} zu Frigate hinzugefügt. Frigate startet neu; sie erscheinen in etwa einer Minute in Home Assistant.",
-    "es": "{names} añadida(s) a Frigate. Frigate se está reiniciando; aparecerán en Home Assistant en un minuto aproximadamente.",
-    "it": "{names} aggiunta/e a Frigate. Frigate si sta riavviando; compariranno in Home Assistant tra circa un minuto.",
-    "nl": "{names} toegevoegd aan Frigate. Frigate wordt herstart; ze verschijnen over ongeveer een minuut in Home Assistant.",
-    "hu": "{names} hozzáadva a Frigate-hez. A Frigate újraindul; körülbelül egy perc múlva megjelennek a Home Assistantben.",
-    "zh": "已将 {names} 添加到 Frigate。Frigate 正在重启，大约一分钟后会出现在 Home Assistant 中。",
-    "pt": "{names} adicionada(s) ao Frigate. O Frigate está a reiniciar; aparecem no Home Assistant dentro de cerca de um minuto.",
-    "ja": "{names} を Frigate に追加しました。Frigate を再起動中です。1 分ほどで Home Assistant に表示されます。",
-    "ko": "{names}을(를) Frigate에 추가했습니다. Frigate가 다시 시작되며 약 1분 후 Home Assistant에 나타납니다.",
-    "ru": "{names} добавлены во Frigate. Frigate перезапускается; примерно через минуту они появятся в Home Assistant.",
+    "en": "Added {names} to Selora Vision. Selora Vision is restarting; they appear in Home Assistant in about a minute.",
+    "fr": "{names} ajouté(s) à Selora Vision. Selora Vision redémarre ; elles apparaîtront dans Home Assistant d'ici une minute environ.",
+    "de": "{names} zu Selora Vision hinzugefügt. Selora Vision startet neu; sie erscheinen in etwa einer Minute in Home Assistant.",
+    "es": "{names} añadida(s) a Selora Vision. Selora Vision se está reiniciando; aparecerán en Home Assistant en un minuto aproximadamente.",
+    "it": "{names} aggiunta/e a Selora Vision. Selora Vision si sta riavviando; compariranno in Home Assistant tra circa un minuto.",
+    "nl": "{names} toegevoegd aan Selora Vision. Selora Vision wordt herstart; ze verschijnen over ongeveer een minuut in Home Assistant.",
+    "hu": "{names} hozzáadva a Selora Visionhoz. A Selora Vision újraindul; körülbelül egy perc múlva megjelennek a Home Assistantben.",
+    "zh": "已将 {names} 添加到 Selora Vision。Selora Vision 正在重启，大约一分钟后会出现在 Home Assistant 中。",
+    "pt": "{names} adicionada(s) ao Selora Vision. O Selora Vision está a reiniciar; aparecem no Home Assistant dentro de cerca de um minuto.",
+    "ja": "{names} を Selora Vision に追加しました。Selora Vision を再起動中です。1 分ほどで Home Assistant に表示されます。",
+    "ko": "{names}을(를) Selora Vision에 추가했습니다. Selora Vision이 다시 시작되며 약 1분 후 Home Assistant에 나타납니다.",
+    "ru": "{names} добавлены в Selora Vision. Selora Vision перезапускается; примерно через минуту они появятся в Home Assistant.",
 }
 
 
 _SAVED_BY_LANG: Final[dict[str, str]] = {
-    "en": "Saved {names} in Frigate, but Frigate could not restart itself, so they start with its next restart.",
-    "fr": "{names} enregistré(s) dans Frigate, mais Frigate n'a pas pu redémarrer : elles démarreront à son prochain redémarrage.",
-    "de": "{names} in Frigate gespeichert, aber Frigate konnte sich nicht neu starten; sie starten beim nächsten Neustart.",
-    "es": "{names} guardada(s) en Frigate, pero Frigate no pudo reiniciarse; empezarán con su próximo reinicio.",
-    "it": "{names} salvata/e in Frigate, ma Frigate non è riuscito a riavviarsi; partiranno al prossimo riavvio.",
-    "nl": "{names} opgeslagen in Frigate, maar Frigate kon niet herstarten; ze starten bij de volgende herstart.",
-    "hu": "{names} elmentve a Frigate-ben, de a Frigate nem tudott újraindulni; a következő újraindításkor indulnak el.",
-    "zh": "已在 Frigate 中保存 {names}，但 Frigate 无法自行重启，它们将在下次重启后启用。",
-    "pt": "{names} guardada(s) no Frigate, mas o Frigate não conseguiu reiniciar; começam no próximo reinício.",
-    "ja": "{names} を Frigate に保存しましたが、Frigate が自分で再起動できなかったため、次回の再起動後に有効になります。",
-    "ko": "{names}을(를) Frigate에 저장했지만 Frigate가 스스로 다시 시작하지 못해 다음 재시작 때 시작됩니다.",
-    "ru": "{names} сохранены во Frigate, но Frigate не смог перезапуститься; они заработают после следующего перезапуска.",
+    "en": "Saved {names} in Selora Vision, but Selora Vision could not restart itself, so they start with its next restart.",
+    "fr": "{names} enregistré(s) dans Selora Vision, mais Selora Vision n'a pas pu redémarrer : elles démarreront à son prochain redémarrage.",
+    "de": "{names} in Selora Vision gespeichert, aber Selora Vision konnte sich nicht neu starten; sie starten beim nächsten Neustart.",
+    "es": "{names} guardada(s) en Selora Vision, pero Selora Vision no pudo reiniciarse; empezarán con su próximo reinicio.",
+    "it": "{names} salvata/e in Selora Vision, ma Selora Vision non è riuscito a riavviarsi; partiranno al prossimo riavvio.",
+    "nl": "{names} opgeslagen in Selora Vision, maar Selora Vision kon niet herstarten; ze starten bij de volgende herstart.",
+    "hu": "{names} elmentve a Selora Visionban, de a Selora Vision nem tudott újraindulni; a következő újraindításkor indulnak el.",
+    "zh": "已在 Selora Vision 中保存 {names}，但 Selora Vision 无法自行重启，它们将在下次重启后启用。",
+    "pt": "{names} guardada(s) no Selora Vision, mas o Selora Vision não conseguiu reiniciar; começam no próximo reinício.",
+    "ja": "{names} を Selora Vision に保存しましたが、Selora Vision が自分で再起動できなかったため、次回の再起動後に有効になります。",
+    "ko": "{names}을(를) Selora Vision에 저장했지만 Selora Vision이 스스로 다시 시작하지 못해 다음 재시작 때 시작됩니다.",
+    "ru": "{names} сохранены в Selora Vision, но Selora Vision не смог перезапуститься; они заработают после следующего перезапуска.",
 }
 
 
@@ -258,7 +258,7 @@ async def _gather(
     for index, skip in enumerate(skipped):
         if (controls := _frigate_controls(hass, skip.entity_id)) is not None:
             in_frigate[skip.entity_id] = controls
-            skipped[index] = Skipped(skip.entity_id, skip.name, "it is already in Frigate")
+            skipped[index] = Skipped(skip.entity_id, skip.name, "it is already in Selora Vision")
 
     stream_urls = _stream_urls(arguments)
     if hosts or stream_urls:
@@ -293,7 +293,7 @@ async def _gather(
     moved: dict[str, str] = {}
     for camera in found:
         if camera.host in in_frigate_hosts:
-            skipped.append(Skipped(camera.host, camera.name, "it is already in Frigate"))
+            skipped.append(Skipped(camera.host, camera.name, "it is already in Selora Vision"))
         elif camera.host in ha_hosts:
             # Home Assistant has it, so it is on the card as an HA camera.
             continue
@@ -316,7 +316,7 @@ def _label(gathered: _Gathered, objects: list[str], record: bool, days: int | No
         [c.name for c in gathered.candidates] + [n.found.name for n in gathered.network]
     )
     keeps = (f"recording, kept {days} days" if days else "recording") if record else "no recording"
-    label = f"Add {names} to Frigate (tracks {', '.join(objects)}; {keeps})"
+    label = f"Add {names} to Selora Vision (tracks {', '.join(objects)}; {keeps})"
     return sanitize_untrusted_text(label, 300)
 
 
@@ -387,7 +387,7 @@ async def async_preview_add_cameras(
     )
     if not gathered.candidates and not gathered.network:
         result: dict[str, Any] = {
-            "error": "No camera can be added to Frigate.",
+            "error": "No camera can be added to Selora Vision.",
             "skipped": skipped_rows,
             **({"found_on_network": found_on_network} if found_on_network else {}),
         }
@@ -749,7 +749,7 @@ async def async_frigate_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]
                 + ",".join(sorted(e["entity_id"] or e["address"] for e in entities)),
                 "type": "add_to_frigate",
                 "entities": entities,
-                "collection": {"source": "frigate", "name": "Frigate", "ref": "frigate"},
+                "collection": {"source": "frigate", "name": "Selora Vision", "ref": "frigate"},
             }
         )
     domain_data[SUGGESTION_CACHE] = (time.monotonic(), suggestions)
