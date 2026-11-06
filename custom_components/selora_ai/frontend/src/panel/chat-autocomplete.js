@@ -1221,9 +1221,11 @@ export function buildSuggestionIndex(
   if (!hass?.states) return items;
 
   const areaById = {};
+  const areaIconById = {};
   if (areas && typeof areas === "object") {
     for (const [id, a] of Object.entries(areas)) {
       areaById[id] = a?.name || a?.area_id || id;
+      if (a?.icon) areaIconById[id] = a.icon;
     }
   }
 
@@ -1256,6 +1258,10 @@ export function buildSuggestionIndex(
       areaId = devices[entry.device_id]?.area_id || null;
     }
     const areaName = areaId ? areaById[areaId] || null : null;
+    // The icon the user set — on the entity, or on a scene in scenes.yaml —
+    // is how they tell their things apart; the domain default is only for
+    // an entity without one. HA's state carries it either way.
+    const ownIcon = state?.attributes?.icon || null;
 
     if (SENSOR_DOMAINS.has(domain)) {
       // Only PRIMARY sensors. A device's battery level, signal strength,
@@ -1278,7 +1284,7 @@ export function buildSuggestionIndex(
         area_id: areaId,
         area: areaName,
         icon:
-          state?.attributes?.icon ||
+          ownIcon ||
           SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
           DOMAIN_ICONS[domain],
         _lowerLabel: friendly.toLowerCase(),
@@ -1292,7 +1298,7 @@ export function buildSuggestionIndex(
         label: friendly,
         area_id: areaId,
         area: areaName,
-        icon: DOMAIN_ICONS[domain] || "mdi:devices",
+        icon: ownIcon || DOMAIN_ICONS[domain] || "mdi:devices",
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "scene") {
@@ -1303,7 +1309,7 @@ export function buildSuggestionIndex(
         label: friendly,
         area_id: areaId,
         area: areaName,
-        icon: DOMAIN_ICONS.scene,
+        icon: ownIcon || DOMAIN_ICONS.scene,
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "automation") {
@@ -1314,7 +1320,7 @@ export function buildSuggestionIndex(
         label: friendly,
         area_id: null,
         area: null,
-        icon: DOMAIN_ICONS.automation,
+        icon: ownIcon || DOMAIN_ICONS.automation,
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "script") {
@@ -1327,7 +1333,7 @@ export function buildSuggestionIndex(
         label: friendly,
         area_id: null,
         area: null,
-        icon: DOMAIN_ICONS.script,
+        icon: ownIcon || DOMAIN_ICONS.script,
         _lowerLabel: friendly.toLowerCase(),
       });
     }
@@ -1340,7 +1346,7 @@ export function buildSuggestionIndex(
       area_id: areaId,
       label: name,
       area: null,
-      icon: DOMAIN_ICONS.area,
+      icon: areaIconById[areaId] || DOMAIN_ICONS.area,
       _lowerLabel: name.toLowerCase(),
     });
   }

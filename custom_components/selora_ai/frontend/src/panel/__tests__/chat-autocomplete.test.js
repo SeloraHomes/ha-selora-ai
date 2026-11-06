@@ -1378,3 +1378,35 @@ describe("absorbAutoSpace", () => {
     );
   });
 });
+
+describe("buildSuggestionIndex icons", () => {
+  const hass = {
+    states: {
+      "scene.movie": {
+        attributes: { friendly_name: "Movie start", icon: "mdi:movie-open" },
+      },
+      "scene.cozy": { attributes: { friendly_name: "Cozy Living" } },
+      "light.desk": {
+        attributes: { friendly_name: "Desk", icon: "mdi:desk-lamp" },
+      },
+      "automation.wake": {
+        attributes: { friendly_name: "Wake up", icon: "mdi:alarm" },
+      },
+    },
+  };
+  const areas = {
+    office: { name: "Office", icon: "mdi:briefcase" },
+    hall: { name: "Hall" },
+  };
+  const iconOf = (items, label) => items.find((i) => i.label === label)?.icon;
+
+  it("uses the icon the user set, else the domain default", () => {
+    const items = buildSuggestionIndex(hass, areas);
+    expect(iconOf(items, "Movie start")).toBe("mdi:movie-open");
+    expect(iconOf(items, "Cozy Living")).toBe("mdi:palette");
+    expect(iconOf(items, "Desk")).toBe("mdi:desk-lamp");
+    expect(iconOf(items, "Wake up")).toBe("mdi:alarm");
+    expect(iconOf(items, "Office")).toBe("mdi:briefcase");
+    expect(iconOf(items, "Hall")).toBe("mdi:floor-plan");
+  });
+});

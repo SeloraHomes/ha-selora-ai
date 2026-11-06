@@ -73,6 +73,7 @@ import * as sceneActions from "./panel/scene-actions.js";
 import * as sceneEdit from "./panel/scene-edit.js";
 import { provideSceneTileContext } from "./panel/scene-tile-context.js";
 import { filterSessions } from "./panel/session-search.js";
+import { loadSortPrefs } from "./panel/sort-prefs.js";
 
 // ---------------------------------------------------------------------------
 // Self-heal HA's <ha-panel-custom> when navigating back to this panel.
@@ -788,6 +789,8 @@ class SeloraAIPanel extends LitElement {
     this._scenes = [];
     this._sceneFilter = "";
     this._sceneSortBy = "recent";
+    // After every list's default sort is set: a saved order replaces it.
+    loadSortPrefs(this);
     this._expandedScenes = {};
     this._sceneEdits = {};
     this._savingScene = {};
