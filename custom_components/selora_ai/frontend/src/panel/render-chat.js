@@ -1771,43 +1771,7 @@ export function renderMessage(host, msg, idx) {
 
 // ── Device cards ──────────────────────────────────────────────────────
 
-export const DOMAIN_ICONS = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  climate: "mdi:thermostat",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  vacuum: "mdi:robot-vacuum",
-  sensor: "mdi:eye",
-  binary_sensor: "mdi:motion-sensor",
-  water_heater: "mdi:water-boiler",
-  humidifier: "mdi:air-humidifier",
-  camera: "mdi:cctv",
-  device_tracker: "mdi:map-marker",
-  person: "mdi:account",
-  zone: "mdi:map-marker-radius",
-  sun: "mdi:weather-sunny",
-  weather: "mdi:weather-partly-cloudy",
-  automation: "mdi:robot",
-  scene: "mdi:palette",
-  script: "mdi:script-text",
-  input_boolean: "mdi:toggle-switch-variant",
-  input_number: "mdi:numeric",
-  input_select: "mdi:form-dropdown",
-  input_text: "mdi:form-textbox",
-  input_datetime: "mdi:calendar-clock",
-  input_button: "mdi:gesture-tap-button",
-  timer: "mdi:timer-outline",
-  counter: "mdi:counter",
-  group: "mdi:google-circles-communities",
-  notify: "mdi:bell",
-  mobile_app: "mdi:cellphone",
-  alarm_control_panel: "mdi:shield-home",
-  air_quality: "mdi:air-filter",
-  remote: "mdi:remote",
-};
+export { DOMAIN_ICONS } from "./entity-link.js";
 
 export function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";

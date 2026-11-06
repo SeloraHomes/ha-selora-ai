@@ -26,6 +26,7 @@ import { renderActionButton } from "../shared/action-button.js";
 import { renderCardIcon } from "../shared/card-heading.js";
 import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
+import { renderFlowEntityLink } from "./entity-link.js";
 import { describeIdea, describeIdeas } from "./camera-ideas.js";
 
 const MAX_SHOWN = 3;
@@ -188,6 +189,50 @@ function nameList(host, entities) {
   }
 }
 
+// The same list for the open row's reasons, each entity a link to its
+// more-info dialog, so the user can check what Selora saw (when a light was
+// last switched, what it reads now) before acting on it. "N more" shows the
+// rest. A camera found on the network has no entity, so it stays text.
+function linkedNameList(host, s, entities) {
+  const all = host._homeSuggestionAllNames === s.suggestion_id;
+  const named = all ? entities : entities.slice(0, MAX_NAMED);
+  const parts = named.map((e) => {
+    if (e.entity_id && host.hass?.states?.[e.entity_id]) {
+      return renderFlowEntityLink(host, e.entity_id);
+    }
+    return e.address ? `${e.name} (${e.address})` : e.name;
+  });
+  const rest = entities.length - named.length;
+  if (rest > 0) {
+    parts.push(
+      html`<button
+        type="button"
+        class="flow-entity-link"
+        @click=${() => {
+          host._homeSuggestionAllNames = s.suggestion_id;
+          host.requestUpdate?.();
+        }}
+      >
+        <span
+          >${interpolate(host._t("home_suggestion_more", "{count} more"), {
+            count: rest,
+          })}</span
+        >
+      </button>`,
+    );
+  }
+  let pieces;
+  try {
+    pieces = new Intl.ListFormat(pickLocale(host.hass), {
+      type: "conjunction",
+    }).formatToParts(parts.map((_, i) => String(i)));
+  } catch {
+    return parts.flatMap((p, i) => (i ? [", ", p] : [p]));
+  }
+  let i = 0;
+  return pieces.map((p) => (p.type === "element" ? parts[i++] : p.value));
+}
+
 // The pattern engine's suggestion: its own words for the title and the why,
 // and its YAML for the model to start from, so the chat proposes the
 // automation that was observed rather than one it imagines.
@@ -245,6 +290,20 @@ function describe(host, s) {
     days: s.days || 0,
   };
   const t = (key, fallback) => interpolate(host._t(key, fallback), values);
+  // A reason, with the entities it names as links.
+  const linked = {
+    "{members}": listsEntities ? s.entities : s.members || [],
+    "{entity}": s.entities,
+  };
+  const tl = (key, fallback) =>
+    host
+      ._t(key, fallback)
+      .split(/(\{members\}|\{entity\})/)
+      .map((part) =>
+        linked[part]
+          ? linkedNameList(host, s, linked[part])
+          : interpolate(part, values),
+      );
   if (s.type === "automation_idea") return describeAutomationIdea(host, s);
   if (s.type === "create_scene") {
     // Each device with the state the scene sets it to, for the model.
@@ -259,7 +318,7 @@ function describe(host, s) {
         "Create a scene that sets {settings}. Name it after what it is for, and the room if they share one.",
       ),
       why: [
-        t(
+        tl(
           "home_suggestion_scene_why",
           "On {days} different days you set {members} the same way, within a couple of minutes. A scene does it in one tap.",
         ),
@@ -278,7 +337,7 @@ function describe(host, s) {
         "Group {entity} ({entity_id}) into one group helper, and update the automation {collection} ({ref}) to use the group instead of listing them. Reuse an existing group if one already holds exactly these.",
       ),
       why: [
-        t(
+        tl(
           "home_suggestion_group_why",
           "{collection} lists {members} one by one. With a group, a new device only needs adding to the group and the automation follows.",
         ),
@@ -293,7 +352,7 @@ function describe(host, s) {
     // One device per chat, named as its Discovered card names it: the model
     // finds the discovery itself, so the bubble carries no ids.
     const why = [
-      t(
+      tl(
         "home_suggestion_discovered_why",
         "Home Assistant found {entity} through {collection}, but nobody has set it up yet. Selora walks you through it; a password or a sign-in, you type in yourself, right in the chat.",
       ),
@@ -340,7 +399,7 @@ function describe(host, s) {
         "Add these cameras to Selora Vision: {entity} ({entity_id}).",
       ),
       why: [
-        t(
+        tl(
           "home_suggestion_frigate_why",
           "Selora Vision is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
         ),
@@ -369,7 +428,7 @@ function describe(host, s) {
           "home_suggestion_describe_why",
           "Selora Vision only knows it saw “a car” or “a person”. Selora AI can describe each one, like “a white FedEx van in the driveway” or “someone leaving a parcel at the door”, so you can simply ask “Did a delivery come today?”",
         ),
-        t(
+        tl(
           "home_suggestion_describe_how",
           "Pick which cameras to describe: {members}. It takes a minute, and no picture leaves your home until you say yes.",
         ),
@@ -421,15 +480,15 @@ function describe(host, s) {
   if (s.type !== "add_to_collection") return null;
   const why = [
     s.area
-      ? t(
+      ? tl(
           "home_suggestion_why_area",
           "{collection} already covers {members}: every one of this kind in {area}.",
         )
-      : t(
+      : tl(
           "home_suggestion_why_home",
           "{collection} already covers {members}: every one of this kind in your home.",
         ),
-    t(
+    tl(
       "home_suggestion_why_newer",
       "{entity} was added after them, so it was probably not left out on purpose.",
     ),
