@@ -16,7 +16,6 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from datetime import UTC, datetime
-import itertools
 import logging
 import re
 import time
@@ -38,6 +37,7 @@ from .faces import _people
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_HOURS: Final = 24.0
@@ -48,10 +48,28 @@ MAX_LIMIT: Final = 25
 # "how many people came by?" needs all of them, not the listed page.
 _COUNT_CAP: Final = 1000
 _MAX_FILTERS: Final = 10
-# A ranked search always fills its limit with the nearest events, however far.
-# Frigate's search_distance is a z-score, so a break of one standard deviation
-# between two ranks separates the matches from the closest of everything else.
-_STANDOUT_GAP: Final = 1.0
+# The offer when no camera looks for what was asked; async_offer_card and
+# unwatched_reason read the names back out of it.
+_OFFER: Final = (
+    "Make {cameras} look for {objects} from now on (set_camera_objects; Frigate restarts)."
+)
+_OFFER_RE: Final = re.compile(
+    r"^Make (?P<cameras>[\w, -]+) look for (?P<objects>[\w, -]+) from now on \("
+)
+# Above a card that makes a camera look for what was asked about.
+_UNWATCHED: Final = {
+    "en": "No camera looks for {objects} yet, so none was recorded and the search can't "
+    "find one. Apply to have them look for it from now on.",
+    "fr": "Aucune caméra ne détecte encore {objects} : rien n'a été enregistré, la "
+    "recherche ne peut donc rien trouver. Appliquez pour qu'elles le détectent "
+    "désormais.",
+    "de": "Noch keine Kamera sucht nach {objects}, daher wurde nichts aufgezeichnet und "
+    "die Suche kann nichts finden. Übernehmen Sie, damit sie ab jetzt danach suchen.",
+    "es": "Ninguna cámara detecta todavía {objects}, así que no se grabó nada y la "
+    "búsqueda no puede encontrarlo. Aplica para que lo detecten a partir de ahora.",
+    "it": "Nessuna telecamera rileva ancora {objects}, quindi non è stato registrato "
+    "nulla e la ricerca non può trovarlo. Applica perché lo rilevino da ora in poi.",
+}
 # "<start epoch>-<random>": the panel builds media paths from it.
 _EVENT_ID: Final = re.compile(r"^\d+(\.\d+)?-[a-z0-9]+$")
 # What Frigate allows in a camera name; the panel builds clip paths from it.
@@ -222,10 +240,50 @@ def _offer(
     cameras = [w["camera"] for w in looking if _CAMERA.match(w["camera"])]
     if not cameras or not missing:
         return None
-    return (
-        f"Make {', '.join(cameras)} look for {', '.join(missing)} from now on "
-        "(set_camera_objects; Frigate restarts)."
-    )
+    return _OFFER.format(cameras=", ".join(cameras), objects=", ".join(missing))
+
+
+async def async_offer_card(hass: HomeAssistant, result: dict[str, Any]) -> list[dict[str, Any]]:
+    """The camera changes a search that found nothing proposes, as tool calls.
+
+    "Have you seen a white dog?" with no camera looking for dogs ends on the
+    change card the panel uses for every change, not on a question the model
+    asks in prose: each offered camera's ``set_camera_objects`` preview, logged
+    as if the model had asked for it, so the card reads them like any other.
+    Only when nothing was found: a search that found events answers with them.
+    """
+    offer = result.get("offer")
+    match = _OFFER_RE.match(offer) if isinstance(offer, str) else None
+    if match is None or result.get("events"):
+        return []
+    from .objects import async_preview_set_objects  # noqa: PLC0415
+
+    objects = [o.strip() for o in match["objects"].split(",") if o.strip()]
+    calls = []
+    for camera in (c.strip() for c in match["cameras"].split(",") if c.strip()):
+        arguments = {"camera": camera, "add": objects}
+        preview = await async_preview_set_objects(hass, arguments)
+        if preview.get("requires_approval"):
+            calls.append({"tool": "set_camera_objects", "arguments": arguments, "result": preview})
+    return calls
+
+
+def unwatched_reason(tool_log: list[dict[str, Any]] | None, lang: str) -> str | None:
+    """Why a card asks to make a camera look for something: nothing could be found.
+
+    The panel shows a card, not the reply, so "Apply this change?" alone gave
+    no hint that the search had come back empty for this reason.
+    """
+    for entry in reversed(tool_log or []):
+        if entry.get("tool") != "find_camera_events":
+            continue
+        result = entry.get("result")
+        offer = result.get("offer") if isinstance(result, dict) else None
+        match = _OFFER_RE.match(offer) if isinstance(offer, str) else None
+        if match is None:
+            return None
+        return _UNWATCHED.get(lang, _UNWATCHED["en"]).format(objects=match["objects"])
+    return None
 
 
 def _resolve_camera(hass: HomeAssistant, given: str, cameras: dict[str, str]) -> str | None:
@@ -362,21 +420,6 @@ async def _describe_gaps(
     return gaps
 
 
-def _standouts(found: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The ranked matches before the widest break in their scores, if it is wide.
-
-    "Any FedEx truck today?" matches one van, then every pickup a little: the
-    van's score stands far from theirs. A query many events match equally well
-    has no such break and keeps them all.
-    """
-    scores = [e.get("search_distance") for e in found]
-    if len(scores) < 2 or not all(isinstance(s, int | float) for s in scores):
-        return found
-    gaps = [after - before for before, after in itertools.pairwise(scores)]
-    widest = max(range(len(gaps)), key=gaps.__getitem__)
-    return found[: widest + 1] if gaps[widest] >= _STANDOUT_GAP else found
-
-
 async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """The events matching the arguments, newest first, with counts for the range."""
     client = FrigateClient.from_hass(hass)
@@ -438,11 +481,7 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         return {"error": str(exc)}
 
     found = [e for e in raw if isinstance(e, dict) and _EVENT_ID.match(str(e.get("id") or ""))]
-    weaker = 0
-    if query:
-        matches = _standouts(found[:limit])
-        weaker, found = len(found[:limit]) - len(matches), matches
-    else:
+    if not query:
         found.sort(key=lambda e: e.get("start_time") or 0, reverse=True)
     events = [_event(e, cameras, _describes(config)) for e in found[:limit]]
     watching = _watching(config, chosen or list(cameras))
@@ -470,8 +509,6 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         result["semantic_search"] = _SEMANTIC_SEARCH
     if query:
         result["ranked_by"] = "how well each matches the query"
-        if weaker:
-            result["weaker_matches_left_out"] = weaker
         return result
     result["total"] = len(found)
     if len(found) >= _COUNT_CAP:
@@ -532,3 +569,18 @@ async def async_known_names(hass: HomeAssistant) -> list[str]:
     names = list(dict.fromkeys(n for n in names if n))[:_MAX_NAMES]
     domain_data[_NAMES_CACHE] = (time.monotonic(), names)
     return names
+
+
+async def async_camera_names(hass: HomeAssistant) -> dict[str, str]:
+    """Frigate camera name → the name people know it by, for reading a
+    camera out of a question. Empty without Frigate or when it does not
+    answer in time."""
+    client = FrigateClient.from_hass(hass)
+    if client is None:
+        return {}
+    try:
+        async with asyncio.timeout(_NAMES_WAIT):
+            return _frigate_cameras(await client.get_config())
+    except (FrigateError, TimeoutError) as exc:
+        _LOGGER.debug("Frigate's cameras unavailable: %s", exc)
+        return {}

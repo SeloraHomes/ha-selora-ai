@@ -289,23 +289,6 @@ export function renderChat(host) {
     `;
   }
 
-  const lastMsg = host._messages[host._messages.length - 1];
-  const lastQuickActions =
-    lastMsg &&
-    lastMsg.role !== "user" &&
-    lastMsg.quick_actions &&
-    lastMsg.quick_actions.length &&
-    // Approval cards render their Allow/Deny row INLINE inside the
-    // bubble so the user sees the buttons next to the proposal
-    // they're approving. Without this guard the sticky composer row
-    // below would render the same four buttons again — 8 buttons
-    // on screen with no obvious link back to the card.
-    !lastMsg.command_approval &&
-    // Answers to the bubble's own question render in that bubble too.
-    !answersInline(lastMsg)
-      ? lastMsg
-      : null;
-
   return html`
     <div class="chat-pane">
       ${renderDropOverlay(host)}
@@ -347,18 +330,6 @@ export function renderChat(host) {
               `
             : ""
         }
-        ${
-          lastQuickActions
-            ? html`
-                <div class="chat-quick-actions">
-                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
-                    used: !!lastQuickActions._qa_used,
-                  })}
-                </div>
-              `
-            : ""
-        }
-        ${renderRefineSuggestions(host)}
         <div class="dock-composer-area">
           <selora-particles
             class="dock-composer-particles"
@@ -1388,14 +1359,13 @@ export function renderMessage(host, msg, idx) {
   const showQuickActions =
     !isUser &&
     !!(msg.quick_actions && msg.quick_actions.length) &&
-    // Only approval cards render their action row inline in the bubble, so
-    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
-    // quick_actions render exclusively in the sticky composer row (see
-    // lastQuickActions in renderChat); rendering them here too would show the
-    // same chips twice (in-card AND above the input).
-    // Answers to the question the bubble asks sit under it the same way: in
-    // the composer row they were a screen away from it.
+    // Every row sits under the message it answers: above the composer it read
+    // as a separate thing, a screen away from the reply that offered it.
+    // Answers to the bubble's own question stay once the talk moves on (dimmed,
+    // the one picked lit); an approval row until the proposal is resolved; a
+    // suggestion only while its reply is the latest.
     (answersInline(msg) ||
+      (idx === host._messages.length - 1 && !msg.command_approval) ||
       (msg.command_approval &&
         // Hide approval action cards once the proposal has been resolved (or
         // is mid-resolve). Re-clicking after the status flipped would 404
@@ -1766,6 +1736,7 @@ export function renderMessage(host, msg, idx) {
             `
       }
     </div>
+    ${isLoadedAutomation ? renderRefineSuggestions(host, idx) : ""}
   `;
 }
 

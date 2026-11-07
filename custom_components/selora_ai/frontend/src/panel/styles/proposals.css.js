@@ -687,6 +687,36 @@ export const proposalStyles = css`
     line-height: 1.45;
     color: var(--secondary-text-color);
   }
+  /* Under the automation being edited, aligned with its card. */
+  .refine-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin: 10px 0 4px 4px;
+  }
+  .refine-suggestion {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+  }
+  .refine-suggestion ha-icon {
+    --mdc-icon-size: 14px;
+    color: var(--selora-accent, #fbbf24);
+  }
+  .refine-suggestion:hover,
+  .refine-suggestion:focus-visible {
+    color: var(--primary-text-color);
+    text-decoration-style: solid;
+  }
   @media (max-width: 600px) {
     .refine-heading {
       align-items: flex-start;

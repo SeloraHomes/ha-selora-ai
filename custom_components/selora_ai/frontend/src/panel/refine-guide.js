@@ -5,7 +5,6 @@ import { html } from "lit";
 import { interpolate } from "../shared/i18n.js";
 import { asArray, normalizeCondition } from "../shared/flow-description.js";
 import { fmtDuration, fmtTime } from "../shared/formatting.js";
-import { renderActionButton } from "../shared/action-button.js";
 
 // Statuses that end a refinement when met walking back from the newest
 // message. Same terminators as `_find_refining_automation_id` in the backend,
@@ -244,27 +243,32 @@ export function renderRefineHeading(host, msgIndex) {
   `;
 }
 
-// The suggestion row above the composer. Shown only while the refinement is
-// waiting on its first description — like the composer glow, it gives way as
-// soon as the user types.
-export function renderRefineSuggestions(host) {
+// The suggested edits, under the automation they edit: the heading above it
+// stays the same on every edit. Ideas that fill the composer, so they read as
+// text, not as buttons that act. Shown only while the refinement is waiting on
+// its first description: like the composer glow, they give way as soon as the
+// user types.
+export function renderRefineSuggestions(host, msgIndex) {
   if (host._input || host._loading || host._streaming) return "";
-  const active = activeRefinement(host._messages);
-  if (!active) return "";
-  const automation = host._messages[active.index]?.automation;
-  const suggestions = refineSuggestions(host, automation);
+  if (activeRefinement(host._messages)?.index !== msgIndex) return "";
+  const suggestions = refineSuggestions(
+    host,
+    host._messages[msgIndex]?.automation,
+  );
   if (!suggestions.length) return "";
   return html`
-    <div class="chat-quick-actions refine-suggestions">
-      <div class="qa-group">
-        ${suggestions.map((s) =>
-          renderActionButton({
-            label: s.label,
-            mark: s.icon,
-            onClick: () => prefillComposer(host, s.prefill),
-          }),
-        )}
-      </div>
+    <div class="refine-suggestions">
+      ${suggestions.map(
+        (s) => html`
+          <button
+            type="button"
+            class="refine-suggestion"
+            @click=${() => prefillComposer(host, s.prefill)}
+          >
+            <ha-icon icon=${s.icon}></ha-icon>${s.label}
+          </button>
+        `,
+      )}
     </div>
   `;
 }

@@ -28,6 +28,7 @@ from ..chat_harness import ChatHarness, ChatTurn
 pytestmark = pytest.mark.eval
 
 _TILES = re.compile(r"\[\[entit(?:y|ies):([^\]|]+)")
+_CLOCK = re.compile(r"\b\d{1,2}(?::\d{2})?\s?[ap]\.?m\b|\b\d{1,2}:\d{2}\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,12 @@ class Case:
     folds_none_of: str | None = None
     # The confirmation card the turn must end on (its approval_kind).
     card: str = ""
+    # find_camera_events runs exactly this often: a question that opens with
+    # its search (camera_question.py) needs no second one.
+    searches: int = 0
+    # The reply names at most this many clock times: the card shows each
+    # event's time under its snapshot, so a list of them only repeats it.
+    max_times: int | None = None
 
 
 _NAMESAKES = (
@@ -81,6 +88,18 @@ CASES = (
         calls=("find_camera_events",),
         no_tiles=_NAMESAKES,
         folds_none_of="front_door",
+        searches=1,
+        max_times=1,
+    ),
+    # The search opens the turn; the model reads it and picks the match.
+    Case(
+        "courier-described",
+        "Did a courier in a red jacket come by the front door in the last 3 hours?",
+        calls=("find_camera_events", "show_camera_events"),
+        no_tiles=_NAMESAKES,
+        shows="red jacket",
+        searches=1,
+        max_times=1,
     ),
     Case(
         "backpack-verified",
@@ -235,6 +254,11 @@ def _grade(case: Case, turn: ChatTurn, services: list[str]) -> list[str]:
         failures += _shown(turn, case.shows)
     if case.folds_none_of:
         failures += _folded(turn, case.folds_none_of)
+    searched = called.count("find_camera_events")
+    if case.searches and searched != case.searches:
+        failures.append(f"searched {searched} times, not {case.searches}")
+    if case.max_times is not None and (times := len(_CLOCK.findall(response))) > case.max_times:
+        failures.append(f"listed {times} times the card already shows")
     if case.card:
         approval = turn.done.get("command_approval") or {}
         if approval.get("approval_kind") != case.card:

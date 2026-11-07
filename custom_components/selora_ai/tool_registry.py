@@ -2469,7 +2469,9 @@ TOOL_SHOW_CAMERA_EVENTS = ToolDef(
         "every person is confirmed, described or not); a description is needed "
         "only for what a label cannot say (a backpack, a colour). The rest stay "
         "folded as not confirmed, for the user to open. Empty ids when none is "
-        "confirmed. Call it with your answer."
+        "confirmed. Call it with your answer. The card shows each event's snapshot "
+        "with its camera and time, so never list the events or their times: answer "
+        "in a sentence or two (what was seen, how often, the latest when asked when)."
     ),
     params=(
         ToolParam(

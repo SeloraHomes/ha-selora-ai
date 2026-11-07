@@ -27,6 +27,7 @@ from ..const import (
     DOMAIN,
 )
 from ..frigate.descriptions import answer_buttons
+from ..frigate.events import unwatched_reason
 from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot, ToolWriteResult
 
@@ -3449,6 +3450,15 @@ def _build_delete_approval_response(
         # proposal was itself made during a resumed turn.
         "resume_depth": 0,
     }
+    # The panel shows the card, not the reply: a change asked for because
+    # nothing could be found says so on the card.
+    why = (
+        unwatched_reason(tool_log, _normalize_lang(language))
+        if any(a.get("kind") == "frigate_objects" for a in actions)
+        else None
+    )
+    if why:
+        proposal["why"] = why
     upgraded: ArchitectResponse = dict(result)
     upgraded["intent"] = "command_approval"
     upgraded["calls"] = []
@@ -3463,12 +3473,18 @@ def _build_delete_approval_response(
         )
     )
     effective_language = language or (hass.config.language if hass is not None else None)
-    hint = delete_pending_hint(
-        effective_language,
-        restorable=bool(deletes)
-        and not actions
-        and all(d.get("kind") in _RESTORABLE_DELETE_KINDS for d in deletes),
+    hint = (
+        delete_pending_hint(
+            effective_language,
+            restorable=bool(deletes)
+            and not actions
+            and all(d.get("kind") in _RESTORABLE_DELETE_KINDS for d in deletes),
+        )
+        if removes
+        else approval_pending_hint(effective_language)
     )
+    if why:
+        hint = f"{why} {hint}"
     # A single tool round can mix a safe write that ALREADY executed (e.g.
     # "turn off the kitchen light and delete the movie scene" — the light
     # fires, the delete holds for confirmation) with the delete preview.
