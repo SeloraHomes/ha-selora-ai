@@ -875,6 +875,14 @@ SELORA_LOCAL_BACKENDS: tuple[str, ...] = (
     SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
 )
 
+# The model id a SeloraHub's llama-server reports in GET /v1/models when it
+# serves the fused self-routing build instead of the base and its adapters
+# (Selora OS starts it with ``--alias`` set to this). It is how the llama
+# backend learns which prompt the model was trained on, so it is a contract
+# with the OS: the integration and the OS update on separate schedules, and
+# only an explicit name keeps either side from guessing.
+SELORA_LOCAL_UNIFIED_MODEL_ALIAS = "selora-unified"
+
 # Model FAMILY (no version) for the ollama-unified backend. The
 # concrete tag is resolved at runtime — never written down here — in
 # priority order:

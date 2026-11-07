@@ -247,7 +247,8 @@ class TestSeloraLocalContextWindow:
     ) -> None:
         provider = SeloraLocalProvider(hass, host="http://hub:8080")
         models = _FakeResponse(200, body)
-        adapters = _FakeResponse(200, [])
+        # With adapters, because a hub with none settles only on a readable model id.
+        adapters = _FakeResponse(200, [{"id": 0, "path": "/m/selora-command.gguf"}])
 
         class _RoutingSession:
             def get(self, url: str, **_kwargs: object) -> _FakeResponse:

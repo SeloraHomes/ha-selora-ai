@@ -21,6 +21,8 @@ in no number at all.
   `-ollama` repos). No manifest entry covers it, so the fixture pins it
   separately. No adapter was trained on it, but it is the prompt the fused build
   ships with and is benchmarked against, and the two repos must agree on one.
+  It goes to the fused build on either runtime: see
+  [Which prompt the hub's model gets](#which-prompt-the-hubs-model-gets).
 - **The automation specialist may answer with a blueprint**: a single ```yaml
   block with `blueprint:`, `input:` and `!input`. Nothing here can save a
   blueprint, so `selora_local_blueprint_reply` recognises it and returns it as
@@ -37,9 +39,10 @@ in no number at all.
   ollama-unified backend sends both.
 - **The token reservations follow the prompts.** Every reservation is a
   prompt's Qwen3 token count from `_SELORA_LOCAL_PROMPT_TOKENS` plus a fixed
-  allowance for everything else the request carries. The ollama-unified
-  backend reserves for the unified prompt, because that is what it sends for
-  every intent. Sizing for the specialist prompt there overfills the window.
+  allowance for everything else the request carries. The fused build, on
+  either runtime, reserves for the unified prompt, because that is what it is
+  sent for every intent. Sizing for a specialist prompt there overfills the
+  window.
   On a model release, re-measure the counts: encode each stripped file with
   the Qwen3 tokenizer, no special tokens. The published-prompts test ties each
   count to the hash of the file it was measured on.
@@ -47,11 +50,68 @@ in no number at all.
   blueprint in v0.6.1), and the automation allowance covers the cap. Raise
   them together.
 
+## Which prompt the hub's model gets
+
+The fused build was trained on the router prompt for every intent; the base
+model and its adapters on one specialist prompt each. Sending either the
+other's prompt degrades every answer and raises no error, so the integration
+must know which model is answering before it builds a request.
+`_serves_unified_model` (`runtime/serving.py`) is that answer, and the prompt
+key, the token reservation, the `lora` vector and the pre-warm kinds all
+follow it. What belongs to the runtime rather than the model stays keyed on
+the backend: `reasoning_effort`, the model tag, the health endpoint, and
+`/api/tags` / `/api/show`, which llama-server does not have.
+
+- **Ollama always serves the fused build.** The ollama-unified backend is
+  unified by definition and does no adapter discovery.
+- **On llama-server, the alias is the contract.** Selora OS starts the fused
+  build with `--alias selora-unified` (`SELORA_LOCAL_UNIFIED_MODEL_ALIAS`) and
+  no `--lora`, so `GET /v1/models` reports that id and `GET /lora-adapters`
+  returns `[]`. Only that id with no adapters counts as fused. The integration
+  and the OS update on separate schedules; an explicit name is what keeps
+  either side from inferring the other's version. Changing the alias needs a
+  release on both sides, the integration's first.
+- **A hub with no adapters waits for its model id.** No adapters fits both the
+  fused build and a bare base model, and only the id tells them apart. If
+  `/v1/models` did not answer, discovery does not settle: it retries on the
+  normal backoff schedule, and requests fail as during a boot race, rather
+  than guess "base model" and send specialist prompts to the fused build. A
+  hub with adapters settles without the id, since adapters rule fused out.
+- **A settled routing is re-checked every 60s**
+  (`_SELORA_LOCAL_MODEL_RECHECK_S`). Selora OS moves a hub between the adapter
+  bundle and the fused build while Home Assistant keeps running, and either
+  direction sends the wrong shape until something looks again: adapter ids the
+  server no longer has, or the router prompt to a base model. The re-check
+  reads `/v1/models` before a request once the interval has passed; only a
+  definite different id drops the routing and rediscovers. A request arriving
+  while the probe runs waits for its answer rather than route on the routing
+  being checked, so the check is stamped when the probe ends. A failed probe or
+  an unreadable body keeps the routing, because a hub restarting is no
+  evidence it changed model, and dropping a good routing would fail requests
+  that would otherwise work once it is back. It asks again after 5s
+  (`_SELORA_LOCAL_MODEL_RECHECK_RETRY_S`), not 60s: the hub may come back
+  serving the other model and accept the old request shape without an error
+  (the router prompt to the adapter bundle). Not at once, because a hung
+  probe would then be waited out twice per request, before and under the
+  request lock, with every queued request behind it.
+- **A failed completion makes the re-check due at once** (`_completion_failed`,
+  every request path on llama-server). Swapping models restarts llama-server,
+  so a check just before the restart vouches for the old model for up to a
+  minute. The requests after it either fail (an adapter id the new server
+  rejects, or a refused connection while it loads) or, going from fused back
+  to adapters, get worse answers with no error. The first failure is the
+  earliest sign, so the next request re-reads `/v1/models`. Each failure
+  re-arms it, so the routing follows as soon as the hub answers the probe. On
+  an unchanged hub that costs one extra read per failure.
+- **The settled id is `_routed_model_id`, not `_base_model_id`.** The panel's
+  capability probe also writes `_base_model_id`, so comparing against it
+  would miss a change that probe saw first.
+
 ## The user turn
 
 `runtime/user_turn.py` renders the current user turn exactly as the models
 repo's corpus generator does (`gen_utils.build_user_message`), for every
-specialist and for the fused Ollama build, whose router prompt describes the
+specialist and for the fused build, whose router prompt describes the
 same sections. `tests/test_selora_local_user_turn.py` checks it against
 corpus examples copied into `tests/fixtures/selora_local_corpus_user_turns.json`
 with the HomeSpec each came from; when the generator changes, copy new examples.

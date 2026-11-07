@@ -17,6 +17,7 @@ from ....const import (
     SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
     SELORA_LOCAL_LORA_FILENAME_KEYWORDS,
     SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
+    SELORA_LOCAL_UNIFIED_MODEL_ALIAS,
 )
 from ...base import _positive_int
 from ...ollama import modelfile_num_ctx
@@ -68,6 +69,30 @@ _SELORA_LOCAL_DISCOVERY_WAKE_MARGIN_S = 0.01
 # request waiting out the boot race must not be stuck behind that for a
 # quarter of a minute.
 _SELORA_LOCAL_DISCOVERY_PROBE_TIMEOUT_S = 5.0
+# How often a settled routing asks GET /v1/models whether the hub still serves
+# the model it settled on. Selora OS moves a hub between the adapter bundle and
+# the fused build while Home Assistant keeps running, and either direction sends
+# the wrong request shape until something looks again: adapter ids the server no
+# longer has, or the router prompt to a base model whose adapters are all at 0.
+_SELORA_LOCAL_MODEL_RECHECK_S = 60.0
+# How soon a re-check whose probe failed asks again. Short, because a hub back
+# from a restart may serve the other model and accept the old request shape
+# without an error; not zero, because each request would otherwise wait out a
+# hung probe twice (before and under the request lock), and queue behind it.
+_SELORA_LOCAL_MODEL_RECHECK_RETRY_S = 5.0
+
+
+def _served_model_id(data: object) -> str | None:
+    """The first model id in a ``GET /v1/models`` body, or None for any other shape."""
+    if not isinstance(data, dict):
+        return None
+    entries = data.get("data")
+    if not isinstance(entries, list):
+        return None
+    for entry in entries:
+        if isinstance(entry, dict) and (model_id := entry.get("id")):
+            return str(model_id)
+    return None
 
 
 def _log_at(delay: float, escalated: Callable[..., None]) -> Callable[..., None]:
@@ -253,6 +278,102 @@ class _ServingMixin:
             _LOGGER.info("Selora Local Ollama context window is %d tokens", window)
         self._context_window = window
 
+    @property
+    def _serves_unified_model(self) -> bool:
+        """Whether the model answering is the fused self-routing build.
+
+        Always on the Ollama backend. On llama-server, when the hub reported
+        ``SELORA_LOCAL_UNIFIED_MODEL_ALIAS`` and no adapters: that build was
+        trained on the router prompt for every intent, so it gets that prompt,
+        its token budget and no ``lora`` field, exactly as on Ollama.
+        """
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            return True
+        return self._routed_model_id == SELORA_LOCAL_UNIFIED_MODEL_ALIAS and not self._lora_ids
+
+    def _routed_model_recheck_due(self) -> bool:
+        checked = self._routed_model_checked_at
+        return checked is None or time.monotonic() - checked >= _SELORA_LOCAL_MODEL_RECHECK_S
+
+    def _completion_failed(self) -> None:
+        """Make the next request re-read the hub's model instead of waiting out the interval.
+
+        Swapping between the adapter bundle and the fused build restarts
+        llama-server, and a check made just before that restart vouches for the
+        old model for up to a minute. The first request after it fails: an
+        adapter id the new server rejects, or the server refusing connections
+        while it loads. That failure is the earliest sign the model may have
+        changed, and each one re-arms it, so the routing follows the hub as
+        soon as it answers the probe.
+        """
+        if self._backend != SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            self._completion_failures += 1
+            self._routed_model_checked_at = None
+
+    def _stamp_routed_model_check(self, failures: int, *, answered: bool) -> None:
+        """Record a re-check, unless a completion failed since it started."""
+        if self._completion_failures != failures:
+            self._routed_model_checked_at = None
+            return
+        now = time.monotonic()
+        if not answered:
+            now -= _SELORA_LOCAL_MODEL_RECHECK_S - _SELORA_LOCAL_MODEL_RECHECK_RETRY_S
+        self._routed_model_checked_at = now
+
+    async def _recheck_routed_model(self) -> None:
+        """Drop a settled routing whose model the hub no longer serves.
+
+        Only a definite different id counts. A failed probe or an unreadable
+        body keeps the routing: the hub restarting is not evidence it changed
+        model, and dropping a good routing over it would fail requests that
+        would otherwise have worked once the hub was back.
+
+        The check is stamped when the probe ends: until then it stays due, so
+        a concurrent request queues on ``_slot_lock`` and routes on the answer
+        instead of on the routing being checked. A failed probe stamps it to
+        fall due again after ``_SELORA_LOCAL_MODEL_RECHECK_RETRY_S`` rather
+        than the full interval. A completion that fails while the probe runs
+        leaves it due: the probe may have read the old model just before the
+        hub restarted.
+        """
+        async with self._slot_lock:
+            if self._lora_slots is None or not self._routed_model_recheck_due():
+                return
+            failures = self._completion_failures
+            answered = False
+            try:
+                try:
+                    async with self._get_session().get(
+                        f"{self._host}/v1/models",
+                        headers=self._get_headers(),
+                        timeout=aiohttp.ClientTimeout(
+                            total=_SELORA_LOCAL_DISCOVERY_PROBE_TIMEOUT_S
+                        ),
+                    ) as resp:
+                        if resp.status != 200:
+                            return
+                        payload = await resp.json()
+                except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+                    _LOGGER.debug("Selora Local model re-check failed: %s", exc)
+                    return
+                served_id = _served_model_id(payload)
+                if served_id is None:
+                    return
+                answered = True
+                if served_id == self._routed_model_id:
+                    return
+                _LOGGER.info(
+                    "Selora Local hub now serves %s (was %s) — rediscovering its routing",
+                    served_id,
+                    self._routed_model_id or "?",
+                )
+                self._apply_models_payload(payload)
+                self._lora_slots = None
+                self._lora_ids = []
+                self._routed_model_id = None
+            finally:
+                self._stamp_routed_model_check(failures, answered=answered)
+
     async def _ensure_lora_discovery(self) -> None:
         """GET /v1/models + GET /lora-adapters discovery, cached after success.
 
@@ -264,6 +385,11 @@ class _ServingMixin:
         this, a single startup-race failure would disable LoRA routing
         until HA restarts. Inside the backoff window the call is a
         no-op so the hub isn't hammered while it's down.
+
+        A hub with no adapters settles only once its model id is known: that
+        id is what says whether it serves the fused build, and guessing
+        "base model" there would send specialist prompts to a model trained
+        on the router prompt, which degrades every answer without an error.
         """
         if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
             # Ollama bakes the adapter into the model and selects by model name, so
@@ -271,7 +397,11 @@ class _ServingMixin:
             # the retry schedule, which then fails the user's real requests.
             return
         if self._lora_slots is not None:
-            return
+            if not self._routed_model_recheck_due():
+                return
+            await self._recheck_routed_model()
+            if self._lora_slots is not None:
+                return
         if time.monotonic() < self._discovery_retry_after:
             return
         async with self._slot_lock:
@@ -287,6 +417,8 @@ class _ServingMixin:
             # records the served context window here too — free, and it
             # means the window is known from first use rather than only
             # after the panel triggers a capability refresh.
+            served_id: str | None = None
+            slots: Any = None
             try:
                 async with session.get(
                     f"{self._host}/v1/models",
@@ -294,7 +426,9 @@ class _ServingMixin:
                     timeout=timeout,
                 ) as resp:
                     if resp.status == 200:
-                        self._apply_models_payload(await resp.json())
+                        payload = await resp.json()
+                        self._apply_models_payload(payload)
+                        served_id = _served_model_id(payload)
             except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
                 _LOGGER.debug("Selora Local /v1/models probe failed: %s", exc)
             # Discover loaded LoRAs. Treat any non-200 status or
@@ -312,17 +446,10 @@ class _ServingMixin:
                         # That is an answer, not a hub that is still
                         # coming up — escalating against it would leave
                         # ``_lora_slots`` unset and every request
-                        # raising for the life of the process. Record
-                        # "no LoRAs" and let the turns run against the
-                        # base model, which routing already handles.
-                        self._lora_slots = {}
-                        self._lora_ids = []
-                        _LOGGER.info(
-                            "Selora Local hub has no /lora-adapters endpoint — "
-                            "serving the base model without specialist routing"
-                        )
-                        return
-                    if resp.status != 200:
+                        # raising for the life of the process. Settle on
+                        # "no LoRAs" below, like an empty adapter list.
+                        slots = []
+                    elif resp.status != 200:
                         delay = self._schedule_discovery_retry()
                         # The short steps are the ordinary restart race,
                         # which settles on its own within a second or
@@ -336,7 +463,8 @@ class _ServingMixin:
                             delay,
                         )
                         return
-                    slots = await resp.json()
+                    else:
+                        slots = await resp.json()
             except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
                 delay = self._schedule_discovery_retry()
                 _log_at(delay, _LOGGER.warning)(
@@ -388,15 +516,37 @@ class _ServingMixin:
                     if keyword in name and keyword not in mapping:
                         mapping[keyword] = slot_id
                         break
+            if not ids and served_id is None:
+                delay = self._schedule_discovery_retry()
+                _log_at(delay, _LOGGER.info)(
+                    "Selora Local hub has no adapters and its model is not known yet — "
+                    "will retry in %.1fs",
+                    delay,
+                )
+                return
             self._lora_slots = mapping
             self._lora_ids = ids
+            self._routed_model_id = served_id
+            self._routed_model_checked_at = time.monotonic()
             self._discovery_backoff_s = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
-            _LOGGER.info(
-                "Selora Local discovered base=%s, %d LoRA slots: %s",
-                self._base_model_id or "?",
-                len(ids),
-                mapping or "(no recognized intents)",
-            )
+            if self._serves_unified_model:
+                _LOGGER.info(
+                    "Selora Local hub serves the fused model %s — routing by its router prompt",
+                    served_id,
+                )
+            elif ids:
+                _LOGGER.info(
+                    "Selora Local discovered base=%s, %d LoRA slots: %s",
+                    self._base_model_id or "?",
+                    len(ids),
+                    mapping or "(no recognized intents)",
+                )
+            else:
+                _LOGGER.info(
+                    "Selora Local hub serves %s with no adapters — "
+                    "serving the base model without specialist routing",
+                    served_id,
+                )
 
     async def _ensure_routing(self) -> None:
         """Settle what the upcoming request needs to name its specialist."""
@@ -420,7 +570,7 @@ class _ServingMixin:
         Every id is named, since one left out keeps its server default scale.
         An intent with no adapter gets them all at 0.0, so the base model answers.
         """
-        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED or not self._lora_ids:
+        if self._serves_unified_model or not self._lora_ids:
             return None
         target = (self._lora_slots or {}).get(intent)
         return [{"id": i, "scale": 1.0 if i == target else 0.0} for i in self._lora_ids]
@@ -446,13 +596,16 @@ class _ServingMixin:
             except _SeloraLocalDiscoveryError as exc:
                 # Without the adapter ids the request can't name its specialist.
                 return None, str(exc)
-            return await super().send_request(
+            result, error = await super().send_request(
                 system,
                 messages,
                 max_tokens=max_tokens,
                 log_errors=log_errors,
                 timeout=timeout,
             )
+            if error is not None:
+                self._completion_failed()
+            return result, error
 
     async def raw_request(  # type: ignore[override]
         self,
@@ -467,22 +620,26 @@ class _ServingMixin:
         async with self._request_lock:
             # _SeloraLocalDiscoveryError is a ConnectionError, which the tool-calling loop in LLMClient already handles — so we let it propagate rather than fabricating a dict result.
             await self._ensure_routing()
-            return await super().raw_request(system, messages, tools=tools)
+            try:
+                return await super().raw_request(system, messages, tools=tools)
+            except (ConnectionError, aiohttp.ClientError, TimeoutError):
+                self._completion_failed()
+                raise
 
     # Pre-warm
 
     def _prewarm_kinds(self, entities: list[Any]) -> tuple[str, ...]:
         """Which call kinds still need a warm-up request of their own.
 
-        On llama-server, only ``chat_command``. Each kind's adapter clears
+        With adapters, only ``chat_command``. Each kind's adapter clears
         the slot's cached prompt, so with one slot only the last warm-up
         survives, and each costs a full prefill (~35-75 s on a hub) under
         the request lock, ahead of the user's first request. One warms the
         GPU and page cache and keeps the likeliest first request's system
         prompt.
 
-        The Ollama runtime serves ONE self-routing model behind ONE
-        trained prompt, so most of that collapses. What is still allowed
+        The fused build, on either runtime, is ONE self-routing model behind
+        ONE trained prompt, so most of that collapses. What is still allowed
         to differ is the entity block, whose line cap is tighter for
         automation than for the rest — so this keeps one kind per
         distinct rendered request and drops the repeats, which would
@@ -492,7 +649,7 @@ class _ServingMixin:
         Compares the rendered request rather than the kinds it knows
         differ, so a future divergence adds itself back automatically.
         """
-        if self._backend != SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+        if not self._serves_unified_model:
             return _SELORA_LOCAL_LLAMA_PREWARM_KINDS
         distinct: dict[str, str] = {}
         try:
@@ -694,10 +851,8 @@ class _ServingMixin:
             if isinstance(raw_entries, list)
             else []
         )
-        for entry in entries:
-            if model_id := entry.get("id"):
-                self._base_model_id = str(model_id)
-                break
+        if model_id := _served_model_id(data):
+            self._base_model_id = model_id
         for entry in entries:
             meta = entry.get("meta")
             if not isinstance(meta, dict):

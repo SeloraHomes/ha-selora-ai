@@ -195,6 +195,13 @@ class SeloraLocalProvider(
         self._lora_ids: list[int] = []
         # The model id reported by GET /v1/models.
         self._base_model_id: str | None = None
+        # The model id discovery settled routing on, and when it was last confirmed.
+        # Separate from _base_model_id, which the panel's capability probe also
+        # writes: comparing against that would miss a hub that changed model.
+        self._routed_model_id: str | None = None
+        self._routed_model_checked_at: float | None = None
+        # Completions failed so far; a re-check stamps itself only if none failed while it ran.
+        self._completion_failures = 0
         # Context window llama-server is actually serving, read from the same GET /v1/models
         # body (``data[0].meta.n_ctx``). None = never asked or the probe failed — see
         # LLMProvider.context_window; it does NOT mean "unlimited". The fetch timestamp uses
