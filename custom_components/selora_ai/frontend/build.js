@@ -5,14 +5,50 @@ const {
   BUILD_PLACEHOLDER,
   SELF_KEY,
 } = require("./build-id.js");
-const { execSync } = require("child_process");
+const { exec } = require("child_process");
 const esbuild = require("esbuild");
 const { patchBuiltBundle } = require("./postbuild.js");
 
-// Format source files first
-execSync("npx prettier --write 'src/**/*.js' build.js postbuild.js", {
-  stdio: "inherit",
-});
+// One status line instead of prettier's line per file. Commands run async with
+// their output captured, so the spinner can animate; the output is printed only
+// when a command fails. Without a TTY (CI, pipes) the frames are skipped.
+const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const spinner = {
+  timer: null,
+  text: "",
+  start(text) {
+    this.text = text;
+    if (!process.stderr.isTTY || this.timer) return;
+    let i = 0;
+    this.timer = setInterval(() => {
+      process.stderr.write(
+        `\r\x1b[2K${FRAMES[i++ % FRAMES.length]} ${this.text}`,
+      );
+    }, 80);
+  },
+  stop() {
+    if (!this.timer) return;
+    clearInterval(this.timer);
+    this.timer = null;
+    process.stderr.write("\r\x1b[2K");
+  },
+};
+
+function fail(output) {
+  spinner.stop();
+  if (output)
+    process.stderr.write(output.endsWith("\n") ? output : output + "\n");
+  process.exit(1);
+}
+
+function run(cmd) {
+  return new Promise((resolve) => {
+    exec(cmd, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) fail(`$ ${cmd}\n${stdout}${stderr}`);
+      resolve();
+    });
+  });
+}
 
 const manifest = JSON.parse(readFileSync("../manifest.json", "utf-8"));
 const version = JSON.stringify(manifest.version);
@@ -161,6 +197,7 @@ function preBuildGuard() {
     issues.push(...scanForDoubleBacktickInBlockComments(file));
   }
   if (issues.length === 0) return;
+  spinner.stop();
   console.error(
     "\nBuild aborted: backtick(s) found inside html`...` template " +
       "comments. These close the lit template early and produce a " +
@@ -174,24 +211,41 @@ function preBuildGuard() {
   process.exit(1);
 }
 
-preBuildGuard();
-
 /** Bundle, patch and format `panel.js` with `buildId` baked in. */
 async function emitBundle(buildId) {
-  await esbuild.build({
-    entryPoints: ["src/panel.js"],
-    bundle: true,
-    format: "esm",
-    outfile: "panel.js",
-    define: { ...define, [SELF_KEY]: JSON.stringify(buildId) },
-  });
+  try {
+    await esbuild.build({
+      entryPoints: ["src/panel.js"],
+      bundle: true,
+      format: "esm",
+      outfile: "panel.js",
+      logLevel: "silent",
+      define: { ...define, [SELF_KEY]: JSON.stringify(buildId) },
+    });
+  } catch (err) {
+    const msgs = await esbuild.formatMessages(err.errors ?? [], {
+      kind: "error",
+      color: process.stderr.isTTY,
+    });
+    fail(msgs.join("") || String(err));
+  }
   patchBuiltBundle();
 
   // Format built output
-  execSync("npx prettier --write panel.js", { stdio: "inherit" });
+  await run("npx prettier --write --log-level warn panel.js");
 }
 
 async function build() {
+  const started = Date.now();
+  spinner.start("Formatting sources");
+  await run(
+    "npx prettier --write --log-level warn 'src/**/*.js' build.js postbuild.js",
+  );
+
+  spinner.text = "Checking templates";
+  preBuildGuard();
+
+  spinner.text = "Bundling panel.js";
   // The id identifies the built bundle, which it also lives inside — so build
   // once with a placeholder standing in for it, hash *that* artifact, then
   // build again for real. See build-id.js for why the id tracks the output
@@ -208,6 +262,10 @@ async function build() {
     JSON.stringify({ build: buildId }, null, 2) + "\n",
     "utf8",
   );
+
+  spinner.stop();
+  const secs = ((Date.now() - started) / 1000).toFixed(1);
+  console.log(`✓ panel.js built in ${secs}s (build ${buildId})`);
 }
 
 build();
