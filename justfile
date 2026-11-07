@@ -16,8 +16,8 @@ default:
 # node_modules would deploy a bundle the release never builds.
 # Build the frontend (panel.js, not committed); deploy runs it first
 build:
-    cd {{ frontend_dir }} && if [ ! -f node_modules/.package-lock.json ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then npm ci; fi
-    cd {{ frontend_dir }} && npm run build
+    @cd ./{{ frontend_dir }} && if [ ! -f node_modules/.package-lock.json ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then npm ci; fi
+    @cd ./{{ frontend_dir }} && npm run --silent build
 
 # Install frontend dependencies
 install:
