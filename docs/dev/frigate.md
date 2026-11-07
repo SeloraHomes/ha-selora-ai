@@ -450,13 +450,12 @@ entities only say what is there now.
   events, GenAI descriptions being a separate, outward option). Refusing the
   whole search left the model asking instead of answering. Turning it on is
   the user's: it is a global section, which this integration does not write.
-- **A ranked search keeps the matches that stand out.** Semantic search is
-  nearest-neighbour: it always fills the limit, so "any FedEx truck today?"
-  came back with the van and two dozen pickups, and the card drew them all.
-  `search_distance` is a z-score (lower is nearer); the events before the
-  widest break of at least one standard deviation (`_STANDOUT_GAP`) are kept,
-  and `weaker_matches_left_out` counts the rest. A query many events match
-  equally well has no such break and keeps them all.
+- **A ranked search hands the model every match, not only the nearest.**
+  Semantic search is nearest-neighbour and always fills the limit. Cutting
+  the list at the widest break in `search_distance` hid real answers: one
+  red car scored far ahead and the nine after it, several described as red,
+  never reached the model. The card's fold (next point) is what keeps the
+  weak matches out of sight.
 - **The card shows what the reply confirmed.** A search by description lists
   every event it ranked, and the card drew two dozen people under a reply
   that found two wearing a backpack. Only the model, reading the
@@ -467,10 +466,49 @@ entities only say what is there now.
   its own ("anyone at the door?": every person), so the pick is not limited to
   described events. A round of only that call, beside the written answer,
   ends the turn (`_CARD_ONLY_TOOLS`): the next round would only repeat it.
+- **Nothing found for want of a camera ends on the change card.** A search
+  that found nothing and has an `offer` gets each offered camera's
+  `set_camera_objects` preview logged by the executor (`async_offer_card`),
+  so the turn ends on the same Apply card as any change. Asked in prose, the
+  model attached a button only some of the time, and a yes/no pair looked
+  unlike every other change. The `offer` the model reads says the card is
+  there. The panel shows the card, not the reply, so the card carries the
+  reason as `why` (`unwatched_reason`). A search that found events answers
+  with them and proposes nothing.
+- **The reply leaves the times to the card.** Each thumbnail carries its
+  camera and time, and a reply listing every sighting under them said it
+  all twice. The `show_camera_events` description asks for a sentence or two:
+  it is offered only where a card is drawn, while `find_camera_events` is
+  also an MCP tool, whose callers have no card and need the times. The
+  eval's `max_times` counts the clock times a reply names.
 - **Without semantic search, the model checks the descriptions itself.** Told
   only that Frigate had not matched them, it answered "I can't verify" with
   the matching description in front of it; where Frigate writes
   descriptions, the note says to read them (`_SEMANTIC_OFF_DESCRIBED`).
+- **A camera question opens with its search** (`llm_client/camera_question.py`).
+  The model's first round only wrote the obvious `find_camera_events` call,
+  and with the full prompt it cost 3–6 s, against Frigate's 0.5–1 s for the
+  search itself. On the streaming chat path the call is written from the
+  question, run before the first round, and put in the messages as the
+  model's own round (a `tool_use` block plus `tool_calls`, so every provider
+  replays it). It goes through the executor, so the card, the step and the
+  saved conversation see an ordinary call. The model keeps every tool and
+  can search again.
+  - **It gives up rather than guess.** A wrong range is worse than a slower
+    answer, so a time it cannot read gives up, and so do a command, an
+    automation, a question about now and a condition on the answer ("if you
+    can't verify it…"). English only; anything it passes on runs as before.
+  - **A label answers without a query.** "Anyone at the door?" gets `objects`
+    only: a `query` would fold the card until the model picks. A truck or a
+    van is `car` (coco's labelmap) with the noun kept in the query.
+  - **No time named means a week** when there is a description or a name:
+    "when was the white truck here" asks about any time, not the tool's day.
+    A calendar week ("this week", "last week") is left to the model: where
+    it starts depends on who asks.
+  - **A name adds no label.** The known names are faces and plates in one
+    list, so "person" would drop a car recognised by its plate.
+  - **The eval checks `searches`.** A model that searched again would cancel
+    the saving and still pass every other check.
 - **Counts cover the range, the list is a page.** Up to `_COUNT_CAP` events are
   read without thumbnails so `total`, `by_object` and `by_camera` answer "how
   many…" while at most 25 are listed.
@@ -619,8 +657,8 @@ Frigate, and Selora OS writes a provider, a global `objects.genai` with
   for a yes/no question with no entity markers. The answer buttons are added
   in code (`answer_buttons`, from `synthesize_approval_from_tool_log`):
   asked twice in the prompt, the model left them out both times. They are
-  `inline`, so the panel draws them under the question; above the composer
-  they were a screen away from it. They are the panel's action button with
+  `inline`, so they stay under the question once it is answered, dimmed,
+  where any other suggestion shows under the latest reply only. They are the panel's action button with
   the answer's mark (✓, ✕) in the badge, not the send arrow: an answer sends
   nothing to the model. Only the first answer is gold.
 - **The suggestion opens a chat the model never wrote.** Its click calls

@@ -18,6 +18,9 @@ import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
+import uuid
+
+from homeassistant.util import dt as dt_util
 
 from ..agent_steps import encode_tool_step
 from ..command_policy_options import resolve_command_policy_options
@@ -58,6 +61,7 @@ from ..types import (
     ToolCallLog,
     ToolWriteResult,
 )
+from .camera_question import asks_about_the_past, opening_search
 from .command_policy import (
     _build_command_confirmation,
     _executed_service_calls_from_log,
@@ -247,6 +251,8 @@ _MAX_LEAK_RETRIES = 2
 # the answer written beside it, has nothing left for the model to say: the
 # next round would only repeat the answer.
 _CARD_ONLY_TOOLS: Final = frozenset({"show_camera_events"})
+# The call a camera question opens with, run before the model's first round.
+_OPENING_TOOL: Final = "find_camera_events"
 
 
 def _only_card_tools(tool_calls: list[dict[str, Any]]) -> bool:
@@ -1528,12 +1534,18 @@ class LLMClient:
                 tools = self._get_tools_for_provider(
                     intent_hint=cloud_intent_hint, panel_available=panel_available
                 )
+                opening = (
+                    None
+                    if refining or attachments
+                    else await self._opening_camera_search(user_message, cloud_intent_hint)
+                )
                 try:
                     async for chunk in self._stream_request_with_tools(
                         system=system_prompt,
                         messages=messages,
                         tool_executor=tool_executor,
                         tools=tools,
+                        opening_search=opening,
                         language=language,
                         prose_budget=(
                             CHAT_HOWTO_BUDGET_CHARS
@@ -2199,10 +2211,16 @@ class LLMClient:
         tool_executor: ToolExecutor,
         tools: list[dict[str, Any]],
         *,
+        opening_search: dict[str, Any] | None = None,
         language: str | None = None,
         prose_budget: int = CHAT_PROSE_BUDGET_CHARS,
     ) -> AsyncIterator[str]:
         """True streaming with inline tool-call detection.
+
+        ``opening_search`` is a ``find_camera_events`` call written from the
+        question (``camera_question``): it runs first and goes into the
+        messages as the model's own round would, so the model's first round
+        is the one that reads the events.
 
         Streams the response token-by-token. If the LLM requests tool calls,
         they are detected from the stream, executed, and then a new stream is
@@ -2223,6 +2241,34 @@ class LLMClient:
         # Once: the condensing round is itself capped by CHAT_CONDENSE_MAX_TOKENS,
         # and a second rewrite would only repeat the first.
         condensing = False
+        if opening_search is not None:
+            call: dict[str, Any] = {
+                "id": f"call_{uuid.uuid4().hex[:24]}",
+                "name": _OPENING_TOOL,
+                "arguments": opening_search,
+            }
+            _log_tool_call(call)
+            task = asyncio.ensure_future(tool_executor.execute(call["name"], call["arguments"]))
+            try:
+                while not task.done():
+                    yield STREAM_KEEPALIVE
+                    with contextlib.suppress(TimeoutError):
+                        await asyncio.wait_for(asyncio.shield(task), STREAM_TOOL_KEEPALIVE_S)
+            finally:
+                await _grace_then_cancel(task)
+            if task.cancelled():
+                return
+            tool_step_seq += 1
+            yield encode_tool_step(tool_step_seq, call["name"])
+            # The tool_use block is the assistant turn for providers that
+            # replay content blocks (Anthropic); the others read tool_calls.
+            block = {
+                "type": "tool_use",
+                "id": call["id"],
+                "name": call["name"],
+                "input": call["arguments"],
+            }
+            self._provider.append_streaming_tool_results(messages, [block], [call], [task.result()])
         for _round in range(MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES + 1):
             if _round >= round_budget:
                 break
@@ -2662,6 +2708,29 @@ class LLMClient:
                 attachment_tokens=attachment_tokens,
             ),
         )
+
+    async def _opening_camera_search(
+        self, user_message: str, intent_hint: str | None
+    ) -> dict[str, Any] | None:
+        """The ``find_camera_events`` arguments a camera question opens with
+        (``camera_question``), or None to leave the first call to the model."""
+        from ..frigate.client import frigate_available
+        from ..tool_registry import TOOL_FIND_CAMERA_EVENTS, TOOL_LANES
+
+        lane = TOOL_LANES.get(intent_hint or "")
+        if (
+            self._provider.is_low_context
+            or not frigate_available(self._hass)
+            or (lane is not None and TOOL_FIND_CAMERA_EVENTS.name not in lane)
+            or not asks_about_the_past(user_message)
+        ):
+            return None
+        from ..frigate.events import async_camera_names, async_known_names
+
+        names, cameras = await asyncio.gather(
+            async_known_names(self._hass), async_camera_names(self._hass)
+        )
+        return opening_search(user_message, dt_util.now(), cameras=cameras, names=names)
 
     async def _camera_names(self, tool_executor: ToolExecutor | None) -> list[str]:
         """The names find_camera_events can search by, on a turn that has tools."""

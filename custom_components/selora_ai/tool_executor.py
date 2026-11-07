@@ -742,9 +742,19 @@ class ToolExecutor:
         return await async_preview_add_cameras(self._hass, arguments)
 
     async def _find_camera_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .frigate.events import async_find_events
+        from .frigate.events import async_find_events, async_offer_card
 
-        return await async_find_events(self._hass, arguments)
+        result = await async_find_events(self._hass, arguments)
+        # Nothing found because no camera looks for it: the turn ends on the
+        # change card, and the model is told so rather than asking in prose.
+        if proposed := await async_offer_card(self._hass, result):
+            self.call_log.extend(proposed)
+            result["offer"] = (
+                f"{result['offer']} A card under your reply already asks the user "
+                "to confirm it: say what was not found and why, and do not ask "
+                "or call set_camera_objects."
+            )
+        return result
 
     async def _show_camera_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .frigate.events import show_events

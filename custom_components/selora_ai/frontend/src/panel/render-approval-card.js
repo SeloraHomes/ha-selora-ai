@@ -311,6 +311,16 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           }</span
         >
       </div>
+      ${
+        // Why the change is asked for: the card stands in for the reply.
+        approval.why
+          ? html`<div
+              style="padding:2px 0 6px;font-size:13px;line-height:1.45;color:var(--secondary-text-color);"
+            >
+              ${approval.why}
+            </div>`
+          : ""
+      }
       <div style="display:flex;flex-direction:column;">
         ${rows.map((row) => copy.renderRow(host, row))}
       </div>

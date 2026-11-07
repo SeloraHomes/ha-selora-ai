@@ -4,6 +4,7 @@ import {
   prefillComposer,
   refineSuggestions,
   renderRefineHeading,
+  renderRefineSuggestions,
   stepPrefill,
 } from "../refine-guide.js";
 import { renderProposalCard } from "../render-automations.js";
@@ -234,6 +235,25 @@ describe("renderRefineHeading", () => {
       _messages: [loaded(), { automation_status: "pending" }],
     };
     expect(ser(renderRefineHeading(h, 0))).toBe("");
+  });
+
+  it("stays the same: the suggested edits go under the automation", () => {
+    const automation = {
+      triggers: [{ trigger: "time", at: "07:00:00" }],
+      actions: [{ action: "light.turn_on", target: { entity_id: "light.x" } }],
+    };
+    const h = { ...host, _messages: [loaded(automation)] };
+    expect(ser(renderRefineHeading(h, 0))).not.toContain("refine-suggestion");
+    const out = ser(renderRefineSuggestions(h, 0));
+    expect(out).toContain("refine-suggestion");
+    expect(out).not.toContain("action-btn");
+    const typing = { ...h, _input: "make it" };
+    expect(ser(renderRefineSuggestions(typing, 0))).toBe("");
+    // Only under the automation being edited.
+    const older = { ...loaded(automation), automation_status: "saved" };
+    expect(ser(renderRefineSuggestions({ ...h, _messages: [older] }, 0))).toBe(
+      "",
+    );
   });
 
   it("only heads the message the refinement points at", () => {

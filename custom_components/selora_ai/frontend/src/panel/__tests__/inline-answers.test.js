@@ -88,8 +88,18 @@ describe("answers to a message's own question", () => {
     );
   });
 
-  it("leave other quick actions to the composer row", () => {
-    expect(ser(renderMessage(host, asked(false), 0))).not.toContain(
+  it("put a suggestion under the latest reply too, not above the composer", () => {
+    const markup = ser(renderMessage(host, asked(false), 0));
+    expect(markup).toContain("msg-quick");
+    expect(markup).toContain("Turn descriptions on");
+  });
+
+  it("drop a suggestion once the conversation has moved on", () => {
+    const later = {
+      ...host,
+      _messages: [asked(false), { role: "user", content: "Thanks" }],
+    };
+    expect(ser(renderMessage(later, asked(false), 0))).not.toContain(
       "Turn descriptions on",
     );
   });

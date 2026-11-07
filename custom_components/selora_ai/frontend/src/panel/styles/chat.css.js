@@ -1332,15 +1332,6 @@ export const chatStyles = css`
     max-width: calc(1200px - 48px);
     width: calc(100% - 48px);
   }
-  .chat-quick-actions {
-    margin: 0 auto;
-    padding-top: 8px;
-    max-width: calc(1200px - 48px);
-    width: calc(100% - 48px);
-  }
-  .chat-quick-actions .qa-group {
-    margin-top: 0;
-  }
   @media (max-width: 600px) {
     .dock-composer-area {
       --dock-composer-gap: 8px;
@@ -1349,9 +1340,6 @@ export const chatStyles = css`
     .chat-input-wrapper .composer-styled {
       margin: var(--dock-composer-gap, 8px) auto
         var(--dock-composer-gap-bottom, 8px);
-      width: calc(100% - 24px);
-    }
-    .chat-quick-actions {
       width: calc(100% - 24px);
     }
   }

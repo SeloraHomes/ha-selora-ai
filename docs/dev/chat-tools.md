@@ -152,6 +152,10 @@ tools, history and the home in context, in any language; the helpers are
 patterns for the phrasings someone coded, so on that path they could only
 pre-empt an answer the model would have got right.
 
+A camera question's opening search (`frigate.md`, "What the cameras saw") is
+not one: it answers nothing. It runs the read the model would have asked for
+first, and the model still writes the answer with every tool in hand.
+
 That only holds because a cloud model can do a multi-device request in ONE
 response. A response whose tool calls are all `execute_command` ends the turn
 (the loop writes the confirmation from the results instead of paying for

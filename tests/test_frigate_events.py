@@ -12,8 +12,15 @@ from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.selora_ai.frigate.events import async_find_events, async_known_names
+from custom_components.selora_ai.frigate.events import (
+    async_find_events,
+    async_known_names,
+)
 from custom_components.selora_ai.llm_client.client import LLMClient
+from custom_components.selora_ai.llm_client.command_policy import (
+    _build_delete_approval_response,
+    _pending_destructive_from_log,
+)
 from custom_components.selora_ai.llm_client.prompts import _SHARED_STATE_QUERY_RULES
 from custom_components.selora_ai.mcp_server.access import _ADMIN_TOOLS
 from custom_components.selora_ai.mcp_server.names import TOOL_FIND_CAMERA_EVENTS
@@ -242,9 +249,12 @@ async def test_a_description_search_is_ranked_by_frigate(
     assert result["events"][0]["description"] == "A man in a blue coat."
 
 
-async def test_a_search_keeps_only_the_matches_that_stand_out(
+async def test_a_search_hands_every_ranked_match_to_the_model(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:
+    # One event scoring far ahead must not hide the rest: a weaker match's
+    # description can still say what was asked, and the card folds what the
+    # reply does not confirm.
     config = {**_CONFIG, "semantic_search": {"enabled": True}}
     ranked = [
         _event(f"{NOW - n:.6f}-van{n:03d}", "drive", "car", NOW - n, NOW, search_distance=d)
@@ -252,26 +262,9 @@ async def test_a_search_keeps_only_the_matches_that_stand_out(
     ]
     _api(aioclient_mock, ranked, config)
 
-    result = await async_find_events(hass, {"query": "fedex truck", "limit": 25})
+    result = await async_find_events(hass, {"query": "red car", "limit": 25})
 
-    assert [e["id"] for e in result["events"]] == [ranked[0]["id"]]
-    assert result["weaker_matches_left_out"] == 4
-
-
-async def test_a_search_many_events_match_keeps_them_all(
-    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
-) -> None:
-    config = {**_CONFIG, "semantic_search": {"enabled": True}}
-    ranked = [
-        _event(f"{NOW - n:.6f}-pick{n:03d}", "drive", "car", NOW - n, NOW, search_distance=d)
-        for n, d in enumerate([-2.1, -1.9, -1.6, -1.5], start=1)
-    ]
-    _api(aioclient_mock, ranked, config)
-
-    result = await async_find_events(hass, {"query": "pickup truck"})
-
-    assert len(result["events"]) == 4
-    assert "weaker_matches_left_out" not in result
+    assert [e["id"] for e in result["events"]] == [e["id"] for e in ranked]
 
 
 async def test_a_range_too_long_is_refused(
@@ -395,6 +388,102 @@ async def test_a_camera_looking_for_it_leaves_nothing_unrecorded(
 
     assert "not_recorded" not in result
     assert "offer" not in result
+
+
+_NO_DOGS = {
+    **_CONFIG,
+    "cameras": {
+        "e1_zoom": {"detect": {"enabled": True}, "objects": {"track": ["person"]}},
+        "wyze_front": {"detect": {"enabled": True}, "objects": {"track": ["car"]}},
+    },
+}
+
+
+async def test_nothing_found_for_want_of_a_camera_ends_on_the_change_card(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # "Would you like me to?" in prose, with buttons only when the model
+    # remembered them: the same change card as every other change instead.
+    _api(aioclient_mock, [], _NO_DOGS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    result = await executor.execute("find_camera_events", {"objects": ["dog"]})
+
+    proposed = [e for e in executor.call_log if e["tool"] == "set_camera_objects"]
+    assert [e["arguments"] for e in proposed] == [
+        {"camera": "e1_zoom", "add": ["dog"]},
+        {"camera": "wyze_front", "add": ["dog"]},
+    ]
+    assert all(e["result"]["requires_approval"] for e in proposed)
+    assert "do not ask" in result["offer"]
+    card = _build_delete_approval_response(
+        {"intent": "answer", "response": ""},
+        [],
+        executor.call_log,
+        None,
+        language="en",
+        actions=_pending_destructive_from_log(executor.call_log),
+    )
+    assert len(card["command_approval"]["actions"]) == 2
+
+
+async def test_a_search_that_found_events_answers_with_them(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # Recorded while a camera looked for it: those are the answer, not a card.
+    dog = _event(f"{NOW - 60:.6f}-dog001", "e1_zoom", "dog", NOW - 60, NOW - 50)
+    _api(aioclient_mock, [dog], _NO_DOGS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    result = await executor.execute("find_camera_events", {"objects": ["dog"]})
+
+    assert result["events"]
+    assert [e["tool"] for e in executor.call_log] == ["find_camera_events"]
+
+
+async def test_a_card_to_look_for_it_says_why(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # The panel shows the card, not the reply: "Apply this change?" alone did
+    # not say the search could not succeed.
+    config = {
+        **_CONFIG,
+        "cameras": {"e1_zoom": {"detect": {"enabled": True}, "objects": {"track": ["person"]}}},
+    }
+    _api(aioclient_mock, [], config)
+    search = await async_find_events(hass, {"objects": ["dog"], "query": "white dog"})
+    change = {
+        "kind": "frigate_objects",
+        "verb": "set_objects",
+        "target_id": "e1_zoom",
+        "entity_id": "",
+        "name": "E1 Zoom",
+        "label": "E1 Zoom starts looking for dog (Selora Vision restarts)",
+        "fingerprint": "abc",
+    }
+    log = [
+        {"tool": "find_camera_events", "arguments": {}, "result": search},
+        {
+            "tool": "set_camera_objects",
+            "arguments": {"camera": "e1_zoom", "add": ["dog"]},
+            "result": {"requires_approval": True, "destructive": change},
+        },
+    ]
+
+    card = _build_delete_approval_response(
+        {"intent": "answer", "response": ""},
+        [],
+        log,
+        None,
+        language="en",
+        actions=_pending_destructive_from_log(log),
+    )
+
+    why = card["command_approval"]["why"]
+    assert why.startswith("No camera looks for dog yet")
+    assert card["response"].startswith(why)
+    # A change, not a deletion.
+    assert "delete" not in card["response"].lower()
 
 
 def test_the_offer_in_a_note_is_one_the_model_is_told_to_make() -> None:
