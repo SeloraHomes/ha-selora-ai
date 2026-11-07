@@ -42,9 +42,10 @@ _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION = 25
 _SELORA_LOCAL_MAX_AUTOMATION_LINES = 20
 _SELORA_LOCAL_MAX_AUTOMATION_ALIAS_CHARS = 60
 
-# Not an intent. The Ollama backend serves ONE self-routing model that
-# was trained on a single router prompt covering every intent, so it
-# keys the same prompt for all of them instead of a per-specialist one.
+# Not an intent. The fused build is ONE self-routing model that was
+# trained on a single router prompt covering every intent, so it keys the
+# same prompt for all of them instead of a per-specialist one. Ollama
+# always serves it; llama-server does when the hub says so (_serves_unified_model).
 _SELORA_LOCAL_UNIFIED_PROMPT_KEY = "unified"
 
 # Qwen3 token count of each bundled system prompt (stripped, as sent).
@@ -69,7 +70,7 @@ _SELORA_LOCAL_REQUEST_TOKENS = 774
 _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS = 1141
 
 # Non-entity tokens a request reserves before the entity block gets what is
-# left, on the llama backend, where each intent sends its own specialist prompt.
+# left, for the specialists, where each intent sends its own prompt.
 _SELORA_LOCAL_RESERVED_TOKENS = (
     max(
         _SELORA_LOCAL_PROMPT_TOKENS[intent]
@@ -81,7 +82,7 @@ _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = (
     _SELORA_LOCAL_PROMPT_TOKENS["automation"] + _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS
 )
 
-# Same, on ollama-unified, which sends the unified prompt for every intent.
+# Same, for the fused build, which is sent the unified prompt for every intent.
 # It is larger than every specialist prompt but the automation one's, so the
 # specialist figures would hand the entity block room the prompt already took.
 _SELORA_LOCAL_UNIFIED_RESERVED_TOKENS = (
@@ -162,8 +163,8 @@ class _RequestBuildMixin:
         return min(fallback, derived)
 
     def _reserved_tokens(self, *, automation: bool) -> int:
-        """Non-entity tokens for the call in flight, sized for the system prompt this backend sends."""
-        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+        """Non-entity tokens for the call in flight, sized for the system prompt the model is sent."""
+        if self._serves_unified_model:
             return (
                 _SELORA_LOCAL_UNIFIED_AUTOMATION_RESERVED_TOKENS
                 if automation
@@ -306,11 +307,7 @@ class _RequestBuildMixin:
         # The self-routing model was trained against ONE router prompt for every
         # intent, so handing it a per-specialist prompt is exactly that mismatch --
         # it would be asked for a shape it never saw in training.
-        prompt_key = (
-            _SELORA_LOCAL_UNIFIED_PROMPT_KEY
-            if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED
-            else intent
-        )
+        prompt_key = _SELORA_LOCAL_UNIFIED_PROMPT_KEY if self._serves_unified_model else intent
         trained_system = self._specialist_prompts.get(prompt_key, system)
         # Re-attach the request-language directive.
         from ....llm_client.prompts import _language_directive

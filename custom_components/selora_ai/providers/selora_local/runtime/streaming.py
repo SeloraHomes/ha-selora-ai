@@ -8,6 +8,8 @@ import json
 import logging
 from typing import Any
 
+import aiohttp
+
 from ....command_policy_options import resolve_command_policy_options
 from ....const import (
     SELORA_LOCAL_DEFAULT_INTENT,
@@ -200,8 +202,12 @@ class _StreamingMixin:
 
             # Prose path: stream natively, plus the carry-over flush
             if kind in _PROSE_KINDS:
-                async for piece in super().send_request_stream(system, messages):
-                    yield piece
+                try:
+                    async for piece in super().send_request_stream(system, messages):
+                        yield piece
+                except (ConnectionError, aiohttp.ClientError, TimeoutError):
+                    self._completion_failed()
+                    raise
                 if not self._stop_seen.get():
                     tail = self._stream_carry.get()
                     if tail:
@@ -226,6 +232,7 @@ class _StreamingMixin:
             )
             result, error = await super().send_request(system, messages)
             if error:
+                self._completion_failed()
                 # Stream consumers (architect_chat_stream → websocket handler) only surface errors when the generator raises ConnectionError; silently returning would persist an empty assistant message and report a successful "done" event.
                 raise ConnectionError(f"{self.provider_name}: {error}")
             if result:
