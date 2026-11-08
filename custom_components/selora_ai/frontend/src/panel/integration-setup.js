@@ -110,6 +110,9 @@ export async function submitIntegrationSetup(hass, action) {
     throw new Error("That setup is no longer open.");
   }
   const flowId = state.flowId;
+  // Continue on a step that only asks the user to act retries it; whether
+  // that moved the setup on decides whether to offer starting over.
+  const acted = asksToAct(state);
   let result;
   try {
     // A sign-in in the browser, or work in progress, moves on by itself:
@@ -131,18 +134,28 @@ export async function submitIntegrationSetup(hass, action) {
     return { entry_id: result.result?.entry_id, title: result.title };
   }
   if (result.type === "abort") {
-    FLOWS.delete(cardId);
-    throw new Error(
+    const reason =
       text(
         state,
         action,
         `abort.${result.reason}`,
         result.description_placeholders,
-      ) || result.reason,
-    );
+      ) || result.reason;
+    if (acted) {
+      // What the user did on the device was not enough for this setup: the
+      // card stays, with the reason and a fresh start.
+      state.status = "gone";
+      state.error = reason;
+      state.stuck = true;
+      throw new SetupStepError(reason);
+    }
+    FLOWS.delete(cardId);
+    throw new Error(reason);
   }
   const errors = result.errors;
+  const before = state.step?.step_id;
   show(state, result);
+  state.stuck = acted && asksToAct(state) && state.step.step_id === before;
   if (result.type === "external" && result.url) {
     window.open(result.url, "_blank", "noopener");
   }
@@ -153,12 +166,15 @@ export async function submitIntegrationSetup(hass, action) {
  * Check again: end this setup and start the integration's afresh. Home
  * Assistant checks some things (a device's access or pairing settings) only
  * when a setup starts, so a change made on the device for a step is never
- * seen by the setup that asked for it. Pressed by the user, as closing Home
- * Assistant's own dialog ends a flow.
+ * seen by the setup that asked for it. Offered only once Continue did not
+ * move the setup on: most such steps (a TV's Allow prompt) are retried by
+ * Continue, and starting over loses a discovered device's address. Pressed
+ * by the user, as closing Home Assistant's own dialog ends a flow.
  */
 async function restart(host, action, state) {
   state.status = "loading";
   state.error = "";
+  state.stuck = false;
   host.requestUpdate?.();
   try {
     await host.hass.callApi(
@@ -191,6 +207,16 @@ async function restart(host, action, state) {
     state.error = err?.body?.message || err?.message || String(err);
   }
   host.requestUpdate?.();
+}
+
+function checkAgain(host, action, state) {
+  return html`<div class="setup-again">
+    ${renderActionButton({
+      label: host._t("setup_check_again", "Check again"),
+      mark: "mdi:refresh",
+      onClick: () => restart(host, action, state),
+    })}
+  </div>`;
 }
 
 /** Whether the step only asks the user to act: nothing to fill in. */
@@ -351,7 +377,14 @@ export function renderIntegrationSetupRow(host, action) {
   if (state.status === "gone") {
     return html`<div class="setup-step">
       ${state.error ? html`<p class="setup-error">${state.error}</p>` : ""}
-      ${t("setup_gone", "This setup is no longer open. Ask me again to start over.")}
+      ${
+        state.stuck
+          ? checkAgain(host, action, state)
+          : t(
+              "setup_gone",
+              "This setup is no longer open. Ask me again to start over.",
+            )
+      }
     </div>`;
   }
   const step = state.step;
@@ -407,16 +440,6 @@ export function renderIntegrationSetupRow(host, action) {
           </p>`
         : ""
     }
-    ${
-      asksToAct(state)
-        ? html`<div class="setup-again">
-            ${renderActionButton({
-              label: t("setup_check_again", "Check again"),
-              mark: "mdi:refresh",
-              onClick: () => restart(host, action, state),
-            })}
-          </div>`
-        : ""
-    }
+    ${state.stuck && asksToAct(state) ? checkAgain(host, action, state) : ""}
   </div>`;
 }

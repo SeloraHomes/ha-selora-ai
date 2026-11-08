@@ -3254,6 +3254,22 @@ _SETUP_PENDING_BY_LANG: dict[str, str] = {
 }
 
 
+# A step done on the device, with Selora's steps on the card: nothing typed.
+_SETUP_STEPS_PENDING_BY_LANG: dict[str, str] = {
+    "fr": "Cette étape est pour vous : suivez les étapes ci-dessous sur l'appareil, puis appuyez sur Continuer.",
+    "de": "Dieser Schritt ist für Sie: Folgen Sie den Schritten unten am Gerät und tippen Sie dann auf Weiter.",
+    "es": "Este paso es para ti: sigue los pasos de abajo en el dispositivo y luego pulsa Continuar.",
+    "it": "Questo passaggio è per te: segui i passaggi qui sotto sul dispositivo, poi premi Continua.",
+    "nl": "Deze stap is voor jou: volg de stappen hieronder op het apparaat en druk dan op Doorgaan.",
+    "pt": "Este passo é para si: siga os passos abaixo no dispositivo e depois prima Continuar.",
+    "hu": "Ez a lépés az Öné: kövesse az alábbi lépéseket az eszközön, majd nyomja meg a Folytatás gombot.",
+    "ru": "Этот шаг для вас: выполните шаги ниже на устройстве, затем нажмите «Продолжить».",
+    "ja": "この手順はご自身で行ってください。下の手順をデバイスで行い、「続行」を押してください。",
+    "ko": "이 단계는 직접 해 주세요. 아래 단계를 기기에서 진행한 뒤 계속을 누르세요.",
+    "zh": "这一步请您自己完成：在设备上按下方步骤操作，然后点按“继续”。",
+}
+
+
 def client_action_pending_hint(language: str | None) -> str:
     """Localized hint shown while a client-executed action awaits its tap."""
     return _CLIENT_ACTION_PENDING_BY_LANG.get(
@@ -3275,6 +3291,11 @@ def _pending_hint_for(actions: list[dict[str, Any]], language: str | None) -> st
         return _DELETE_PENDING_BY_LANG.get(
             _normalize_lang(language),
             "Nothing has been deleted yet — confirm below and I will do it.",
+        )
+    if kinds == {"integration_setup"} and all(action.get("steps") for action in actions):
+        return _SETUP_STEPS_PENDING_BY_LANG.get(
+            _normalize_lang(language),
+            "This step is yours: follow the steps below on the device, then press Continue.",
         )
     if kinds and kinds <= {"integration_setup"}:
         # A login or sign-in: said plainly where it goes.

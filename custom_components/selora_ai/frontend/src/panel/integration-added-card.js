@@ -1,7 +1,10 @@
 // What an `add_integration` turn added, as a card under the reply: the tick a
-// Frigate camera gets, the new entry's name, its integration and what it
-// brought in. The model's sentence alone left the user unsure whether the
-// setup was done or still waiting on them.
+// Frigate camera gets, the new entry's name and integration, and its entities
+// as live tiles, so the device added can be used right there. The name opens
+// the device in Home Assistant, or the entry's page when it has none (a media
+// server) or several (a bridge). The model's
+// sentence alone does not say whether the setup is done or still waiting on
+// the user.
 //
 // Rendered from the reply's stored tool calls, so a reopened conversation
 // shows it too. An entry Home Assistant could not start says so instead of
@@ -23,8 +26,54 @@ function addedOf(msg) {
     .map((call) => call.result);
 }
 
+// Only tiles Home Assistant has a state for: an entity is registered before
+// its platform first writes one.
+function tiles(host, entry) {
+  return (entry.entity_ids || []).filter((id) => host.hass?.states?.[id]);
+}
+
+// Home Assistant's own pages, opened in place as its UI does.
+function open(path) {
+  window.history.pushState(null, "", path);
+  window.dispatchEvent(new Event("location-changed"));
+}
+
+function pageOf(entry) {
+  if (entry.device_id) {
+    return `/config/devices/device/${encodeURIComponent(entry.device_id)}`;
+  }
+  const domain = encodeURIComponent(entry.domain || "");
+  return entry.entry_id
+    ? `/config/integrations/integration/${domain}#config_entry=${encodeURIComponent(entry.entry_id)}`
+    : "";
+}
+
+function renderName(entry) {
+  const name = entry.title || entry.name || entry.domain;
+  const page = pageOf(entry);
+  if (!page) {
+    return html`<ha-icon icon="mdi:puzzle-outline"></ha-icon
+      ><span>${name}</span>`;
+  }
+  return html`<button
+    type="button"
+    class="flow-entity-link"
+    title=${name}
+    @click=${(e) => {
+      e.stopPropagation();
+      open(page);
+    }}
+  >
+    <ha-icon
+      icon=${entry.device_id ? "mdi:devices" : "mdi:puzzle-outline"}
+    ></ha-icon
+    ><span>${name}</span>
+  </button>`;
+}
+
 function renderEntry(host, entry) {
   const working = entry.state === "loaded";
+  const ids = working ? tiles(host, entry) : [];
   const counts = interpolate(
     host._t(
       "integration_added_counts",
@@ -34,15 +83,24 @@ function renderEntry(host, entry) {
   );
   return html`
     <div class="frigate-result-camera">
-      <div class="frigate-result-name">
-        <ha-icon icon="mdi:puzzle-outline"></ha-icon>
-        <span>${entry.title || entry.name || entry.domain}</span>
-      </div>
+      <div class="frigate-result-name">${renderName(entry)}</div>
       <div class="frigate-result-wait">
         <span
-          >${entry.name || entry.domain}${working ? html` · ${counts}` : ""}</span
+          >${entry.name || entry.domain}${
+            working && !ids.length ? html` · ${counts}` : ""
+          }</span
         >
       </div>
+      ${
+        ids.length
+          ? html`<div class="frigate-result-live">
+              <div
+                class="selora-entity-grid"
+                data-entity-ids=${ids.join(",")}
+              ></div>
+            </div>`
+          : ""
+      }
       ${
         working
           ? ""
