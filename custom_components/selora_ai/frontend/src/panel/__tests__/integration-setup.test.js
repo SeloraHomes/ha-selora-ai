@@ -187,7 +187,14 @@ describe("a step asking the user to act on the device", () => {
     data_schema: [],
   };
 
-  function deviceStep() {
+  const ADDED = {
+    type: "create_entry",
+    title: "Kitchen",
+    result: { entry_id: "e9" },
+  };
+
+  // `continued`: what Continue on the step answers.
+  function deviceStep(continued = ADDED) {
     const calls = [];
     const callApi = vi.fn(async (method, path, data) => {
       calls.push([method, path, data]);
@@ -200,11 +207,7 @@ describe("a step asking the user to act on the device", () => {
           data_schema: [{ name: "device", type: "string", required: true }],
         };
       }
-      return {
-        type: "create_entry",
-        title: "Kitchen",
-        result: { entry_id: "e9" },
-      };
+      return path.endsWith("/fresh") ? ADDED : continued;
     });
     const host = {
       hass: {
@@ -230,19 +233,54 @@ describe("a step asking the user to act on the device", () => {
     return { host, action, calls };
   }
 
-  it("shows Selora's steps for the device, and a way to check again", async () => {
+  it("shows Selora's steps for the device, and Continue retries them", async () => {
     const { host, action } = deviceStep();
     const out = flatten(await loaded(host, action));
     expect(out).toContain("Open the Home app");
     expect(out).toContain("Allow Speaker & TV Access: Everyone");
     expect(out).toContain("<code>AirPlay</code>");
+    // A TV's Allow prompt comes back on Continue; starting over would lose
+    // the address its discovery found.
+    expect(out).not.toContain("Check again");
+    expect(await runClientAction(host.hass, action)).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("offers to check again when Continue leaves the step as it was", async () => {
+    const { host, action } = deviceStep(DISABLED);
+    await loaded(host, action);
+
+    expect(await runClientAction(host.hass, action)).toMatchObject({
+      retry: true,
+    });
+
+    expect(flatten(renderIntegrationSetupRow(host, action))).toContain(
+      "Check again",
+    );
+  });
+
+  it("keeps the card, with the reason, when Continue ends the setup", async () => {
+    const { host, action } = deviceStep({
+      type: "abort",
+      reason: "setup_failed",
+    });
+    await loaded(host, action);
+
+    expect(await runClientAction(host.hass, action)).toMatchObject({
+      retry: true,
+    });
+
+    const out = flatten(renderIntegrationSetupRow(host, action));
+    expect(out).toContain("setup_failed");
     expect(out).toContain("Check again");
   });
 
   it("checks again by ending the setup and starting a fresh one", async () => {
-    const { host, action, calls } = deviceStep();
-    const row = await loaded(host, action);
-    const checkAgain = handlers(row).at(-1);
+    const { host, action, calls } = deviceStep(DISABLED);
+    await loaded(host, action);
+    await runClientAction(host.hass, action);
+    const checkAgain = handlers(renderIntegrationSetupRow(host, action)).at(-1);
 
     await checkAgain();
 

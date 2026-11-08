@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { renderIntegrationAddedCard } from "../integration-added-card.js";
 
@@ -16,7 +16,34 @@ function flatten(node) {
   return String(node);
 }
 
-const host = { _t: (_key, fallback) => fallback };
+// Every event handler in a template, in document order.
+function handlers(node, out = []) {
+  if (Array.isArray(node)) node.forEach((n) => handlers(n, out));
+  else if (typeof node === "function") out.push(node);
+  else if (node && typeof node === "object" && "values" in node) {
+    handlers(node.values, out);
+  }
+  return out;
+}
+
+// Which page pressing the entry's name opens.
+function opened(result) {
+  const pushState = vi.fn();
+  vi.stubGlobal("window", { history: { pushState }, dispatchEvent: vi.fn() });
+  vi.stubGlobal("Event", class {});
+  try {
+    const [press] = handlers(renderIntegrationAddedCard(host, reply(result)));
+    press({ stopPropagation() {} });
+    return pushState.mock.calls.at(-1)?.[2];
+  } finally {
+    vi.unstubAllGlobals();
+  }
+}
+
+const host = {
+  _t: (_key, fallback) => fallback,
+  hass: { states: { "media_player.samsung_q6": { state: "off" } } },
+};
 
 function reply(result) {
   return {
@@ -48,6 +75,21 @@ describe("integration added card", () => {
     expect(out).toContain("Devices: 1 · Entities: 2");
   });
 
+  it("shows the entities it added as tiles, those with a state yet", () => {
+    const out = flatten(
+      renderIntegrationAddedCard(
+        host,
+        reply({
+          ...KITCHEN,
+          entity_ids: ["media_player.samsung_q6", "sensor.not_written_yet"],
+        }),
+      ),
+    );
+    expect(out).toContain("selora-entity-grid");
+    expect(out).toMatch(/data-entity-ids=\s*"?media_player\.samsung_q6"?\s*>/);
+    expect(out).not.toContain("Devices: 1");
+  });
+
   it("does not tick an entry Home Assistant could not start", () => {
     const out = flatten(
       renderIntegrationAddedCard(
@@ -67,5 +109,17 @@ describe("integration added card", () => {
     expect(
       renderIntegrationAddedCard(host, reply({ status: "needs_user" })),
     ).toBe("");
+  });
+
+  it("opens the device it set up, in Home Assistant", () => {
+    expect(opened({ ...KITCHEN, entry_id: "e1", device_id: "d1" })).toBe(
+      "/config/devices/device/d1",
+    );
+  });
+
+  it("opens the entry's page when it set up no single device", () => {
+    expect(
+      opened({ ...KITCHEN, domain: "dlna_dms", entry_id: "e1", devices: 0 }),
+    ).toBe("/config/integrations/integration/dlna_dms#config_entry=e1");
   });
 });

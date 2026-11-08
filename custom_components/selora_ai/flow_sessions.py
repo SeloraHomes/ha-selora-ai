@@ -64,6 +64,12 @@ def owner_of(hass: HomeAssistant, flow_id: str) -> tuple[str, ...] | None:
     return held.owner if held else None
 
 
+def held_step(hass: HomeAssistant, flow_id: str) -> dict[str, Any]:
+    """The step an open flow of ours waits on, as Home Assistant returned it."""
+    held = _flows(hass).get(flow_id)
+    return dict(held.step) if held else {}
+
+
 @callback
 def keep_open(
     hass: HomeAssistant,

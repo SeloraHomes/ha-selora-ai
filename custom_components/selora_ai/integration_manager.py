@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import TYPE_CHECKING, Any, Final
+from urllib.parse import urlparse
 
 from homeassistant.config_entries import (
     DISCOVERY_SOURCES,
@@ -39,6 +41,7 @@ from homeassistant.loader import (
     async_get_integration,
     async_get_integrations,
 )
+import voluptuous as vol
 
 from .const import DOMAIN
 from .helper_flow import _FLOW_ERRORS, is_credential_name
@@ -60,6 +63,28 @@ def _counts(hass: HomeAssistant, entry_id: str) -> tuple[int, int]:
     devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry_id)
     entities = er.async_entries_for_config_entry(er.async_get(hass), entry_id)
     return len(devices), len(entities)
+
+
+# The added card's tiles: enough for a hub or a bridge to show what it brought.
+_ADDED_TILES: Final = 12
+
+
+def _shown_entities(hass: HomeAssistant, entry_id: str) -> list[str]:
+    """The entry's entities a dashboard would show: not disabled, hidden, or
+    a diagnostic or configuration entity."""
+    return [
+        e.entity_id
+        for e in er.async_entries_for_config_entry(er.async_get(hass), entry_id)
+        if not e.disabled_by and not e.hidden_by and e.entity_category is None
+    ][:_ADDED_TILES]
+
+
+def _only_device(hass: HomeAssistant, entry_id: str) -> dict[str, str]:
+    """The entry's device when it has just one, for the added card to open:
+    one device is what the user asked to set up. Otherwise the card opens
+    the entry's own page, which lists them."""
+    devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry_id)
+    return {"device_id": devices[0].id} if len(devices) == 1 else {}
 
 
 def _row(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
@@ -96,13 +121,60 @@ def discovery_flows(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any
     ]
 
 
+# Integrations that speak a protocol many devices share, rather than a
+# device's own: a TV found by DLNA and by its maker's integration is set up
+# with the latter. Home Assistant's DLNA flow holds back the TVs it knows a
+# better integration for (`_is_ignored_device`), by model name, which misses
+# a Samsung whose model is a part number.
+_GENERIC_DISCOVERY: Final = frozenset({"dlna_dmr", "dlna_dms", "upnp"})
+
+
+def _device_key(unique_id: Any) -> str:
+    """A discovery's unique id with UPnP's ``uuid:`` prefix dropped: Samsung's
+    integration strips it from the same UDN DLNA keeps it on."""
+    key = str(unique_id or "").strip().lower()
+    return key.removeprefix("uuid:")
+
+
+def _device_name(title: str) -> str:
+    """A title without a leading ``[TV]``-style tag, for matching."""
+    return re.sub(r"^(\[[^\]]*\]\s*)+", "", title).strip().casefold()
+
+
+def _same_name(name: str, title: str) -> bool:
+    """Whether a title names that device: the same name, or the same name
+    with a model after it in brackets (``Samsung Q6 Series (82) (QN82Q6FNA)``).
+    A name merely inside another (``Living Room`` in ``Living Room Speaker``)
+    is another device."""
+    other = _device_name(title)
+    return bool(name) and (other == name or (other.startswith(f"{name} (") and other.endswith(")")))
+
+
+def _found_better(row: dict[str, Any], rows: list[dict[str, Any]]) -> bool:
+    """Whether a generic discovery's device was also found by its own
+    integration: the same unique id, or that row's title naming it."""
+    if row["domain"] not in _GENERIC_DISCOVERY:
+        return False
+    key, name = _device_key(row["unique_id"]), _device_name(row["title"])
+    return any(
+        other["domain"] not in _GENERIC_DISCOVERY
+        and ((key and _device_key(other["unique_id"]) == key) or _same_name(name, other["title"]))
+        for other in rows
+    )
+
+
 async def async_list_discovered(hass: HomeAssistant, domain: str = "") -> list[dict[str, Any]]:
     """Discovered devices, named as the Discovered cards name them: the
     integration's ``config.flow_title`` filled from the flow's
-    ``title_placeholders``, else the integration's name."""
+    ``title_placeholders``, else the integration's name.
+
+    A device a generic protocol integration (DLNA) found is left out when its
+    own integration found it too: asked to set up the TV, the user means the
+    TV's integration. Its flow stays under Discovered, and its flow_id still
+    works."""
     from .repairs_manager import _fill  # noqa: PLC0415
 
-    flows = discovery_flows(hass, domain)
+    flows = discovery_flows(hass)
     if not flows:
         return []
     domains = {flow["handler"] for flow in flows}
@@ -125,10 +197,17 @@ async def async_list_discovered(hass: HomeAssistant, domain: str = "") -> list[d
                 "integration": name,
                 "title": sanitize_untrusted_text(title or name, 80),
                 "source": flow["context"]["source"],
+                "unique_id": flow["context"].get("unique_id"),
             }
         )
-    rows.sort(key=lambda r: (r["domain"], r["title"]))
-    return rows
+    # Judged against every discovery, so a domain asked for alone is too.
+    shown = [
+        {k: v for k, v in r.items() if k != "unique_id"}
+        for r in rows
+        if not _found_better(r, rows) and (not domain or r["domain"] == domain)
+    ]
+    shown.sort(key=lambda r: (r["domain"], r["title"]))
+    return shown
 
 
 async def async_ignore_discovered(hass: HomeAssistant, flow_id: str) -> dict[str, Any]:
@@ -400,9 +479,86 @@ def _hand_over(
             "flow_id": flow_id,
             "domain": domain,
             "label": sanitize_untrusted_text(name, 80),
+            **({"steps": steps} if steps else {}),
         },
         "hint": hint,
     }
+
+
+_CHOICE_HINT: Final = (
+    "This step asks which one to set up, among what Home Assistant found (a "
+    "device, an account, a network): the user picks it on the setup card shown "
+    "with this answer. Never pick it for them. When the one they named is not "
+    "offered, tell them: it may be in `configured`, already set up."
+)
+
+
+def _picks_found(schema: Any) -> bool:
+    """Whether a step's form chooses among things found at runtime: its
+    choices are names, not translated settings. Read from the form itself,
+    as the model's description of it drops a selector's translation key."""
+    from .helper_flow import _to_field_list  # noqa: PLC0415
+
+    if schema is None:
+        return False
+    try:
+        fields = _to_field_list(schema)
+    except (TypeError, ValueError, vol.Invalid):
+        return False
+    return isinstance(fields, list) and _found_fields(fields)
+
+
+def _found_fields(fields: list[Any]) -> bool:
+    for field in fields:
+        if not isinstance(field, dict):
+            continue
+        # A section's fields.
+        if isinstance(field.get("schema"), list) and _found_fields(field["schema"]):
+            return True
+        # ``vol.In`` of names: each option its own label.
+        if field.get("type") == "select" and _named_options(field.get("options")):
+            return True
+        # A select selector whose options are not translated by a key.
+        selector = field.get("selector")
+        config = selector.get("select") if isinstance(selector, dict) else None
+        if isinstance(config, dict) and config.get("options") and not config.get("translation_key"):
+            return True
+    return False
+
+
+def _named_options(options: Any) -> bool:
+    return (
+        isinstance(options, list)
+        and bool(options)
+        and all(isinstance(o, list | tuple) and len(o) == 2 and o[0] == o[1] for o in options)
+    )
+
+
+_KNOWN_HOSTS_MAX: Final = 30
+
+
+def _asks_for_host(fields: list[dict[str, Any]]) -> bool:
+    return any(f.get("name") == "host" or _asks_for_host(f.get("fields") or []) for f in fields)
+
+
+def _known_hosts(hass: HomeAssistant) -> list[dict[str, str]]:
+    """The addresses of devices already set up, by entry title: a device set up
+    with one integration (DLNA) and asked for by another (its maker's) is at
+    the same address. Only an entry's ``host``, or its ``url``'s host — never
+    anything else it stores."""
+    known: dict[str, dict[str, str]] = {}
+    for entry in hass.config_entries.async_entries():
+        if entry.source == SOURCE_IGNORE or entry.disabled_by:
+            continue
+        host = entry.data.get("host")
+        if not isinstance(host, str) and isinstance(entry.data.get("url"), str):
+            host = urlparse(entry.data["url"]).hostname
+        if isinstance(host, str) and host and host not in known:
+            known[host] = {
+                "title": sanitize_untrusted_text(entry.title or entry.domain, 80),
+                "host": sanitize_untrusted_text(host, 80),
+            }
+    return list(known.values())[:_KNOWN_HOSTS_MAX]
 
 
 def _asks_for_credential(fields: list[dict[str, Any]]) -> bool:
@@ -442,7 +598,13 @@ async def async_add_integration(
     Discovered card does, so what the discovery found is kept. That flow is
     never aborted: a refused or abandoned one stays under Discovered.
     """
-    from .flow_sessions import async_drive, async_step_texts, owner_of, release  # noqa: PLC0415
+    from .flow_sessions import (  # noqa: PLC0415
+        async_drive,
+        async_step_texts,
+        held_step,
+        owner_of,
+        release,
+    )
     from .helper_flow import _DEDICATED  # noqa: PLC0415
 
     domain = str(domain or "").strip().lower()
@@ -469,11 +631,36 @@ async def async_add_integration(
         flow["flow_id"] == flow_id for flow in discovery_flows(hass, domain)
     )
     adopt = discovery and owner_of(hass, str(flow_id)) is None
+    if flow_id and not discovery and owner_of(hass, str(flow_id)) != ("integration", domain):
+        # A flow_id made up, from another integration, or from a setup that
+        # ended: answered with what is found now, each with its own domain
+        # and flow_id, so the call is made again rather than given up on.
+        return {
+            "domain": domain,
+            "error": (
+                "No setup with that flow_id is in progress for this integration. "
+                "When the device is in `discovered`, call again with its domain "
+                "and flow_id from there; otherwise call again without flow_id."
+            ),
+            "discovered": [
+                row
+                for row in await async_list_discovered(hass)
+                if owner_of(hass, row["flow_id"]) is None
+            ],
+        }
     withheld = bool(fields) and _carries_credential(fields or {})
     if withheld:
         # Never submitted: the step is described again, and goes to the card.
         fields = None
 
+    # Which device to set up is the user's choice: an answer to a step choosing
+    # among found devices is not sent, the step goes to the card instead: asked
+    # for a device no longer offered (already set up), a model picks another.
+    ours = (
+        bool(flow_id) and not discovery and owner_of(hass, str(flow_id)) == ("integration", domain)
+    )
+    if ours and fields and _picks_found(held_step(hass, str(flow_id)).get("data_schema")):
+        fields = None
     outcome = await async_drive(
         hass,
         manager,
@@ -553,10 +740,18 @@ async def async_add_integration(
             written or [],
         )
     if not flow_id and "done" not in outcome and "error" not in outcome:
+        # What the user may mean is already found, or already set up: a step
+        # choosing among devices no longer offers one that is, and a model
+        # left to guess picked another device instead.
         waiting = [
             {"flow_id": r["flow_id"], "title": r["title"]}
             for r in await async_list_discovered(hass, domain)
             if owner_of(hass, r["flow_id"]) is None
+        ]
+        configured = [
+            {"entry_id": e.entry_id, "title": sanitize_untrusted_text(e.title or "", 80)}
+            for e in hass.config_entries.async_entries(domain)
+            if e.source != SOURCE_IGNORE
         ]
         if waiting:
             outcome = {
@@ -567,6 +762,39 @@ async def async_add_integration(
                     "call again with its flow_id alone, which continues its setup."
                 ),
             }
+        asks_host = outcome.get("status") == "needs_options" and _asks_for_host(
+            outcome.get("fields") or []
+        )
+        if asks_host and (known := _known_hosts(hass)):
+            outcome = {
+                **outcome,
+                "known_hosts": known,
+                "known_hosts_hint": (
+                    "Addresses of devices Home Assistant already set up. When the "
+                    "device the user means is among them (by name), fill `host` "
+                    "with its address instead of asking them for it."
+                ),
+            }
+        if configured:
+            outcome = {
+                **outcome,
+                "configured": configured,
+                "configured_hint": (
+                    "Already set up. When the user means one of these, say so and add nothing."
+                ),
+            }
+    if (
+        not discovery
+        and not outcome.get("discovered")
+        and outcome.get("status") == "needs_options"
+        and _picks_found(held_step(hass, str(outcome.get("flow_id") or "")).get("data_schema"))
+    ):
+        handed = str(outcome.get("flow_id"))
+        release(hass, handed, abort=False)
+        return {
+            **_hand_over(domain, integration.name, outcome, _CHOICE_HINT, []),
+            **{k: outcome[k] for k in ("configured",) if k in outcome},
+        }
     if "done" not in outcome:
         note = (
             {
@@ -588,6 +816,8 @@ async def async_add_integration(
         "status": "added",
         "name": sanitize_untrusted_text(integration.name, 80),
         **_row(hass, entry),
+        "entity_ids": _shown_entities(hass, entry.entry_id),
+        **_only_device(hass, entry.entry_id),
         "hint": (
             "Done: the chat shows it added, with a tick. Say so in one sentence; "
             "the steps it went through are over, so do not repeat what they said."

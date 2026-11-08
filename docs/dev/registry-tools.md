@@ -313,12 +313,35 @@ Devices & services does.
   `DISCOVERY_SOURCES`, titled from the integration's `config.flow_title` and
   the flow's `title_placeholders` (sanitized: the device advertises them).
   `problems_only` leaves them out.
+- **A step asking for `host` comes with `known_hosts`**: the addresses of
+  entries already set up, by title, from their `host` or their `url`'s host
+  and nothing else they store. A TV set up with DLNA is at the address its
+  maker's integration asks for, and a discovery is gone for a while after a
+  restart, until the device announces itself again.
+- **A device found by DLNA and by its own integration is listed once**, with
+  its own (`_GENERIC_DISCOVERY`, `_found_better`): asked to set up the TV, the
+  user means Samsung's integration, not a media renderer. Home Assistant's DLNA
+  flow holds back such TVs itself, but by model name ("tv"), which a Samsung
+  named by part number slips past. Matched by unique id (Samsung strips the
+  `uuid:` DLNA keeps) or by the DLNA title, `[TV]` tag dropped, being the
+  other's or the other's with a model in brackets after it (`_same_name`). A
+  name merely inside another's is another device: `Living Room` is not the
+  `Living Room Speaker`. The DLNA flow stays under Discovered; only the
+  listing and the suggestions leave it out.
 - **Adding a discovered device continues Home Assistant's own flow** for it:
   `add_integration` with its `flow_id` reads the step with
   `async_configure(flow_id)`, as core's flow view does when Add is pressed on
   the card. A fresh `user` flow would lose what the discovery found (address,
   unique id) and often abort `already_in_progress` beside it. A login step
   goes to the setup card the same way, on the discovery's own flow.
+  - **Which found device to set up is the user's choice.** A step choosing
+    among things Home Assistant found at runtime goes to the setup card: a
+    `vol.In` whose options are their own labels (DLNA's renderers), or a select
+    selector without a `translation_key`. Read from the form itself, since the
+    model's description of it drops the key. An answer
+    to one is never sent. Told in words, a model asked for a TV already set up,
+    so no longer offered, picked a speaker instead. With a discovery waiting
+    the first step still goes to the model, so it can continue that one.
   - **A setup refused as `already_in_progress` continues the discovery's.**
     Asked to set a discovered device up, the model can skip the listing and
     start a fresh flow, which Home Assistant refuses while the discovery's
@@ -340,13 +363,21 @@ Devices & services does.
     what to allow, never where ("allow all devices on the local network"),
     so reaching such a step answers `needs_steps` with the flow still held,
     and the model calls again with `steps`. Kept by flow_id
-    (`_keep_steps`, bounded) so a link opened over MCP shows them too.
+    (`_keep_steps`, bounded) so a link opened over MCP shows them too, and
+    on the chat card's action. The line above that card says to do them on
+    the device, not the sign-in one ("what you type goes to Home
+    Assistant"): there is nothing to type.
   - **Check again ends the flow and starts a fresh `user` one**, from the
     card. Some settings are read only when a setup starts — Apple TV scans
     a device's access (`acl`, `rpfl`) once — so Continue after changing
     the device just skips what is now allowed. Pressed by the user, it may
     end a discovery's flow, as closing Home Assistant's dialog does; the
     device is discovered again when it next announces itself.
+  - **It is offered only once Continue did not move the setup on**: the
+    same step came back, or the setup ended (the card then stays, with the
+    reason). Most such steps are retried by Continue — Samsung's `pairing`
+    shows the TV's Allow prompt again — and starting over from `user` loses
+    the address a discovery found, so it asked the user for an IP.
 - **Ignoring is Home Assistant's own** `config_entries/ignore_flow`: an
   `ignore` flow for the device's unique id (and `discovery_key`), which ends
   the discovery and keeps it from coming back. A discovery without a unique id
