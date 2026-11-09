@@ -49,7 +49,11 @@ import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import { renderInsights } from "./panel/render-insights.js";
-import { renderRecipesV2 } from "./panel/render-recipes.js";
+import {
+  isAutoSetupRow,
+  nextMatchFocus,
+  renderRecipesV2,
+} from "./panel/render-recipes.js";
 import { fitComposerToPrediction } from "./panel/next-prompt.js";
 import { loadTrash } from "./panel/trash.js";
 import {
@@ -3759,18 +3763,27 @@ class SeloraAIPanel extends LitElement {
       // race, WS error, etc.) the gating used to fail-open because
       // every check looked at an empty items list. Fail-closed now.
       if (!preview) return false;
-      if (preview.ok === false) return false;
       const items = preview.items || [];
+      // An integration Selora sets up itself on Continue doesn't hold
+      // the step back: Continue is what sets it up. Its missing entry
+      // stops the preview at validate, so its punch is set aside too.
+      const automatic = new Set(
+        items.filter(isAutoSetupRow).map((it) => it.payload.domain),
+      );
+      if (preview.ok === false && automatic.size === 0) return false;
       const blockingNeedsInput = items.some(
         (it) =>
           it.status === "needs_input" &&
           it.kind !== "pin" &&
           it.kind !== "inputs" &&
-          it.stage === "configure",
+          it.stage === "configure" &&
+          !isAutoSetupRow(it),
       );
       // Also block on definition/resolve/validate punch items.
       const earlyPunch = (preview.punch_list || []).some(
-        (p) => p.stage !== "resolve" || p.code !== "binding_pending",
+        (p) =>
+          !(p.code === "integration_missing" && automatic.has(p.target)) &&
+          (p.stage !== "resolve" || p.code !== "binding_pending"),
       );
       return !blockingNeedsInput && !earlyPunch;
     }
@@ -3798,6 +3811,7 @@ class SeloraAIPanel extends LitElement {
   async _advanceRecipeStep() {
     const current = this._recipeWizardStep || 1;
     if (!this._canAdvanceFromStep(current)) return;
+    if (current === 3 && !(await this._runAutomaticSetups())) return;
     let next = current + 1;
     // Skip the Match step entirely when there's nothing to match — but
     // only if the preview is healthy. If it isn't (e.g. a render error),
@@ -3826,6 +3840,44 @@ class SeloraAIPanel extends LitElement {
     if (next === 4) {
       await this._runRecipeInstall();
     }
+  }
+
+  // Set up the Match step's automatic integrations, in table order, now
+  // that the picks they read are made. On a failure, open that row so its
+  // error shows where the homeowner is looking, and stay on the step. A
+  // setup can surface a blocker the missing entry was hiding (the preview
+  // stops at validate without it), so the gate is checked again.
+  async _runAutomaticSetups() {
+    const rows = (this._recipeWizardPreview?.items || []).filter(
+      isAutoSetupRow,
+    );
+    for (const row of rows) {
+      const domain = row.payload.domain;
+      await this._autoSetupIntegration(domain);
+      // The homeowner can leave the step while a setup runs; finishing
+      // it must not carry them on into the install they backed out of.
+      if (this._recipeWizardStep !== 3) return false;
+      const stillMissing = (this._recipeWizardPreview?.items || []).some(
+        (it) => it.id === row.id && isAutoSetupRow(it),
+      );
+      if (stillMissing && !this._recipeFlows?.[domain]) {
+        this._recipeFlows = {
+          ...(this._recipeFlows || {}),
+          [domain]: {
+            state: "error",
+            error: this._t(
+              "recipes_integration_auto_not_created",
+              "Selora couldn't set this up. Press Continue to try again.",
+            ),
+          },
+        };
+      }
+      if (this._recipeFlows?.[domain]?.state === "error") {
+        this._recipeActiveItemId = row.id;
+        return false;
+      }
+    }
+    return rows.length === 0 || this._canAdvanceFromStep(3);
   }
 
   _retreatRecipeStep() {
@@ -4053,6 +4105,8 @@ class SeloraAIPanel extends LitElement {
         // pick rather than guessing.
         selections: this._recipeWizardSelections || {},
       });
+      // A retry that worked clears the last attempt's error.
+      this._resetIntegrationFlow(domain);
       // Refresh preview so the integration row flips status.
       await this._refreshRecipePreview();
     } catch (err) {
@@ -4156,6 +4210,13 @@ class SeloraAIPanel extends LitElement {
         inputs: this._recipeWizardInputs || {},
         selections: this._recipeWizardSelections || {},
       });
+      if (this._recipeWizardStep === 3) {
+        this._recipeActiveItemId = nextMatchFocus(
+          this._recipeWizardPreview?.items,
+          preview?.items,
+          this._recipeActiveItemId,
+        );
+      }
       this._recipeWizardPreview = preview;
     } catch (err) {
       console.error("Failed to preview recipe", err);

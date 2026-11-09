@@ -226,6 +226,10 @@ def derive_items(
                     # uses this to switch from "open inline form" to
                     # "one-click backend orchestration."
                     "auto_setup": integration.auto_setup is not None,
+                    # Selora sets this one up itself when the homeowner
+                    # continues past the picks, so the wizard shows it as
+                    # automatic instead of a row they have to work.
+                    "deferred": defer,
                     "entry_title": entry_title,
                 },
             )

@@ -18,6 +18,7 @@ pipeline, then serialise the result. No business logic lives here.
 from __future__ import annotations
 
 from dataclasses import asdict, replace
+import html
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -211,9 +212,11 @@ def _result_payload(
         # First entry per domain is good enough for the wizard's
         # "what got set up" hint — most recipes only require one
         # config entry per integration domain.
+        # Discovery titles can arrive HTML-escaped (a Samsung TV's SSDP
+        # name reads ``65&quot; OLED``), so show the characters they stand for.
         integration_titles: dict[str, str] = {}
         for entry in entries:
-            integration_titles.setdefault(entry.domain, entry.title or "")
+            integration_titles.setdefault(entry.domain, html.unescape(entry.title or ""))
         payload["items"] = [
             item.to_dict()
             for item in derive_items(
