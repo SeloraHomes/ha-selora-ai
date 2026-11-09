@@ -189,19 +189,72 @@ def test_non_entity_bullet_is_preserved():
     assert out == text  # no entity mentioned, nothing changed
 
 
-def test_count_header_kept_when_bullets_partially_match():
-    # If some bullets in the run aren't entity-only, the header stays
-    # because the list still has real content. Strip only the bullets we
-    # consumed; the user-facing list still needs its title.
+def test_list_with_a_non_entity_bullet_stays_text() -> None:
+    # A list whose bullets don't all name entities is a list of something
+    # else; one bullet turned into a tile would sit between the others.
     text = """Devices (2):
 - Kitchen Lights
 - This bullet is prose explaining something."""
     entities = [_ent("light.kitchen", "Kitchen Lights")]
+    assert _inject_entity_markers(text, entities) == text
+
+
+def test_frigate_camera_list_keeps_a_camera_named_like_a_lock() -> None:
+    # Frigate's "Front Door" camera shares its name with the lock; the
+    # status read only handed out the camera's entity.
+    text = """Selora Vision has **4 cameras** configured:
+
+- **E1 Zoom** — detection on; looks for people.
+- **Front Door** — detection on; looks for people.
+- **Reolink Lumus Pro** — detection off; configured to look for people.
+- **Wyze Front** — detection on; looks for cars and people."""
+    entities = [
+        _ent("lock.front_door", "Front Door"),
+        _ent("camera.front_door", "Front Door"),
+    ]
+    for scope in ({"camera.front_door"}, None):
+        assert _inject_entity_markers(text, entities, prose_scope=scope) == text
+
+
+def test_device_in_a_text_list_still_tiles_in_a_later_device_list() -> None:
+    text = """Cameras:
+- **Front Door** — detection on
+- **Garden** — detection off
+
+Doors:
+- **Front Door** — locked
+- **Back Door** — unlocked"""
+    entities = [_ent("lock.front_door", "Front Door"), _ent("lock.back_door", "Back Door")]
     out = _inject_entity_markers(text, entities)
-    assert "Devices (2):" in out
-    assert "This bullet is prose" in out
+    assert "- **Garden** — detection off" in out
+    assert "- **Front Door** — detection on" in out
+    assert "[[entities:lock.front_door,lock.back_door]]" in out
+    assert "locked" not in out
+
+
+def test_text_list_drops_a_device_the_model_already_tiled() -> None:
+    text = "Steps:\n- Kitchen Lights\n- Then open settings\n\n[[entities:light.kitchen]]"
+    out = _inject_entity_markers(text, [_ent("light.kitchen", "Kitchen Lights")])
     assert "- Kitchen Lights" not in out
-    assert "[[entities:light.kitchen]]" in out
+    assert "- Then open settings" in out
+    assert out.count("light.kitchen") == 1
+
+
+def test_a_marked_device_out_of_the_tool_scope_is_not_said_twice() -> None:
+    text = "Steps:\n- Kitchen Lights\n- Then open settings\n\n[[entities:light.kitchen]]"
+    out = _inject_entity_markers(
+        text, [_ent("light.kitchen", "Kitchen Lights")], prose_scope={"sensor.other"}
+    )
+    assert "- Kitchen Lights" not in out
+    assert out.count("light.kitchen") == 1
+
+
+def test_bullet_names_resolve_only_within_the_turns_scope() -> None:
+    text = "Your doors:\n- **Front Door** — locked"
+    entities = [_ent("lock.front_door", "Front Door")]
+    assert _inject_entity_markers(text, entities, prose_scope={"camera.front_door"}) == text
+    out = _inject_entity_markers(text, entities, prose_scope={"lock.front_door"})
+    assert "[[entities:lock.front_door]]" in out
 
 
 def test_area_grouped_markers_do_not_trigger_prose_pass():
