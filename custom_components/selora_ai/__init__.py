@@ -2252,8 +2252,15 @@ def _inject_entity_markers(
     candidates.sort(key=lambda p: len(p[1]), reverse=True)
     # Key by normalized name (whitespace / underscores / hyphens
     # stripped, case-folded) so "HeatPump", "Heat Pump", and
-    # "heat-pump" all hash to the same eid for bullet lookups.
-    name_to_eid: dict[str, str] = {_normalized_name(name): eid for eid, name in candidates}
+    # "heat-pump" all hash to the same eid for bullet lookups. With a
+    # *prose_scope*, a name only resolves to an entity the turn's tools
+    # read or the model marked: a Frigate camera called "Front Door" is
+    # not the lock.
+    name_to_eid: dict[str, str] = {
+        _normalized_name(name): eid
+        for eid, name in candidates
+        if prose_scope is None or eid in prose_scope or eid in already
+    }
 
     lines = text.split("\n")
 
@@ -2276,8 +2283,7 @@ def _inject_entity_markers(
     # Without this guard, "Kitchen" (an area label in the prose) would
     # match a `media_player.kitchen` speaker entity and a kitchen-speaker
     # tile would render between water-leak sensors.
-    bullet_eid: dict[int, str] = {}
-    captured_in_bullets: set[str] = set()
+    resolved: dict[int, str] = {}
     for i, line in enumerate(lines):
         m = _BULLET_ENTITY_LINE_RE.fullmatch(line)
         if not m:
@@ -2296,7 +2302,40 @@ def _inject_entity_markers(
             if eid is None and _ENTITY_ID_RE.match(name_part) and name_part in eid_set:
                 eid = name_part
         # Multiple entity_ids on one line is ambiguous — skip.
-        if not eid or eid in captured_in_bullets:
+        if eid:
+            resolved[i] = eid
+
+    # A list with a bullet that names no entity is a list of something
+    # else (Frigate's cameras, setup steps), and one of its bullets turned
+    # into a tile would sit between the others' lines. It stays text, and
+    # the prose fallback below leaves its lines alone too. Decided before
+    # duplicates are dropped, so a device a text list names still gets its
+    # tile from a later list of devices.
+    listed_as_text: set[int] = set()
+    k = 0
+    while k < len(lines):
+        if not _BULLET_PREFIX_RE.match(lines[k]):
+            k += 1
+            continue
+        items: list[int] = []
+        while k < len(lines) and (not lines[k].strip() or _BULLET_PREFIX_RE.match(lines[k])):
+            if lines[k].strip():
+                items.append(k)
+            k += 1
+        if not all(i in resolved for i in items):
+            listed_as_text.update(items)
+    # Except a bullet whose device the model already gave a marker: the tile
+    # is shown there, and the line would say it twice.
+    marked_elsewhere: dict[str, int] = {}
+    for i in sorted(listed_as_text):
+        eid = resolved.get(i)
+        if eid in already:
+            marked_elsewhere.setdefault(eid, i)
+
+    bullet_eid: dict[int, str] = {}
+    captured_in_bullets: set[str] = set()
+    for i, eid in resolved.items():
+        if i in listed_as_text or eid in captured_in_bullets:
             continue
         bullet_eid[i] = eid
         captured_in_bullets.add(eid)
@@ -2319,7 +2358,7 @@ def _inject_entity_markers(
     # and the marker payload. Skip the insertion entirely when every
     # entity in the run is already inside another marker — the existing
     # marker carries the tiles, so we just delete the bullets.
-    lines_to_strip: set[int] = set()
+    lines_to_strip: set[int] = set(marked_elsewhere.values())
     insertions: dict[int, list[str]] = {}
     for run in runs:
         first, last = run[0], run[-1]
@@ -2557,7 +2596,7 @@ def _inject_entity_markers(
 
     if fallback_mode:
         for i, line in enumerate(lines):
-            if i in lines_to_strip or not _under_cap():
+            if i in lines_to_strip or i in listed_as_text or not _under_cap():
                 continue
             stripped = line.lstrip()
             if stripped.startswith("#"):
