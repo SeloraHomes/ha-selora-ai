@@ -2464,6 +2464,9 @@ const _STYLE = html`
     .match-status.pi-pending {
       color: var(--secondary-text-color);
     }
+    .match-status.pi-auto {
+      color: var(--secondary-text-color);
+    }
     .match-status.pi-running {
       color: var(--selora-accent);
     }
@@ -2483,8 +2486,31 @@ const _STYLE = html`
       color: var(--secondary-text-color);
       border-top: 1px solid var(--divider-color);
     }
+    /* The open row's panel unfolds under it, inside the table, so
+       the work sits next to the row it belongs to. The row already
+       names the item and its status, so the panel's own heading goes. */
     .match-detail {
-      margin-top: 4px;
+      grid-column: 1 / -1;
+      padding: 0 16px 16px 60px;
+      background: color-mix(in srgb, var(--selora-accent) 8%, transparent);
+    }
+    .match-detail .panel-shell {
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+    }
+    .match-detail .panel-head {
+      display: none;
+    }
+    .match-detail .panel-footer {
+      border-top: none;
+      padding-top: 0;
+    }
+    @media (max-width: 640px) {
+      .match-detail {
+        padding-left: 16px;
+      }
     }
 
     /* ── Step 3: Resolve buckets ──────────────────────────────── */
@@ -5055,6 +5081,25 @@ function _renderIntegrationPanel(host, item) {
     );
   }
 
+  // Set up by Continue — nothing to press here, just say what happens.
+  if (!flow && isAutoSetupRow(item)) {
+    return _panelShell(
+      host,
+      item.title,
+      item.status,
+      html`<p class="panel-prose">
+        ${interpolate(
+          host._t(
+            "recipes_integration_auto_on_continue",
+            "Selora sets up {title} for you when you press Continue, using what you picked above.",
+          ),
+          { title: item.title },
+        )}
+      </p>`,
+      null,
+    );
+  }
+
   // No flow started yet — offer to start one inline.
   if (!flow) {
     // Auto-setup recipes drive the flow backend-side with values the
@@ -5100,7 +5145,7 @@ function _renderIntegrationPanel(host, item) {
                     "recipes_integration_setup_auto_button",
                     "Set up automatically",
                   )
-                : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`
+                : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || item.title}`
           }
         </button>
         <button
@@ -5136,15 +5181,19 @@ function _renderIntegrationPanel(host, item) {
           )
         }
       </p>`,
-      html`
-        <button
-          class="panel-btn secondary"
-          type="button"
-          @click=${() => host._resetIntegrationFlow(domain)}
-        >
-          ${host._t("recipes_integration_try_again", "Try again")}
-        </button>
-      `,
+      // An automatic setup is retried by Continue; a second button here
+      // would be one more control for the same thing.
+      isAutoSetupRow(item)
+        ? null
+        : html`
+            <button
+              class="panel-btn secondary"
+              type="button"
+              @click=${() => host._resetIntegrationFlow(domain)}
+            >
+              ${host._t("recipes_integration_try_again", "Try again")}
+            </button>
+          `,
     );
   }
   if (flow.state === "complete") {
@@ -5216,11 +5265,38 @@ function _renderFlowForm(host, item, flow) {
         ${
           host._recipesBusy
             ? host._t("recipes_working", "Working…")
-            : host._t("recipes_flow_continue", "Continue")
+            : host._t("recipes_flow_submit", "Submit")
         }
       </button>
     `,
   );
+}
+
+// How to render one field of a config-flow step. A field comes either as
+// a plain voluptuous type (``type: "string"``, ``options`` as ``[value,
+// label]`` pairs for ``vol.In``) or as a selector (``{selector: {text:
+// {}}}``). Only a select selector is a dropdown: a text selector rendered
+// as one left the homeowner an empty list where they had to type a host.
+export function flowFieldControl(field) {
+  const selector = field.selector || {};
+  const kind = Object.keys(selector)[0];
+  const rawOptions =
+    field.options || (kind === "select" ? selector.select?.options : null);
+  const options = (rawOptions || []).map((opt) =>
+    Array.isArray(opt)
+      ? { value: opt[0], label: opt[1] ?? opt[0] }
+      : typeof opt === "object" && opt !== null
+        ? { value: opt.value, label: opt.label ?? opt.value }
+        : { value: opt, label: opt },
+  );
+  let type = field.type || "string";
+  if (type === "float") type = "number";
+  if (!field.type) {
+    if (kind === "boolean") type = "boolean";
+    else if (kind === "number") type = "number";
+  }
+  if (rawOptions) type = "select";
+  return { type, options };
 }
 
 function _renderFlowField(host, item, flow, field, value, error) {
@@ -5231,7 +5307,7 @@ function _renderFlowField(host, item, flow, field, value, error) {
       [item.payload.domain]: { ...flow, values: next },
     };
   };
-  const ftype = field.type || (field.selector ? "select" : "string");
+  const { type: ftype, options } = flowFieldControl(field);
   let control;
   if (ftype === "boolean") {
     control = html`<input
@@ -5246,15 +5322,13 @@ function _renderFlowField(host, item, flow, field, value, error) {
       @input=${(e) =>
         update(e.target.value === "" ? null : Number(e.target.value))}
     />`;
-  } else if (field.options || ftype === "select") {
+  } else if (ftype === "select") {
     control = html`<select
       .value=${String(value ?? field.default ?? "")}
       @change=${(e) => update(e.target.value)}
     >
-      ${(field.options || []).map(
-        (opt) => html`
-          <option value=${opt.value ?? opt}>${opt.label ?? opt}</option>
-        `,
+      ${options.map(
+        (opt) => html`<option value=${opt.value}>${opt.label}</option>`,
       )}
     </select>`;
   } else {
@@ -6047,17 +6121,32 @@ function _renderStep2Settings(host) {
   `;
 }
 
-// Explain WHY Continue is blocked on Step 3. The old hint always said
-// "finish the rows that say Needs setup" — a dead end when no row needs
-// setup (the real blocker was a backend punch the user never saw). We
-// now surface: the needs-setup prod when a row genuinely needs a pick,
-// otherwise the first actionable punch message, otherwise a clear
+const _BLOCKING = new Set(["needs_input", "failed"]);
+
+// An integration Selora sets up itself once the picks are made (the Wake
+// on LAN entry takes the MAC of the television picked above it). Continue
+// runs it, so it never asks the homeowner for anything on this step.
+export function isAutoSetupRow(it) {
+  return (
+    it?.kind === "integration" &&
+    it.payload?.deferred === true &&
+    it.status === "needs_input"
+  );
+}
+
+// A row the homeowner has to work before Continue does anything.
+function _blocks(it) {
+  return _BLOCKING.has(it.status) && !isAutoSetupRow(it);
+}
+
+// Explain WHY Continue is blocked on Step 3: name the rows still to set
+// up, otherwise the first actionable punch message, otherwise a clear
 // "couldn't prepare" fallback so the user isn't stuck with no reason.
-function _step3BlockReason(host, preview, needsAction) {
-  if (needsAction) {
-    return host._t(
-      "recipes_step3_hint_finish",
-      "Finish the rows that say “Needs setup” to continue.",
+function _step3BlockReason(host, preview, blocking) {
+  if (blocking.length) {
+    return interpolate(
+      host._t("recipes_step3_hint_remaining", "Still to set up: {items}."),
+      { items: blocking.map((it) => it.title).join(", ") },
     );
   }
   // Pending device pairs (binding_pending) are handled in Step 4, not
@@ -6072,27 +6161,44 @@ function _step3BlockReason(host, preview, needsAction) {
   );
 }
 
-function _renderStep3Match(host) {
-  const preview = host._recipeWizardPreview;
-  const items = preview?.items || [];
-  // Settings (inputs) live on Step 2 — keep Match focused on
-  // device/integration mapping only.
-  const matchItems = items.filter(
+// The rows the Match step shows. Settings (inputs) live on Step 2.
+export function matchStepItems(items) {
+  return (items || []).filter(
     (it) =>
       it.stage === "configure" &&
       (it.kind === "role_selection" ||
         it.kind === "integration" ||
         it.kind === "pin"),
   );
+}
+
+// Which Match row to open after a preview refresh. When the open row was
+// just finished, move on to the next row that still needs setup, so the
+// homeowner never has to hunt back up the table for it. A role that takes
+// several devices stays open: finishing its first pick is not finishing
+// the row, and closing it would hide the next tick they meant to make.
+export function nextMatchFocus(prevItems, nextItems, activeId) {
+  if (!activeId) return activeId;
+  const before = matchStepItems(prevItems).find((it) => it.id === activeId);
+  const rows = matchStepItems(nextItems);
+  const after = rows.find((it) => it.id === activeId);
+  if (!before || !after) return activeId;
+  if (!_blocks(before) || _blocks(after)) return activeId;
+  if (after.kind === "role_selection" && after.payload?.role?.max_count !== 1) {
+    return activeId;
+  }
+  const next = rows.find(_blocks);
+  return next ? next.id : activeId;
+}
+
+function _renderStep3Match(host) {
+  const preview = host._recipeWizardPreview;
+  const matchItems = matchStepItems(preview?.items);
   const active = _activeItem(host, matchItems);
   const canAdvance = host._canAdvanceFromStep(3);
-  // Step 3 is only "Required" when something here actually blocks — a
-  // row needing a pick, or a failed/unmet item. An all-optional recipe
-  // (every row "Optional") is not required; showing "REQUIRED" then is
-  // the confusing mismatch the user hit.
-  const needsAction = matchItems.some(
-    (it) => it.status === "needs_input" || it.status === "failed",
-  );
+  const blocking = matchItems.filter(_blocks);
+  const automatic = matchItems.filter(isAutoSetupRow);
+  const settingUp = host._recipesBusy && automatic.length > 0 && canAdvance;
 
   return html`
     <div class="step-pane">
@@ -6104,7 +6210,7 @@ function _renderStep3Match(host) {
           "recipes_step3_sub",
           "Pair each item below with an entity from your home. Click any row to set it up.",
         ),
-        needsAction,
+        blocking.length > 0,
       )}
 
       <div class="match-table">
@@ -6126,28 +6232,39 @@ function _renderStep3Match(host) {
                 }
               </div>`
             : matchItems.map((it) =>
-                _renderMatchRow(host, it, it.id === active?.id),
+                it.id === active?.id
+                  ? html`${_renderMatchRow(host, it, true)}
+                      <div class="match-detail">
+                        ${_renderActionPanel(host, it)}
+                      </div>`
+                  : _renderMatchRow(host, it, false),
               )
         }
       </div>
 
-      ${
-        active
-          ? html`<div class="match-detail">
-              ${_renderActionPanel(host, active)}
-            </div>`
-          : ""
-      }
       ${_renderWizardFooter(host, {
         primary: {
-          label: host._t("recipes_continue_button", "Continue"),
-          icon: "mdi:arrow-right",
+          label: settingUp
+            ? host._t("recipes_setting_up_button", "Setting up…")
+            : host._t("recipes_continue_button", "Continue"),
+          icon: settingUp ? null : "mdi:arrow-right",
           onClick: () => host._advanceRecipeStep(),
         },
         primaryDisabled: !canAdvance || host._recipesBusy,
-        hint: canAdvance
-          ? host._t("recipes_step3_hint_ready", "Looks good — ready to set up.")
-          : _step3BlockReason(host, preview, needsAction),
+        hint: !canAdvance
+          ? _step3BlockReason(host, preview, blocking)
+          : automatic.length
+            ? interpolate(
+                host._t(
+                  "recipes_step3_hint_auto",
+                  "Continue sets up {items} for you.",
+                ),
+                { items: automatic.map((it) => it.title).join(", ") },
+              )
+            : host._t(
+                "recipes_step3_hint_ready",
+                "Looks good — ready to set up.",
+              ),
       })}
     </div>
   `;
@@ -6186,6 +6303,7 @@ function _renderMatchRow(host, item, active) {
     skipped: host._t("recipes_match_status_optional", "Optional"),
     pending: host._t("recipes_match_status_waiting", "Waiting"),
     running: host._t("recipes_match_status_working", "Working"),
+    auto: host._t("recipes_match_status_auto", "Automatic"),
   };
   // A client-side integration flow can fail (e.g. auto-setup rejected:
   // "NWS doesn't cover this location") without the server preview
@@ -6193,7 +6311,10 @@ function _renderMatchRow(host, item, active) {
   // flow error to a row-level ``failed`` so the table shows red "Error"
   // instead of amber "Needs setup", and surface the reason inline — the
   // detached action panel below shouldn't be the only place it appears.
-  let displayStatus = item.status;
+  let displayStatus = isAutoSetupRow(item) ? "auto" : item.status;
+  const detail = isAutoSetupRow(item)
+    ? host._t("recipes_match_auto_detail", "Set up when you continue")
+    : item.detail;
   let flowError = null;
   if (item.kind === "integration") {
     const flow = (host._recipeFlows || {})[item.payload?.domain];
@@ -6231,8 +6352,8 @@ function _renderMatchRow(host, item, active) {
               ? html`<div class="match-sub is-error" title=${flowError}>
                   ${flowError}
                 </div>`
-              : item.detail
-                ? html`<div class="match-sub">${item.detail}</div>`
+              : detail
+                ? html`<div class="match-sub">${detail}</div>`
                 : ""
           }
         </div>

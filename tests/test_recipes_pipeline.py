@@ -794,6 +794,16 @@ async def test_auto_setup_row_sorts_after_the_picks(hass, tornado_bundle_dir: Pa
     nws, last_role = _positions(set())
     assert nws > last_role
 
+    # The wizard sets a deferred row up on Continue rather than asking
+    # for it, and tells it apart by this flag.
+    def _deferred(loaded: set[str]) -> bool:
+        items = derive_items(bundle.manifest, result, integrations_loaded=loaded)
+        row = next(it for it in items if it.id == "configure/integration:nws")
+        return row.payload["deferred"]
+
+    assert _deferred(set()) is True
+    assert _deferred({"nws"}) is False
+
     # Already configured, it has nothing left to fill in and nothing to
     # read from the picks, so it stays up top as a plain "Ready" line
     # instead of trailing the rows the homeowner still has to work.
@@ -812,6 +822,23 @@ async def test_auto_setup_row_sorts_after_the_picks(hass, tornado_bundle_dir: Pa
     ids = [it.id for it in derive_items(gated, result, integrations_loaded=set())]
     roles = [i for i, item_id in enumerate(ids) if item_id.startswith("configure/role:")]
     assert ids.index("configure/integration:nws") < max(roles)
+
+
+async def test_integration_row_unescapes_the_entry_title(hass, tornado_bundle_dir: Path) -> None:
+    """A discovered entry's title can carry HTML entities (a Samsung TV's
+    SSDP name is ``65&quot; OLED``); the Match row shows the characters."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from custom_components.selora_ai.recipes.pipeline import PipelineResult
+    from custom_components.selora_ai.recipes.ws import _result_payload
+
+    bundle = await async_load_bundle(hass, "tornado-alert")
+    MockConfigEntry(domain="nws", title="65&quot; OLED &amp; more").add_to_hass(hass)
+    result = PipelineResult(ok=True, stage_reached="render")
+
+    payload = _result_payload(hass, result, bundle.manifest)
+    row = next(it for it in payload["items"] if it["id"] == "configure/integration:nws")
+    assert row["detail"] == '65" OLED & more'
 
 
 async def test_render_tornado_alert(hass, tornado_bundle_dir: Path) -> None:
