@@ -33,6 +33,11 @@ ENTITY_ATTRS: tuple[str, ...] = (
     "brightness",
 )
 
+# Appended after ENTITY_ATTRS on weather lines only, in this order. Not in
+# ENTITY_ATTRS: a climate entity's ``temperature`` is its target, and the
+# thermostat lines the model trained on carry no such field.
+WEATHER_ATTRS: tuple[str, ...] = ("temperature", "temperature_unit")
+
 ENTITY_INDENT = "  - "
 # Items under an entity (calendar events, todo items) and doc text.
 DETAIL_INDENT = "      "
@@ -66,6 +71,11 @@ def format_entity_line(entity: dict[str, Any]) -> str:
         val = attrs.get(key)
         if val is not None:
             parts.append(f"{key}={_value(val)}")
+    if eid.startswith("weather."):
+        for key in WEATHER_ATTRS:
+            val = attrs.get(key)
+            if val is not None:
+                parts.append(f"{key}={_value(val)}")
     return ENTITY_INDENT + "; ".join(parts)
 
 

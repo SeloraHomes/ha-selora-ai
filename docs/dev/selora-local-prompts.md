@@ -142,6 +142,10 @@ RELEVANT DOCS:                       (utilities only)
   `target_temperature`, `brightness`. Values are unquoted, as trained, with
   whitespace collapsed so a name cannot open a line. This is not the cloud
   `_format_entity_line`, which quotes values and adds platform and brand.
+- **A weather line then adds its reading:** `temperature`, then
+  `temperature_unit` (`WEATHER_ATTRS`). Only on weather: a climate entity's
+  `temperature` is its setpoint, and the thermostat lines the model trained on
+  never carry it. Without the reading the model invents one.
 - **Location comes before the attributes:** `area=` (the entity's area, else
   its device's) then `floor=` (that area's floor). A floor without an area is
   never sent. Both are sanitised like `friendly_name`, and lines without them

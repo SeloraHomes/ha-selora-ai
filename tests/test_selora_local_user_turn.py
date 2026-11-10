@@ -26,6 +26,7 @@ from custom_components.selora_ai.providers.selora_local.runtime.request_build im
 )
 from custom_components.selora_ai.providers.selora_local.runtime.user_turn import (
     UNTRUSTED_DATA_NOTICE,
+    format_entity_line,
 )
 
 _CORPUS = json.loads(
@@ -152,6 +153,66 @@ def test_entity_lines_carry_area_then_floor() -> None:
         "area=Garage\n"
         "  - entity_id=lock.shed; state=locked; friendly_name=Shed"
     )
+
+
+def _weather(attrs: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "entity_id": "weather.home",
+        "state": "sunny",
+        "attributes": {"friendly_name": "Home", **attrs},
+        "area_name": "Roof",
+    }
+
+
+def test_weather_line_carries_the_temperature_then_its_unit() -> None:
+    """The corpus' shape (``format_entities_block``): the reading after the
+    trained attributes, ``temperature`` before ``temperature_unit``."""
+    line = format_entity_line(_weather({"temperature_unit": "°C", "temperature": 30}))
+    assert line == (
+        "  - entity_id=weather.home; state=sunny; friendly_name=Home; area=Roof; "
+        "temperature=30; temperature_unit=°C"
+    )
+
+
+def test_weather_line_without_a_reading_is_unchanged() -> None:
+    assert format_entity_line(_weather({})) == (
+        "  - entity_id=weather.home; state=sunny; friendly_name=Home; area=Roof"
+    )
+    assert format_entity_line(_weather({"temperature": 12.5})) == (
+        "  - entity_id=weather.home; state=sunny; friendly_name=Home; area=Roof; temperature=12.5"
+    )
+
+
+def test_climate_line_leaves_out_its_target_temperature() -> None:
+    """On a thermostat ``temperature`` is the setpoint; the lines the model
+    trained on never carry it."""
+    line = format_entity_line(
+        {
+            "entity_id": "climate.hall",
+            "state": "heat",
+            "attributes": {
+                "friendly_name": "Hall",
+                "current_temperature": 20,
+                "temperature": 22,
+                "temperature_unit": "°C",
+            },
+        }
+    )
+    assert line == (
+        "  - entity_id=climate.hall; state=heat; friendly_name=Hall; current_temperature=20"
+    )
+
+
+def test_snapshot_keeps_the_weather_reading(hass: HomeAssistant) -> None:
+    hass.states.async_set(
+        "weather.home",
+        "sunny",
+        {"friendly_name": "Home", "temperature": 30, "temperature_unit": "°C"},
+    )
+    by_id = {s["entity_id"]: s for s in _collect_entity_states(hass)}
+    attrs = by_id["weather.home"]["attributes"]
+    assert attrs["temperature"] == 30
+    assert attrs["temperature_unit"] == "°C"
 
 
 def test_speaker_location_follows_the_notice() -> None:

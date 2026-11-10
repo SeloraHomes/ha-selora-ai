@@ -292,3 +292,24 @@ def test_outside_as_a_place_does_not_pin_weather(hass: HomeAssistant) -> None:
     take a slot from a light the command targets."""
     ids = _rendered(hass, "turn off all the lights outside", "chat_command", home=_weather_home())
     assert "weather.weather_service" not in ids, ids
+
+
+_OUTSIDE_TEMPERATURE = ["What is the temperature outside?", "What's the outdoor temperature?"]
+
+
+@pytest.mark.parametrize("message", _OUTSIDE_TEMPERATURE)
+def test_outside_temperature_reaches_the_weather_entity(hass: HomeAssistant, message: str) -> None:
+    """With no outdoor sensor the weather entity is the only reading; without
+    it the model had nothing to report and invented one."""
+    ids = _rendered(hass, message, "chat_answer", home=_weather_home())
+    assert "weather.weather_service" in ids, ids
+
+
+@pytest.mark.parametrize("message", _OUTSIDE_TEMPERATURE)
+def test_outside_temperature_keeps_the_outdoor_sensor(hass: HomeAssistant, message: str) -> None:
+    """Pinning weather does not displace the home's own outdoor thermometer,
+    named for its chip as real ones are."""
+    home = [*_weather_home(), _e("sensor.bme280_3", "BME280 3", "Garden", "temperature")]
+    ids = _rendered(hass, message, "chat_answer", home=home)
+    assert "weather.weather_service" in ids, ids
+    assert "sensor.bme280_3" in ids, ids
