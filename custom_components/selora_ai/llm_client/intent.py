@@ -8,6 +8,7 @@ self-classify in their long system prompt instead.
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Iterable
 import re
 from typing import Any
@@ -2385,12 +2386,16 @@ def _build_unspecified_target_clarification(
     The benchmark contract (``clr.unspecified_device``) requires:
       - ``intent: "clarification"``
       - ``o: [<friendly_name>, ...]`` — every option must be a real
-        ``friendly_name`` from the live entity snapshot.
+        ``friendly_name`` from the live entity snapshot, followed in
+        parentheses by its area (or entity id, when the area doesn't tell
+        it apart) when another candidate shares the name.
 
     Returns ``None`` when the prompt is specific enough (caller falls
-    through to the LLM) or when no controllable entities of the
-    inferred domain exist (a clarification with no options would fail
-    the contract just as badly).
+    through to the LLM), when no controllable entity of the inferred
+    domain exists, or when a named category has exactly one ("Which fan?"
+    in a one-fan home leaves nothing to choose). A pronoun or "the device"
+    with one candidate asks "Did you mean <name>?" instead: neither named
+    a category.
 
     Also ``None`` for a bare category the speaker's area holds a device of
     (``_SPEAKER_DEFAULT_DOMAINS``): the model resolves it from SPEAKER LOCATION.
@@ -2406,6 +2411,7 @@ def _build_unspecified_target_clarification(
             domains_to_show = doms
             question = q
             break
+    named_category = bool(domains_to_show)
     if not domains_to_show:
         if _AMBIG_NUMERIC_SET_RE.search(msg):
             # "set it to 22" — almost certainly a thermostat target.
@@ -2426,29 +2432,52 @@ def _build_unspecified_target_clarification(
     ):
         return None
 
-    options: list[str] = []
-    seen: set[str] = set()
+    # Count candidates by ENTITY: two lamps both named "Lamp" are two
+    # devices to choose between, and one entity is no choice at all.
+    candidates: list[tuple[str, str, str]] = []
+    seen_ids: set[str] = set()
     for e in entities:
         eid = e.get("entity_id", "")
-        if "." not in eid:
+        if "." not in eid or eid in seen_ids:
             continue
         domain = eid.split(".", 1)[0]
         if domain not in domains_to_show:
             continue
         attrs = e.get("attributes") or {}
-        fname = str(attrs.get("friendly_name") or "").strip()
-        if not fname or fname in seen:
-            continue
-        seen.add(fname)
-        options.append(fname)
+        # An unnamed entity is still a candidate: skipping it would make a
+        # second fan look like none.
+        fname = str(attrs.get("friendly_name") or "").strip() or eid
+        seen_ids.add(eid)
+        candidates.append((fname, str(e.get("area_name") or "").strip(), eid))
+
+    # No candidate fails the contract just as badly as a hallucinated
+    # command.
+    if not candidates:
+        return None
+    if len(candidates) == 1:
+        # A named category with one candidate leaves nothing to ask ("Which
+        # fan?" in a one-fan home): the provider acts on it. A pronoun
+        # ("unlock it") or "the device" named no category, and the fallback
+        # domains are not every device, so those confirm the lone candidate
+        # instead of assuming it.
+        if named_category and not _AMBIG_PRONOUN_TARGET.search(msg):
+            return None
+        only = candidates[0][0]
+        return {"intent": "clarification", "response": f"Did you mean {only}?", "o": [only]}
+
+    # A name several candidates share is told apart by its area, and by its
+    # entity id when the area doesn't separate them either.
+    name_counts = Counter(name for name, _, _ in candidates)
+    area_labels = [
+        f"{name} ({area})" if name_counts[name] > 1 and area else name
+        for name, area, _ in candidates
+    ]
+    label_counts = Counter(area_labels)
+    options: list[str] = []
+    for label, (name, _, eid) in zip(area_labels, candidates, strict=True):
+        options.append(f"{name} ({eid})" if label_counts[label] > 1 else label)
         if len(options) >= _AMBIG_MAX_OPTIONS:
             break
-
-    # No matching entities — handing back an empty options list fails
-    # the contract just as badly as a hallucinated command. Let the
-    # normal LLM path run instead.
-    if not options:
-        return None
 
     # Render the options into ``response`` too. On the streaming path the
     # websocket ``done`` event forwards ``response`` but not ``o``, so a
