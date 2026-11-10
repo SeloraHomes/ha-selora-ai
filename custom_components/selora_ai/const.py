@@ -1220,8 +1220,9 @@ ENTITY_SNAPSHOT_ATTRS = frozenset(
 )
 
 # Also in snapshots, for Selora AI Local's entity lines, which were trained on
-# them; cloud prompts render only ENTITY_SNAPSHOT_ATTRS.
-ENTITY_SNAPSHOT_LOCAL_ATTRS = frozenset({"device_class", "unit_of_measurement"})
+# them; cloud prompts render only ENTITY_SNAPSHOT_ATTRS. ``temperature_unit``
+# is the unit of a weather entity's ``temperature``.
+ENTITY_SNAPSHOT_LOCAL_ATTRS = frozenset({"device_class", "unit_of_measurement", "temperature_unit"})
 # Snapshot attribute: calendars or to-do lists a schedule question did not fetch.
 SCHEDULE_ENTITIES_OMITTED = "schedule_entities_omitted"
 
