@@ -167,7 +167,10 @@ async def test_without_a_speaker_a_bare_category_is_still_asked(
 ) -> None:
     turn, speech = await _assist(hass, "turn on the lamp")
     assert turn is None
+    # Both lamps are named "Lamp": the area tells them apart.
     assert speech.startswith("Which light?")
+    assert "- Lamp (Kitchen)" in speech
+    assert "- Lamp (Bedroom)" in speech
 
 
 def _located(entity_id: str, area: str) -> dict[str, Any]:
