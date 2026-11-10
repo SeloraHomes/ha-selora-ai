@@ -47,6 +47,13 @@ function defaults(schema) {
     if (field.type === "expandable")
       values[field.name] = defaults(field.schema);
     else if (field.default !== undefined) values[field.name] = field.default;
+    // What the control shows is what Continue sends: a required select shows
+    // its first option and a checkbox shows unticked, with no change event
+    // until the user picks something else.
+    else if (field.required && isSelect(field)) {
+      const [first] = options(field);
+      if (first) values[field.name] = first.value;
+    } else if (field.required && isBoolean(field)) values[field.name] = false;
   }
   return values;
 }
@@ -246,17 +253,29 @@ function options(field) {
   );
 }
 
+function isBoolean(field) {
+  return field.type === "boolean" || Boolean(field.selector?.boolean);
+}
+
+function isSelect(field) {
+  return (
+    field.type === "select" ||
+    Boolean(field.selector?.select) ||
+    Boolean(field.options)
+  );
+}
+
 function control(host, state, field, path, value) {
   const set = (v) => setValue(host, state, path, v);
   const selector = field.selector || {};
-  if (field.type === "boolean" || selector.boolean) {
+  if (isBoolean(field)) {
     return html`<input
       type="checkbox"
       .checked=${Boolean(value)}
       @change=${(e) => set(e.target.checked)}
     />`;
   }
-  if (field.type === "select" || selector.select || field.options) {
+  if (isSelect(field)) {
     return html`<select
       class="form-select"
       @change=${(e) => set(e.target.value)}

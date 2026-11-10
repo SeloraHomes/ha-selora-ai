@@ -72,9 +72,23 @@ _PAST: Final = re.compile(
 # Not a question about the past: a command, an automation, a camera's setup.
 _NOT_A_SEARCH: Final = re.compile(
     r"\b(?:notify|alert|tell me when|let me know|remind|every time|whenever|each time|"
-    r"automation|automate|turn|switch|lock|unlock|open|close|arm|disarm|track|tracks|"
+    r"automation|automate|turn|switch|lock|unlock|locked|unlocked|open|close|arm|disarm|"
+    r"track|tracks|"
     r"detect|detects|start|stop|enable|disable|record|recording|add|remove|delete|"
     r"set up|configure|zone|zones|live|stream|then)\b|\bif\b"
+)
+# What makes it a question for the cameras rather than about a thing: "was the
+# dog fed" and "has the car been charged" name what a camera tracks too. A
+# description, a face, a camera or one of these is needed besides the noun.
+_WATCHED: Final = re.compile(
+    r"\b(?:seen|saw|spotted|came by|come by|came to|come to|passed|walked|showed up|"
+    r"stopped by|visited|drove|parked|arrived|delivered|dropped off|rang|camera|cameras|"
+    r"clip|clips|footage|recorded)\b"
+)
+_PLACE: Final = re.compile(
+    r"\b(?:at|in|on|outside|near|by|past|through|around|in front of) (?:the |my |our |a )?"
+    r"(?:[a-z]+ )?(?:door|doorstep|doorbell|driveway|street|road|porch|yard|backyard|"
+    r"garden|gate|garage|entrance|sidewalk|lawn|deck|patio)\b"
 )
 # Times this module can turn into a range; any other mention of a time gives up.
 _RANGES: Final = re.compile(
@@ -131,6 +145,15 @@ _WORD: Final = re.compile(r"[a-z0-9']+|[^\sa-z0-9']")
 _DESCRIBED_HOURS: Final = 168.0
 
 
+def points_at_cameras(message: str) -> bool:
+    """Whether the message itself is about what the cameras saw: a camera, a
+    place one watches, or seeing. Only then does the card that changes what
+    the cameras look for stand in for the reply: the model searches "was the
+    dog fed?" too, and its answer comes first, the card under it."""
+    text = _normalize(message)
+    return bool(_WATCHED.search(text) or _PLACE.search(text))
+
+
 def asks_about_the_past(message: str) -> bool:
     """Whether the message could be a camera question: the cheap test, before
     anything is read from Frigate for ``opening_search``."""
@@ -172,6 +195,9 @@ def opening_search(
     # on its own, never adding a label.
     if not labels and not query and not named:
         return None
+    chosen = [key for key, name in (cameras or {}).items() if _names_camera(text, key, name)]
+    if not (query or named or chosen or _WATCHED.search(text) or _PLACE.search(text)):
+        return None
     window = _range(text, now)
     if window is None or not (window or _PAST.search(text)):
         return None
@@ -182,7 +208,7 @@ def opening_search(
         arguments["query"] = query
     if named:
         arguments["names"] = named
-    if chosen := [key for key, name in (cameras or {}).items() if _names_camera(text, key, name)]:
+    if chosen:
         arguments["cameras"] = chosen
     if window:
         arguments.update(window)

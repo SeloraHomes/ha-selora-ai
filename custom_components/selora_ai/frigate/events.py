@@ -70,6 +70,14 @@ _UNWATCHED: Final = {
     "it": "Nessuna telecamera rileva ancora {objects}, quindi non è stato registrato "
     "nulla e la ricerca non può trovarlo. Applica perché lo rilevino da ora in poi.",
 }
+# The card's question when it follows the model's answer, which says why.
+_LOOK_FOR: Final = {
+    "en": "Have the cameras look for {objects} from now on?",
+    "fr": "Faire détecter {objects} par les caméras désormais ?",
+    "de": "Sollen die Kameras ab jetzt nach {objects} suchen?",
+    "es": "¿Quieres que las cámaras detecten {objects} a partir de ahora?",
+    "it": "Vuoi che le telecamere rilevino {objects} da ora in poi?",
+}
 # "<start epoch>-<random>": the panel builds media paths from it.
 _EVENT_ID: Final = re.compile(r"^\d+(\.\d+)?-[a-z0-9]+$")
 # What Frigate allows in a camera name; the panel builds clip paths from it.
@@ -268,11 +276,24 @@ async def async_offer_card(hass: HomeAssistant, result: dict[str, Any]) -> list[
     return calls
 
 
-def unwatched_reason(tool_log: list[dict[str, Any]] | None, lang: str) -> str | None:
+def answers_first(tool_log: list[dict[str, Any]] | None) -> bool:
+    """Whether the card that makes cameras look for something follows the
+    model's answer rather than standing in for it: the question was not
+    about the cameras (``ToolExecutor.camera_question``)."""
+    return any(
+        entry.get("tool") == "set_camera_objects" and entry.get("after_answer")
+        for entry in tool_log or []
+    )
+
+
+def unwatched_reason(
+    tool_log: list[dict[str, Any]] | None, lang: str, *, after_answer: bool = False
+) -> str | None:
     """Why a card asks to make a camera look for something: nothing could be found.
 
     The panel shows a card, not the reply, so "Apply this change?" alone gave
-    no hint that the search had come back empty for this reason.
+    no hint that the search had come back empty for this reason. After the
+    model's answer, which already says it, the card only asks.
     """
     for entry in reversed(tool_log or []):
         if entry.get("tool") != "find_camera_events":
@@ -282,7 +303,8 @@ def unwatched_reason(tool_log: list[dict[str, Any]] | None, lang: str) -> str | 
         match = _OFFER_RE.match(offer) if isinstance(offer, str) else None
         if match is None:
             return None
-        return _UNWATCHED.get(lang, _UNWATCHED["en"]).format(objects=match["objects"])
+        strings = _LOOK_FOR if after_answer else _UNWATCHED
+        return strings.get(lang, strings["en"]).format(objects=match["objects"])
     return None
 
 

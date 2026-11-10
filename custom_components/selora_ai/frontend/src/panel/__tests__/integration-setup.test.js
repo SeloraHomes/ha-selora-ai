@@ -48,10 +48,10 @@ const LOGIN = {
 };
 
 let n = 0;
-function setup(responses) {
+function setup(responses, first = LOGIN) {
   const flowId = `flow-${++n}`;
   const callApi = vi.fn(async (method) =>
-    method === "GET" ? { ...LOGIN, flow_id: flowId } : responses.shift(),
+    method === "GET" ? { ...first, flow_id: flowId } : responses.shift(),
   );
   const host = {
     hass: {
@@ -112,6 +112,38 @@ describe("integration setup card", () => {
       detail: { entry_id: "e1", title: "Hue Bridge" },
     });
     expect(JSON.stringify(result)).not.toContain("hunter2");
+  });
+
+  it("sends the first option of a required select the user left as shown", async () => {
+    const pick = {
+      type: "form",
+      step_id: "pick_device",
+      data_schema: [
+        {
+          name: "device",
+          type: "select",
+          required: true,
+          options: [
+            ["aa:bb", "Living room bridge"],
+            ["cc:dd", "Office bridge"],
+          ],
+        },
+        { name: "agree", type: "boolean", required: true },
+      ],
+    };
+    const { host, action, callApi } = setup(
+      [{ type: "create_entry", title: "Hue", result: { entry_id: "e1" } }],
+      pick,
+    );
+    await loaded(host, action);
+
+    await runClientAction(host.hass, action);
+
+    expect(callApi).toHaveBeenLastCalledWith(
+      "POST",
+      `config/config_entries/flow/${action.flow_id}`,
+      { device: "aa:bb", agree: false },
+    );
   });
 
   it("keeps the card open on a refused login, saying why", async () => {

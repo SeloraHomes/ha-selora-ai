@@ -25,11 +25,9 @@ from .telemetry import record_activity
 if TYPE_CHECKING:
     from .types import (
         AreaAssignmentResult,
-        AutoSetupResult,
         CleanupResult,
         FlowResult,
         NetworkDiscoveryResult,
-        ResetResult,
     )
 
 _LOGGER = logging.getLogger(__name__)
@@ -181,104 +179,6 @@ class DeviceManager:
             },
         }
 
-    def _get_existing_config_data(self, domain: str) -> dict[str, Any] | None:
-        """Return config data from an existing entry for the same domain (config cloning)."""
-        for ce in self.hass.config_entries.async_entries(domain):
-            if ce.data:
-                return dict(ce.data)
-        return None
-
-    async def auto_setup_discovered(self) -> AutoSetupResult:
-        """Auto-accept ALL pending discovery flows — aggressive mode.
-
-        Strategy:
-          1. All flows → try accept_flow() with empty input
-          2. If multi-step, try config cloning from an already-configured entry
-             of the same domain (same device type = same config)
-          3. If still can't complete, skip for user action
-
-        Returns: {accepted: [...], skipped: [...], failed: [...]}
-        """
-        from .const import PROTECTED_DOMAINS
-
-        progress = self.hass.config_entries.flow.async_progress()
-
-        accepted: list[dict[str, str]] = []
-        skipped: list[dict[str, str]] = []
-        failed: list[dict[str, str]] = []
-
-        for flow in progress:
-            handler = flow.get("handler", "")
-            flow_id = flow["flow_id"]
-
-            # Never auto-accept flows for protected/system integrations
-            if handler in PROTECTED_DOMAINS:
-                continue
-
-            try:
-                # Try standard single-step accept (works for most auto-discovered devices)
-                _LOGGER.info("Auto-setup: trying to accept %s flow %s", handler, flow_id)
-                result = await self.accept_flow(flow_id)
-
-                if result.get("type") == "create_entry":
-                    accepted.append(
-                        {
-                            "handler": handler,
-                            "flow_id": flow_id,
-                            "title": result.get("title", handler),
-                        }
-                    )
-                    continue
-
-                # Multi-step flow — try config cloning from a similar device
-                if result.get("step_id"):
-                    clone_data = self._get_existing_config_data(handler)
-                    if clone_data:
-                        _LOGGER.info(
-                            "Auto-setup: cloning config from existing %s entry for flow %s",
-                            handler,
-                            result.get("flow_id", flow_id),
-                        )
-                        try:
-                            clone_result = await self.configure_step(
-                                result.get("flow_id", flow_id), clone_data
-                            )
-                            if clone_result.get("type") == "create_entry":
-                                accepted.append(
-                                    {
-                                        "handler": handler,
-                                        "flow_id": flow_id,
-                                        "title": clone_result.get("title", handler),
-                                        "cloned": True,
-                                    }
-                                )
-                                continue
-                        except Exception as clone_exc:
-                            _LOGGER.debug("Config clone failed for %s: %s", handler, clone_exc)
-
-                    skipped.append(
-                        {
-                            "handler": handler,
-                            "flow_id": result.get("flow_id", flow_id),
-                            "reason": f"requires step: {result['step_id']}",
-                        }
-                    )
-                else:
-                    failed.append({"handler": handler, "flow_id": flow_id, "error": str(result)})
-
-            except Exception as exc:
-                _LOGGER.error("Auto-setup failed for %s: %s", handler, exc)
-                failed.append({"handler": handler, "flow_id": flow_id, "error": str(exc)})
-
-        _LOGGER.info(
-            "Auto-setup complete: %d accepted, %d skipped, %d failed",
-            len(accepted),
-            len(skipped),
-            len(failed),
-        )
-
-        return {"accepted": accepted, "skipped": skipped, "failed": failed}
-
     # ── Area auto-assignment ────────────────────────────────────
 
     async def auto_assign_areas(self) -> AreaAssignmentResult:
@@ -331,23 +231,6 @@ class DeviceManager:
         return {"assigned": assigned}
 
     # ── Reset & cleanup ──────────────────────────────────────────
-
-    async def reset_integrations(self) -> ResetResult:
-        """Remove all config entries not in PROTECTED_DOMAINS."""
-        from .const import PROTECTED_DOMAINS
-
-        removed: list[str] = []
-        entries = list(self.hass.config_entries.async_entries())
-        for entry in entries:
-            if entry.domain not in PROTECTED_DOMAINS:
-                try:
-                    await self.hass.config_entries.async_remove(entry.entry_id)
-                    removed.append(f"{entry.domain}:{entry.title}")
-                    _LOGGER.info("Reset removed integration: %s (%s)", entry.domain, entry.title)
-                except Exception as exc:
-                    _LOGGER.error("Failed to remove %s: %s", entry.domain, exc)
-
-        return {"removed_integrations": removed}
 
     async def cleanup_mirror_devices(self) -> CleanupResult:
         """Remove all Selora AI-owned devices and orphaned entities."""

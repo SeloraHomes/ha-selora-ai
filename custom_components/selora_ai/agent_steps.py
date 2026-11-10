@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TypedDict
+from typing import Final, TypedDict
 
 from .const import STREAM_STEP_PREFIX
 
@@ -67,6 +67,8 @@ _TOOL_STEP_ICONS: dict[str, str] = {
     "accept_suggestion": "mdi:lightbulb-on-outline",
 }
 _DEFAULT_TOOL_ICON = "mdi:cog-outline"
+# Tool names keep "frigate" (they are an MCP contract); users see the product.
+_PRODUCT_NAMES: Final = {"frigate": "Selora Vision"}
 
 
 def tool_step_label(tool_name: str) -> str:
@@ -77,7 +79,8 @@ def tool_step_label(tool_name: str) -> str:
     fallback made every uncurated tool read differently from its neighbours in
     the same list.
     """
-    return tool_name.replace("_", " ").strip().capitalize()
+    words = tool_name.replace("_", " ").strip().capitalize().split(" ")
+    return " ".join(_PRODUCT_NAMES.get(word.lower(), word) for word in words)
 
 
 def tool_step_icon(tool_name: str) -> str:

@@ -63,6 +63,8 @@ def test_tool_step_label_is_the_tool_read_as_english() -> None:
     """Tense-free and uniform. Past tense made each row a small claim about
     what had happened, which is not what a progress list is for."""
     assert tool_step_label("get_device_triggers") == "Get device triggers"
+    assert tool_step_label("get_frigate_status") == "Get Selora Vision status"
+    assert tool_step_label("add_cameras_to_frigate") == "Add cameras to Selora Vision"
     assert tool_step_label("list_dashboards") == "List dashboards"
 
 

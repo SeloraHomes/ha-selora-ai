@@ -585,24 +585,10 @@ class FlowResult(TypedDict, total=False):
     entry_id: str
 
 
-class AutoSetupResult(TypedDict):
-    """Return type of auto_setup_discovered."""
-
-    accepted: list[dict[str, str]]
-    skipped: list[dict[str, str]]
-    failed: list[dict[str, str]]
-
-
 class AreaAssignmentResult(TypedDict):
     """Return type of auto_assign_areas."""
 
     assigned: list[dict[str, str]]
-
-
-class ResetResult(TypedDict):
-    """Return type of reset_integrations."""
-
-    removed_integrations: list[str]
 
 
 class CleanupResult(TypedDict):

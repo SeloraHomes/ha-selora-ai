@@ -1,23 +1,22 @@
 """Button platform — Hub action buttons for Selora AI.
 
-Four buttons on the Selora AI Hub device:
+Three buttons on the Selora AI Hub device:
   - Discover Devices: scan network status
-  - Auto Setup: accept all auto-discoverable flows
-  - Cleanup Mirrors: remove stale mirror devices/entities
-  - Reset Everything: wipe + re-discover + auto-setup
+  - Scan Devices: report what is available to onboard
+  - Cleanup: remove stale mirror devices/entities
 
 Automation review happens via persistent notifications + Settings > Automations.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -36,12 +35,16 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Register Hub action buttons."""
+    # A hub that had the removed Reset button keeps it in the registry as an
+    # unavailable entity until it is removed here.
+    registry = er.async_get(hass)
+    if stale := registry.async_get_entity_id("button", DOMAIN, f"{DOMAIN}_reset"):
+        registry.async_remove(stale)
     async_add_entities(
         [
             DiscoverButton(hass, entry),
             AutoSetupButton(hass, entry),
             CleanupButton(hass, entry),
-            ResetButton(hass, entry),
         ],
         update_before_add=True,
     )
@@ -156,37 +159,4 @@ class CleanupButton(_HubActionButton):
             SIGNAL_ACTIVITY_LOG,
             f"Cleanup: removed {len(removed_devices)} devices, {len(removed_entities)} entities",
             "cleanup",
-        )
-
-
-# ── Reset ─────────────────────────────────────────────────────────────
-
-
-class ResetButton(_HubActionButton):
-    """Nuclear reset — wipe all non-protected integrations, clean up, re-discover."""
-
-    _attr_unique_id = f"{DOMAIN}_reset"
-    _attr_name = "Reset Everything"
-    _attr_icon = "mdi:nuke"
-
-    async def async_press(self) -> None:
-        dm = self._get_device_manager()
-        if not dm:
-            _LOGGER.error("DeviceManager not available")
-            return
-        reset_result = await dm.reset_integrations()
-        await dm.cleanup_mirror_devices()
-        # Wait for HA's SSDP/mDNS to re-discover devices on the network
-        await asyncio.sleep(15)
-        auto_result = await dm.auto_setup_discovered()
-
-        removed = reset_result.get("removed_integrations", [])
-        accepted = auto_result.get("accepted", [])
-        _LOGGER.info("Reset: removed %d, auto-setup accepted %d", len(removed), len(accepted))
-        async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
-        async_dispatcher_send(
-            self.hass,
-            SIGNAL_ACTIVITY_LOG,
-            f"Reset: removed {len(removed)}, re-setup accepted {len(accepted)}",
-            "reset",
         )
