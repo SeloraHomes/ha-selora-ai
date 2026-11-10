@@ -27,7 +27,7 @@ from ..const import (
     DOMAIN,
 )
 from ..frigate.descriptions import answer_buttons
-from ..frigate.events import unwatched_reason
+from ..frigate.events import answers_first, unwatched_reason
 from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot, ToolWriteResult
 
@@ -3472,14 +3472,20 @@ def _build_delete_approval_response(
         "resume_depth": 0,
     }
     # The panel shows the card, not the reply: a change asked for because
-    # nothing could be found says so on the card.
+    # nothing could be found says so on the card. A question that was not
+    # about the cameras keeps the model's answer, and the card follows it.
+    camera_change = any(a.get("kind") == "frigate_objects" for a in actions)
+    after_answer = camera_change and answers_first(tool_log)
     why = (
-        unwatched_reason(tool_log, _normalize_lang(language))
-        if any(a.get("kind") == "frigate_objects" for a in actions)
+        unwatched_reason(tool_log, _normalize_lang(language), after_answer=after_answer)
+        if camera_change
         else None
     )
     if why:
         proposal["why"] = why
+    answer = str(result.get("response") or "").strip() if after_answer else ""
+    if answer:
+        proposal["answer_first"] = True
     upgraded: ArchitectResponse = dict(result)
     upgraded["intent"] = "command_approval"
     upgraded["calls"] = []
@@ -3504,7 +3510,7 @@ def _build_delete_approval_response(
         if removes
         else approval_pending_hint(effective_language)
     )
-    if why:
+    if why and not answer:
         hint = f"{why} {hint}"
     # A single tool round can mix a safe write that ALREADY executed (e.g.
     # "turn off the kitchen light and delete the movie scene" — the light
@@ -3516,9 +3522,9 @@ def _build_delete_approval_response(
     if executed:
         resolver = _friendly_name_resolver(hass)
         confirmation = build_executed_confirmation(executed, resolver, language=effective_language)
-        upgraded["response"] = f"{confirmation}\n\n{hint}"
+        upgraded["response"] = f"{confirmation}\n\n{answer or hint}"
     else:
-        upgraded["response"] = hint
+        upgraded["response"] = answer or hint
     return upgraded
 
 

@@ -17,7 +17,10 @@ from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
-from custom_components.selora_ai.llm_client.camera_question import opening_search
+from custom_components.selora_ai.llm_client.camera_question import (
+    opening_search,
+    points_at_cameras,
+)
 from custom_components.selora_ai.providers import create_provider
 from custom_components.selora_ai.tool_executor import ToolExecutor
 
@@ -102,6 +105,14 @@ def test_a_question_about_the_past_opens_with_its_search(
         "Was anyone at the door? If you can't verify it, don't show me the clips.",
         # Nothing a camera tracks.
         "When was the last time the heating ran?",
+        # A thing a camera tracks, asked about as a thing: nothing says camera.
+        "Was the dog fed?",
+        "Has the car been charged today?",
+        "When was the car last charged?",
+        "Did the cat eat today?",
+        "How many cars do I have?",
+        "How many people are home?",
+        "Did someone leave the garage door unlocked?",
     ],
 )
 def test_anything_else_is_left_to_the_model(message: str) -> None:
@@ -171,6 +182,132 @@ async def test_the_search_runs_before_the_models_first_round(hass: HomeAssistant
     # The card and the history read the call log, as for the model's own call.
     assert executor.call_log[0]["tool"] == "find_camera_events"
     assert ANSWER in "".join(c for c in out if isinstance(c, str))
+
+
+async def test_the_search_written_from_the_message_never_ends_on_a_card(
+    hass: HomeAssistant,
+) -> None:
+    """A misread question must not end on "make every camera look for dogs"."""
+    client = _client(hass)
+
+    async def _raw_stream(_system: str, _messages: list, tools: Any = None, **_kw: Any):  # noqa: ANN202
+        yield MagicMock()
+
+    async def _stream(_resp: Any, _tool_calls: list, content_blocks: list):  # noqa: ANN202
+        content_blocks.append({"type": "text", "text": ANSWER})
+        yield ANSWER
+
+    client._provider.raw_request_stream = _raw_stream
+    client._provider.stream_with_tools = _stream
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    executor.camera_question = False
+    unwatched = {"events": [], "offer": "No camera looks for dog: front_door could."}
+    with (
+        patch(
+            "custom_components.selora_ai.frigate.events.async_find_events",
+            AsyncMock(return_value=unwatched),
+        ),
+        patch("custom_components.selora_ai.frigate.events.async_offer_card", AsyncMock()) as offer,
+    ):
+        _ = [
+            chunk
+            async for chunk in client._stream_request_with_tools(
+                system="s",
+                messages=[{"role": "user", "content": "q"}],
+                tool_executor=executor,
+                tools=[{"name": "t"}],
+                opening_search={"objects": ["dog"], "hours": 168.0},
+            )
+        ]
+
+    offer.assert_not_awaited()
+    assert [c["tool"] for c in executor.call_log] == ["find_camera_events"]
+    # The model's own search, later in the turn, still offers it.
+    assert executor.offer_camera_card is True
+
+
+async def test_the_search_for_a_camera_question_still_offers_its_card(
+    hass: HomeAssistant,
+) -> None:
+    """ "Have you seen a dog?" opened by the shortcut keeps the change card."""
+    client = _client(hass)
+
+    async def _raw_stream(_system: str, _messages: list, tools: Any = None, **_kw: Any):  # noqa: ANN202
+        yield MagicMock()
+
+    async def _stream(_resp: Any, _tool_calls: list, content_blocks: list):  # noqa: ANN202
+        content_blocks.append({"type": "text", "text": ANSWER})
+        yield ANSWER
+
+    client._provider.raw_request_stream = _raw_stream
+    client._provider.stream_with_tools = _stream
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    executor.camera_question = True
+    unwatched = {"events": [], "offer": "No camera looks for dog: front_door could."}
+    with (
+        patch(
+            "custom_components.selora_ai.frigate.events.async_find_events",
+            AsyncMock(return_value=unwatched),
+        ),
+        patch(
+            "custom_components.selora_ai.frigate.events.async_offer_card",
+            AsyncMock(return_value=[]),
+        ) as offer,
+    ):
+        _ = [
+            chunk
+            async for chunk in client._stream_request_with_tools(
+                system="s",
+                messages=[{"role": "user", "content": "q"}],
+                tool_executor=executor,
+                tools=[{"name": "t"}],
+                opening_search={"objects": ["dog"], "hours": 168.0},
+            )
+        ]
+
+    offer.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Have you seen a white dog?", True),
+        ("Was there a dog in the yard today?", True),
+        ("Which camera saw a bus?", True),
+        ("Did anyone come by today?", True),
+        ("Was the dog fed?", False),
+        ("Has the car been charged today?", False),
+        ("How many people are home?", False),
+    ],
+)
+def test_only_a_question_about_the_cameras_may_end_on_their_card(
+    message: str, expected: bool
+) -> None:
+    assert points_at_cameras(message) is expected
+
+
+@pytest.mark.parametrize("offer", [True, False])
+async def test_the_models_search_offers_the_card_only_when_allowed(
+    hass: HomeAssistant, offer: bool
+) -> None:
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    executor.offer_camera_card = offer
+    unwatched = {"events": [], "offer": "No camera looks for dog: front_door could."}
+    proposed = [{"tool": "set_camera_objects", "arguments": {}, "result": {}}]
+    with (
+        patch(
+            "custom_components.selora_ai.frigate.events.async_find_events",
+            AsyncMock(return_value=unwatched),
+        ),
+        patch(
+            "custom_components.selora_ai.frigate.events.async_offer_card",
+            AsyncMock(return_value=proposed),
+        ),
+    ):
+        await executor.execute("find_camera_events", {"objects": ["dog"]})
+
+    tools = [c["tool"] for c in executor.call_log]
+    assert ("set_camera_objects" in tools) is offer
 
 
 async def test_no_frigate_no_opening_search(hass: HomeAssistant) -> None:

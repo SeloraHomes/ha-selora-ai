@@ -61,7 +61,7 @@ from ..types import (
     ToolCallLog,
     ToolWriteResult,
 )
-from .camera_question import asks_about_the_past, opening_search
+from .camera_question import asks_about_the_past, opening_search, points_at_cameras
 from .command_policy import (
     _build_command_confirmation,
     _executed_service_calls_from_log,
@@ -1215,6 +1215,7 @@ class LLMClient:
                 )
             # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
             if tool_executor is not None:
+                tool_executor.camera_question = points_at_cameras(user_message)
                 tools = self._get_tools_for_provider(
                     intent_hint=cloud_intent_hint,
                     for_assist=for_assist,
@@ -1529,6 +1530,7 @@ class LLMClient:
 
             # Tool-aware streaming: streams text tokens, handles tool calls inline
             if tool_executor is not None:
+                tool_executor.camera_question = points_at_cameras(user_message)
                 # Streaming is the panel's path and has no `for_assist`; Assist
                 # never reaches here, so panel-only tools stay available.
                 tools = self._get_tools_for_provider(
@@ -2248,6 +2250,10 @@ class LLMClient:
                 "arguments": opening_search,
             }
             _log_tool_call(call)
+            offer_card = tool_executor.offer_camera_card
+            # Its card only when the message itself is about the cameras: the
+            # shortcut reads a noun and a past tense, and may have misread.
+            tool_executor.offer_camera_card = offer_card and tool_executor.camera_question
             task = asyncio.ensure_future(tool_executor.execute(call["name"], call["arguments"]))
             try:
                 while not task.done():
@@ -2256,6 +2262,7 @@ class LLMClient:
                         await asyncio.wait_for(asyncio.shield(task), STREAM_TOOL_KEEPALIVE_S)
             finally:
                 await _grace_then_cancel(task)
+                tool_executor.offer_camera_card = offer_card
             if task.cancelled():
                 return
             tool_step_seq += 1

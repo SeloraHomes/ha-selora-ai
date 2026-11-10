@@ -50,6 +50,15 @@ class ToolExecutor:
         # streaming chat handler reads this after the LLM stream ends
         # to suppress duplicate execute_command JSON blocks.
         self.call_log: list[dict[str, Any]] = []
+        # A camera search that found nothing ends on the card asking to make
+        # a camera look for it, except the search written from the message
+        # (``camera_question``): a question it misread must not get one.
+        self.offer_camera_card = True
+        # Whether the user asked about the cameras (set per turn from
+        # ``camera_question.points_at_cameras``). When not — the model also
+        # searches "was the dog fed?" — the card follows its answer instead
+        # of standing in for it.
+        self.camera_question = True
         # Listing marker → every entity id it stands for, this turn.
         self.listings: dict[str, list[str]] = {}
 
@@ -747,12 +756,15 @@ class ToolExecutor:
         result = await async_find_events(self._hass, arguments)
         # Nothing found because no camera looks for it: the turn ends on the
         # change card, and the model is told so rather than asking in prose.
-        if proposed := await async_offer_card(self._hass, result):
+        if self.offer_camera_card and (proposed := await async_offer_card(self._hass, result)):
+            if not self.camera_question:
+                for call in proposed:
+                    call["after_answer"] = True
             self.call_log.extend(proposed)
             result["offer"] = (
                 f"{result['offer']} A card under your reply already asks the user "
-                "to confirm it: say what was not found and why, and do not ask "
-                "or call set_camera_objects."
+                "to confirm it: say what was not found and why, and do not ask, "
+                "mention the card or call set_camera_objects."
             )
         return result
 

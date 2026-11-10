@@ -369,6 +369,175 @@ function _autoResize(textarea) {
 // proof this is a multi-line document worth rescuing, and only accept a
 // decode that actually reintroduces whitespace.
 const _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
+// The composer's keys: the suggestion list, ghost text, sending, history.
+export function _onComposerKeydown(host, e) {
+  // Enter or Tab while an input method composes (Japanese,
+  // Korean, Chinese) confirms the conversion: it neither sends
+  // nor picks a suggestion. Safari reports it as keyCode 229.
+  if (e.isComposing || e.keyCode === 229) return;
+  const ac = host._autocomplete;
+  if (ac?.open && ac.items.length) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      host._autocomplete = {
+        ...ac,
+        activeIndex: (ac.activeIndex + 1) % ac.items.length,
+        picked: true,
+      };
+      _scrollActiveItemIntoView(host);
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      host._autocomplete = {
+        ...ac,
+        activeIndex: (ac.activeIndex - 1 + ac.items.length) % ac.items.length,
+        picked: true,
+      };
+      _scrollActiveItemIntoView(host);
+      return;
+    }
+    // Tab takes the highlighted row. Enter takes it only once
+    // ↑↓ moved to it: a list that merely opened (often on the
+    // last word of a finished sentence) must never stand
+    // between Enter and sending what was typed.
+    if (
+      (e.key === "Tab" && !e.shiftKey) ||
+      (e.key === "Enter" && !e.shiftKey && ac.picked)
+    ) {
+      e.preventDefault();
+      _selectAutocompleteItem(host, e.target, ac.items[ac.activeIndex]);
+      return;
+    }
+    // → at the end of the text takes the row whose name is
+    // ghosted, the same as Tab — the ghost invites both.
+    if (
+      e.key === "ArrowRight" &&
+      _suggestionGhost(host) &&
+      e.target.selectionStart === e.target.value.length &&
+      e.target.selectionEnd === e.target.value.length
+    ) {
+      e.preventDefault();
+      _selectAutocompleteItem(host, e.target, ac.items[ac.activeIndex]);
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      _closeAutocomplete(host);
+      return;
+    }
+  }
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    _closeAutocomplete(host);
+    host._sendMessage();
+    return;
+  }
+  // Tab accepts a ghost suggestion, or in an empty composer the
+  // predicted next message; otherwise we just swallow it so
+  // focus stays in the textarea (Google's address-bar behavior).
+  // Shift+Tab is preserved for accessibility (moving back to the
+  // previous focusable element).
+  if (e.key === "Tab" && !e.shiftKey) {
+    e.preventDefault();
+    if (!_acceptGhost(host, e.target)) {
+      acceptNextPrompt(host, e.target);
+    }
+    return;
+  }
+  if (
+    e.key === "ArrowRight" &&
+    !e.target.value &&
+    acceptNextPrompt(host, e.target)
+  ) {
+    e.preventDefault();
+    return;
+  }
+  // ArrowRight at the end of the input accepts a ghost
+  // suggestion — only when the caret has nowhere else to go,
+  // so editing earlier in the text isn't disrupted.
+  if (
+    e.key === "ArrowRight" &&
+    host._ghost?.suffix &&
+    e.target.selectionStart === e.target.value.length &&
+    e.target.selectionEnd === e.target.value.length
+  ) {
+    e.preventDefault();
+    _acceptGhost(host, e.target);
+    return;
+  }
+  // Shell-style history navigation. ArrowUp walks back
+  // through prior user messages; ArrowDown walks forward
+  // and finally restores whatever draft the user was
+  // typing when they entered history. ``_historyIndex``
+  // points into ``userHistory`` from newest=0; ``null``
+  // means "not in history mode, ``_input`` is the live
+  // draft". Only triggers when the caret is at the
+  // start/end of the textarea so editing earlier in a
+  // multi-line message still works.
+  const userHistory = host._messages
+    .filter((m) => m.role === "user" && m.content)
+    .map((m) => stripEntityMarkers(m.content));
+  const ta = e.target;
+  const atStart = ta.selectionStart === 0 && ta.selectionEnd === 0;
+  const atEnd =
+    ta.selectionStart === ta.value.length &&
+    ta.selectionEnd === ta.value.length;
+  const inHistory =
+    host._historyIndex !== null && host._historyIndex !== undefined;
+  const applyHistory = (idx) => {
+    const recalled = userHistory[userHistory.length - 1 - idx];
+    host._historyIndex = idx;
+    host._historyRecalled = recalled;
+    host._input = recalled;
+    requestAnimationFrame(() => {
+      ta.value = recalled;
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      _autoResize(ta);
+    });
+  };
+  if (
+    e.key === "ArrowUp" &&
+    userHistory.length > 0 &&
+    (inHistory || atStart || !host._input)
+  ) {
+    // First step into history saves the in-progress draft
+    // so ArrowDown past the newest entry can restore it.
+    if (!inHistory) {
+      host._historyDraft = host._input || "";
+      e.preventDefault();
+      applyHistory(0);
+      return;
+    }
+    if (host._historyIndex < userHistory.length - 1) {
+      e.preventDefault();
+      applyHistory(host._historyIndex + 1);
+      return;
+    }
+    // Already at oldest — swallow so caret doesn't move.
+    e.preventDefault();
+    return;
+  }
+  if (e.key === "ArrowDown" && inHistory && atEnd) {
+    e.preventDefault();
+    if (host._historyIndex > 0) {
+      applyHistory(host._historyIndex - 1);
+      return;
+    }
+    // Past the newest entry — restore the in-progress draft.
+    const draft = host._historyDraft || "";
+    host._historyIndex = null;
+    host._historyDraft = "";
+    host._input = draft;
+    requestAnimationFrame(() => {
+      ta.value = draft;
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      _autoResize(ta);
+    });
+    return;
+  }
+}
+
 export function _maybeDecodePercentEncoded(text) {
   if (typeof text !== "string" || !text) return null;
   if (!_ENCODED_BLOB_RE.test(text)) return null;
@@ -1011,181 +1180,7 @@ function _renderComposer(host, opts = {}) {
                 // first, blur after) can still resolve to a selection.
                 setTimeout(() => _closeAutocomplete(host), 150);
               }}
-              @keydown=${(e) => {
-                const ac = host._autocomplete;
-                if (ac?.open && ac.items.length) {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
-                      picked: true,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  if (e.key === "ArrowUp") {
-                    e.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex:
-                        (ac.activeIndex - 1 + ac.items.length) %
-                        ac.items.length,
-                      picked: true,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  // Tab takes the highlighted row. Enter takes it only once
-                  // ↑↓ moved to it: a list that merely opened (often on the
-                  // last word of a finished sentence) must never stand
-                  // between Enter and sending what was typed.
-                  if (
-                    (e.key === "Tab" && !e.shiftKey) ||
-                    (e.key === "Enter" && !e.shiftKey && ac.picked)
-                  ) {
-                    e.preventDefault();
-                    _selectAutocompleteItem(
-                      host,
-                      e.target,
-                      ac.items[ac.activeIndex],
-                    );
-                    return;
-                  }
-                  // → at the end of the text takes the row whose name is
-                  // ghosted, the same as Tab — the ghost invites both.
-                  if (
-                    e.key === "ArrowRight" &&
-                    _suggestionGhost(host) &&
-                    e.target.selectionStart === e.target.value.length &&
-                    e.target.selectionEnd === e.target.value.length
-                  ) {
-                    e.preventDefault();
-                    _selectAutocompleteItem(
-                      host,
-                      e.target,
-                      ac.items[ac.activeIndex],
-                    );
-                    return;
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    _closeAutocomplete(host);
-                    return;
-                  }
-                }
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  _closeAutocomplete(host);
-                  host._sendMessage();
-                  return;
-                }
-                // Tab accepts a ghost suggestion, or in an empty composer the
-                // predicted next message; otherwise we just swallow it so
-                // focus stays in the textarea (Google's address-bar behavior).
-                // Shift+Tab is preserved for accessibility (moving back to the
-                // previous focusable element).
-                if (e.key === "Tab" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!_acceptGhost(host, e.target)) {
-                    acceptNextPrompt(host, e.target);
-                  }
-                  return;
-                }
-                if (
-                  e.key === "ArrowRight" &&
-                  !e.target.value &&
-                  acceptNextPrompt(host, e.target)
-                ) {
-                  e.preventDefault();
-                  return;
-                }
-                // ArrowRight at the end of the input accepts a ghost
-                // suggestion — only when the caret has nowhere else to go,
-                // so editing earlier in the text isn't disrupted.
-                if (
-                  e.key === "ArrowRight" &&
-                  host._ghost?.suffix &&
-                  e.target.selectionStart === e.target.value.length &&
-                  e.target.selectionEnd === e.target.value.length
-                ) {
-                  e.preventDefault();
-                  _acceptGhost(host, e.target);
-                  return;
-                }
-                // Shell-style history navigation. ArrowUp walks back
-                // through prior user messages; ArrowDown walks forward
-                // and finally restores whatever draft the user was
-                // typing when they entered history. ``_historyIndex``
-                // points into ``userHistory`` from newest=0; ``null``
-                // means "not in history mode, ``_input`` is the live
-                // draft". Only triggers when the caret is at the
-                // start/end of the textarea so editing earlier in a
-                // multi-line message still works.
-                const userHistory = host._messages
-                  .filter((m) => m.role === "user" && m.content)
-                  .map((m) => stripEntityMarkers(m.content));
-                const ta = e.target;
-                const atStart =
-                  ta.selectionStart === 0 && ta.selectionEnd === 0;
-                const atEnd =
-                  ta.selectionStart === ta.value.length &&
-                  ta.selectionEnd === ta.value.length;
-                const inHistory =
-                  host._historyIndex !== null &&
-                  host._historyIndex !== undefined;
-                const applyHistory = (idx) => {
-                  const recalled = userHistory[userHistory.length - 1 - idx];
-                  host._historyIndex = idx;
-                  host._historyRecalled = recalled;
-                  host._input = recalled;
-                  requestAnimationFrame(() => {
-                    ta.value = recalled;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                };
-                if (
-                  e.key === "ArrowUp" &&
-                  userHistory.length > 0 &&
-                  (inHistory || atStart || !host._input)
-                ) {
-                  // First step into history saves the in-progress draft
-                  // so ArrowDown past the newest entry can restore it.
-                  if (!inHistory) {
-                    host._historyDraft = host._input || "";
-                    e.preventDefault();
-                    applyHistory(0);
-                    return;
-                  }
-                  if (host._historyIndex < userHistory.length - 1) {
-                    e.preventDefault();
-                    applyHistory(host._historyIndex + 1);
-                    return;
-                  }
-                  // Already at oldest — swallow so caret doesn't move.
-                  e.preventDefault();
-                  return;
-                }
-                if (e.key === "ArrowDown" && inHistory && atEnd) {
-                  e.preventDefault();
-                  if (host._historyIndex > 0) {
-                    applyHistory(host._historyIndex - 1);
-                    return;
-                  }
-                  // Past the newest entry — restore the in-progress draft.
-                  const draft = host._historyDraft || "";
-                  host._historyIndex = null;
-                  host._historyDraft = "";
-                  host._input = draft;
-                  requestAnimationFrame(() => {
-                    ta.value = draft;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                  return;
-                }
-              }}
+              @keydown=${(e) => _onComposerKeydown(host, e)}
               placeholder=${
                 nextPrompt ||
                 (host._newAutomationMode
@@ -1333,6 +1328,9 @@ export function renderMessage(host, msg, idx) {
   const isProposal =
     !isUser && !isRefineSource && !!(msg.automation || msg.scene);
   const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
+  // A card that follows the reply rather than standing in for it: "was the
+  // dog fed?" answers, then offers to have the cameras look for dogs.
+  const answerFirst = !!msg.command_approval?.answer_first;
   const copyText = isProposal
     ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
     : isActionCard
@@ -1429,7 +1427,7 @@ export function renderMessage(host, msg, idx) {
                   class="bubble assistant${
                     guide
                       ? " bubble--guided"
-                      : msg.command_approval
+                      : msg.command_approval && !answerFirst
                         ? " bubble--approval"
                         : (showAutomationSpinner || showSceneSpinner) &&
                             !displayContent?.trim()
@@ -1443,7 +1441,7 @@ export function renderMessage(host, msg, idx) {
                     // A loaded automation's stored prose ("Describe the
                     // changes") is context for the model; the composer's
                     // placeholder and chip say it to the user.
-                    msg.command_approval ||
+                    (msg.command_approval && !answerFirst) ||
                     isLoadedAutomation ||
                     msg.frigate_result ||
                     msg.describe_card ||

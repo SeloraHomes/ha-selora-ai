@@ -416,6 +416,7 @@ async def test_nothing_found_for_want_of_a_camera_ends_on_the_change_card(
     ]
     assert all(e["result"]["requires_approval"] for e in proposed)
     assert "do not ask" in result["offer"]
+    assert "mention the card" in result["offer"]
     card = _build_delete_approval_response(
         {"intent": "answer", "response": ""},
         [],
@@ -484,6 +485,90 @@ async def test_a_card_to_look_for_it_says_why(
     assert card["response"].startswith(why)
     # A change, not a deletion.
     assert "delete" not in card["response"].lower()
+
+
+async def test_a_question_not_about_the_cameras_keeps_its_answer_above_the_card(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # "Was the dog fed?": the model searches the cameras too. Its answer is the
+    # reply, and the card under it only asks whether to look for dogs.
+    _api(aioclient_mock, [], _NO_DOGS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    executor.camera_question = False
+    await executor.execute("find_camera_events", {"objects": ["dog"]})
+    answer = "I can't tell from the cameras: none of them looks for dogs."
+
+    card = _build_delete_approval_response(
+        {"intent": "answer", "response": answer},
+        [],
+        executor.call_log,
+        None,
+        language="en",
+        actions=_pending_destructive_from_log(executor.call_log),
+    )
+
+    approval = card["command_approval"]
+    assert approval["answer_first"] is True
+    assert approval["why"] == "Have the cameras look for dog from now on?"
+    assert card["response"] == answer
+    assert len(approval["actions"]) == 2
+
+
+async def test_the_answer_stays_beside_a_command_that_ran(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # "Turn on the porch light — and was the dog fed?": the light's
+    # confirmation and the answer, then the card.
+    _api(aioclient_mock, [], _NO_DOGS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    executor.camera_question = False
+    await executor.execute("find_camera_events", {"objects": ["dog"]})
+    log = [
+        {
+            "tool": "execute_command",
+            "arguments": {"service": "light.turn_on", "entity_id": "light.porch"},
+            "result": {
+                "executed": True,
+                "service": "light.turn_on",
+                "entity_ids": ["light.porch"],
+            },
+        },
+        *executor.call_log,
+    ]
+    answer = "I can't tell from the cameras: none of them looks for dogs."
+
+    card = _build_delete_approval_response(
+        {"intent": "answer", "response": answer},
+        [],
+        log,
+        None,
+        language="en",
+        actions=_pending_destructive_from_log(log),
+    )
+
+    assert card["response"].endswith(answer)
+    assert card["response"] != answer
+
+
+async def test_a_question_about_the_cameras_gets_the_card_alone(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, [], _NO_DOGS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+    await executor.execute("find_camera_events", {"objects": ["dog"]})
+
+    card = _build_delete_approval_response(
+        {"intent": "answer", "response": "No dogs were seen."},
+        [],
+        executor.call_log,
+        None,
+        language="en",
+        actions=_pending_destructive_from_log(executor.call_log),
+    )
+
+    assert "answer_first" not in card["command_approval"]
+    assert card["command_approval"]["why"].startswith("No camera looks for dog yet")
+    assert card["response"].startswith("No camera looks for dog yet")
 
 
 def test_the_offer_in_a_note_is_one_the_model_is_told_to_make() -> None:
