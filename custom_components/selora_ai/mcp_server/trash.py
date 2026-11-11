@@ -33,6 +33,7 @@ async def _tool_restore_deleted(hass: HomeAssistant, arguments: dict[str, Any]) 
         messages = {
             "not_found": "Not in Recently deleted (restored, deleted for good, or expired).",
             "in_use": "Another automation or scene now uses its id or name; not restored.",
+            "unreadable": f"Not restored: {exc}. Fix the file in Home Assistant first.",
         }
         return {"error": messages.get(exc.code, f"Restore failed: {exc}")}
     return {"status": "restored", "kind": item["kind"], "name": item["name"]}

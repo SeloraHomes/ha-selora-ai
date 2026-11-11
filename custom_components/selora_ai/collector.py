@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from datetime import UTC, datetime, timedelta
+from functools import partial
 import hashlib
 import json
 import logging
@@ -375,7 +376,7 @@ class DataCollector:
 
         automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
         automations = await self._hass.async_add_executor_job(
-            _read_automations_yaml, automations_path
+            partial(_read_automations_yaml, automations_path, tolerant=True)
         )
 
         covered_entity_ids: set[str] = set()

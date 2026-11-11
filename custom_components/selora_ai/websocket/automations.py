@@ -8,6 +8,7 @@ lazily at registration time, after the package has loaded).
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 import logging
 from typing import Any
 
@@ -570,7 +571,7 @@ async def _handle_websocket_get_automations(
         # Build a lookup from automation id → full config for flowchart rendering
         automations_path = Path(hass.config.config_dir) / "automations.yaml"
         yaml_automations = await hass.async_add_executor_job(
-            _read_automations_yaml, automations_path
+            partial(_read_automations_yaml, automations_path, tolerant=True)
         )
         yaml_by_id: dict[str, dict[str, Any]] = {
             str(a.get("id")): a for a in yaml_automations if a.get("id")
@@ -801,7 +802,6 @@ async def _handle_websocket_toggle_automation(
         return
 
     try:
-        from functools import partial
         from pathlib import Path
 
         from ..automation_utils import _read_automations_yaml, async_toggle_automation
@@ -823,14 +823,11 @@ async def _handle_websocket_toggle_automation(
         automation_id = msg.get("automation_id") or ""
         in_yaml = False
         if automation_id:
-            # Strict: an unreadable file is not proof the entry lives elsewhere,
-            # and a runtime-only switch would leave its initial_state to undo it.
+            # Raises on an unreadable file: that is not proof the entry lives
+            # elsewhere, and a runtime-only switch would leave its initial_state
+            # to undo it.
             existing = await hass.async_add_executor_job(
-                partial(
-                    _read_automations_yaml,
-                    Path(hass.config.config_dir) / "automations.yaml",
-                    strict=True,
-                )
+                _read_automations_yaml, Path(hass.config.config_dir) / "automations.yaml"
             )
             in_yaml = any(str(a.get("id")) == automation_id for a in existing)
         if in_yaml:

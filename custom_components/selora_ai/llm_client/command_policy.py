@@ -175,6 +175,11 @@ _MAX_COMMAND_CALLS = 5
 # approves names a handful of devices, not a domain.
 _MAX_TARGET_ENTITIES = 50
 _MAX_APPROVAL_TARGET_ENTITIES = 3
+# Every key Home Assistant reads a service call's targets from, in ``target``
+# or merged in from ``data``. A SAFE call reaches only the entity_ids checked
+# against the snapshot: an area, device, floor or label next to them would
+# reach entities nobody checked, and skip the approval a garage door needs.
+_SERVICE_TARGET_KEYS = frozenset({"entity_id", "area_id", "device_id", "floor_id", "label_id"})
 
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {
@@ -4731,6 +4736,17 @@ def _validate_review_call(
     )
 
 
+def _safe_reach_error(service: str, target: dict[str, Any], data: dict[str, Any]) -> str | None:
+    """Why a SAFE call would reach beyond its ``target.entity_id``, or None."""
+    other = sorted(set(target) - {"entity_id"})
+    if other:
+        return f"{service} may only target entity_ids, not {', '.join(other)}"
+    in_data = sorted(set(data) & _SERVICE_TARGET_KEYS)
+    if in_data:
+        return f"{service} put {', '.join(in_data)} in data; targets go in target.entity_id"
+    return None
+
+
 def _validate_safe_call(
     call: dict[str, Any],
     known_entity_ids: set[str],
@@ -4829,6 +4845,8 @@ def _validate_safe_call(
     if data is not None and not isinstance(data, dict):
         return None, f"{service} included an invalid data payload"
     data = data or {}
+    if reach := _safe_reach_error(service, target, data):
+        return None, reach
     allowed_data_keys = _COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name)
     if allowed_data_keys is not None and policy.allowlist_enabled:
         extra = sorted(set(data) - allowed_data_keys)
@@ -5292,6 +5310,8 @@ def apply_command_policy(
                 result,
             )
         data = data or {}
+        if reach := _safe_reach_error(service, target, data):
+            return _blocked_command_result(reach, result)
 
         allowed_data_keys = _COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name)
         if allowed_data_keys is not None and policy.allowlist_enabled:
@@ -5308,7 +5328,7 @@ def apply_command_policy(
 
         safe_call = {
             "service": service,
-            "target": target,
+            "target": {"entity_id": entity_ids} if entity_ids is not None else {},
             "data": data,
         }
 

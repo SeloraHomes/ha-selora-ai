@@ -70,19 +70,16 @@ async def test_replacing_needs_overwrite_and_keeps_a_backup(
     "file",
     ["www/card.js", "www/x/page.html", "www/icon.svg", "www/m.mjs", "www/x.xht", "www/feed.xml"],
 )
-async def test_browser_code_in_www_waits_for_confirmation(
+async def test_browser_code_in_www_is_refused(
     hass: HomeAssistant, config_dir: Path, file: str
 ) -> None:
-    """Registering a /local/ path as a resource needs no confirmation, so
-    writing the code itself is where the user is asked."""
-    first = await _call(hass, "write_file", file=file, content="alert(1)")
+    """Registered as a resource it runs in every admin's browser. A confirmed
+    flag would not guard it: the agent writing the file sets that too."""
+    result = await _call(hass, "write_file", file=file, content="alert(1)", confirmed=True)
 
-    assert first["requires_confirmation"] is True
+    assert result["written"] is False
+    assert "HACS" in result["error"]
     assert not (config_dir / file).exists()
-
-    second = await _call(hass, "write_file", file=file, content="alert(1)", confirmed=True)
-
-    assert second["written"] is True
 
 
 async def test_code_outside_www_is_not_served_and_needs_no_confirmation(
@@ -93,7 +90,7 @@ async def test_code_outside_www_is_not_served_and_needs_no_confirmation(
     assert result["written"] is True
 
 
-async def test_an_install_without_approvals_is_not_asked(
+async def test_an_install_without_approvals_still_refuses_browser_code(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     with patch(
@@ -102,7 +99,8 @@ async def test_an_install_without_approvals_is_not_asked(
     ):
         result = await _call(hass, "write_file", file="www/card.js", content="x")
 
-    assert result["written"] is True
+    assert result["written"] is False
+    assert not (config_dir / "www" / "card.js").exists()
 
 
 @pytest.mark.parametrize(
@@ -300,14 +298,13 @@ async def test_a_folder_swapped_for_a_link_after_the_check_is_caught(
     assert list(outside.iterdir()) == []
 
 
-async def test_a_stylesheet_in_www_waits_for_confirmation(
-    hass: HomeAssistant, config_dir: Path
-) -> None:
+async def test_a_stylesheet_in_www_is_refused(hass: HomeAssistant, config_dir: Path) -> None:
     """Registered as a css resource it styles every page — and can carry what
     it reads off the page out through url() lookups."""
     result = await _call(hass, "write_file", file="www/russo.css", content="body{}")
 
-    assert result["requires_confirmation"] is True
+    assert result["written"] is False
+    assert not (config_dir / "www" / "russo.css").exists()
 
 
 async def test_backups_started_at_the_same_moment_both_land(
@@ -383,15 +380,15 @@ async def test_a_restore_over_a_file_needs_overwrite(hass: HomeAssistant, config
     assert (config_dir / restored["backup"]).read_text() == "v2\n"
 
 
-async def test_restored_browser_code_waits_for_confirmation(
-    hass: HomeAssistant, config_dir: Path
-) -> None:
-    await _call(hass, "write_file", file="www/card.js", content="1", confirmed=True)
+async def test_restored_browser_code_is_refused(hass: HomeAssistant, config_dir: Path) -> None:
+    """A backup of the user's own card is still code this tool would write."""
+    (config_dir / "www").mkdir(exist_ok=True)
+    (config_dir / "www" / "card.js").write_text("1", encoding="utf-8")
     deleted = await _call(hass, "delete_file", file="www/card.js")
 
     result = await _call(hass, "write_file", file="www/card.js", from_backup=deleted["backup"])
 
-    assert result.get("requires_confirmation") is True
+    assert result["written"] is False
     assert not (config_dir / "www" / "card.js").exists()
 
 

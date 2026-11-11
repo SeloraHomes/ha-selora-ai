@@ -585,12 +585,6 @@ class FlowResult(TypedDict, total=False):
     entry_id: str
 
 
-class AreaAssignmentResult(TypedDict):
-    """Return type of auto_assign_areas."""
-
-    assigned: list[dict[str, str]]
-
-
 class CleanupResult(TypedDict):
     """Return type of cleanup_mirror_devices."""
 

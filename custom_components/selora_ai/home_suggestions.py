@@ -49,6 +49,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import partial
 import json
 import logging
 from pathlib import Path
@@ -487,7 +488,9 @@ def _detect(
 
 async def _async_read_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
     path = Path(hass.config.config_dir) / "automations.yaml"
-    automations = await hass.async_add_executor_job(_read_automations_yaml, path)
+    automations = await hass.async_add_executor_job(
+        partial(_read_automations_yaml, path, tolerant=True)
+    )
     return [a for a in automations if isinstance(a, dict)]
 
 

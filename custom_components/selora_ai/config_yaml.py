@@ -1,9 +1,10 @@
 """Read and edit Home Assistant's YAML configuration over MCP.
 
-For what no API reaches: YAML-only integrations (``rest``, ``command_line``,
-``shell_command``, ``notify`` platforms …), packages, and theme files. Modelled
-on ha-mcp's ``ha_config_set_yaml`` — the same allowlist, the same two-step
-write — because a wrong write here can keep Home Assistant from booting.
+For what no API reaches: YAML-only integrations (``rest``, ``template``,
+``notify`` platforms …), packages, and theme files. Modelled on ha-mcp's
+``ha_config_set_yaml`` — its allowlist less the keys that run commands on the
+host, the same two-step write — because a wrong write here can keep Home
+Assistant from booting.
 
 Every write is guarded, in this order:
 
@@ -65,11 +66,9 @@ _ALLOWED_KEYS: Final = frozenset(
         "template",
         "sensor",
         "binary_sensor",
-        "command_line",
         "rest",
         "knx",
         "mqtt",
-        "shell_command",
         "switch",
         "light",
         "fan",
@@ -81,6 +80,10 @@ _ALLOWED_KEYS: Final = frozenset(
         "recorder",
     }
 )
+# Keys that run a command on the host. The preview token is no human
+# confirmation — the agent that asks for the edit sends the token back — so a
+# prompt-injected agent could add one and restart. The user adds these by hand.
+_HOST_COMMAND_KEYS: Final = frozenset({"shell_command", "command_line"})
 # Storage-mode equivalents exist (and Selora's own tools manage them), but a
 # packages workflow keeps them in YAML.
 _PACKAGES_ONLY_KEYS: Final = frozenset({"automation", "script", "scene"})
@@ -105,7 +108,6 @@ _RELOAD_SERVICES: Final[dict[str, str]] = {
     "mqtt": "mqtt.reload",
     "group": "group.reload",
     "rest": "rest.reload",
-    "command_line": "command_line.reload",
     "automation": "automation.reload",
     "script": "script.reload",
     "scene": "scene.reload",
@@ -482,6 +484,11 @@ def _check_target(kind: str, yaml_path: str) -> None:
         return
     allowed = _ALLOWED_KEYS | (_PACKAGES_ONLY_KEYS if kind == "package" else frozenset())
     if yaml_path not in allowed:
+        if yaml_path in _HOST_COMMAND_KEYS:
+            raise ConfigYamlError(
+                f"{yaml_path} runs commands on the host, so Selora does not write it. "
+                "Show the user the YAML to add to configuration.yaml themselves."
+            )
         hint = (
             " automation, script and scene are allowed in a package file only."
             if yaml_path in _PACKAGES_ONLY_KEYS
@@ -715,7 +722,7 @@ def _restored_paths(kind: str, old: str, new: str) -> list[str]:
     """What a restore changes, as the paths an edit names — each one checked.
 
     A restore writes a whole file, and backups also hold the user's own edits:
-    putting back a key they removed by hand (a ``shell_command``, ``http``
+    putting back a key they removed by hand (a ``rest`` sensor, ``http``
     settings) is an edit this tool may not make, so the allowlist every edit
     goes through holds for a restore too. Both sides must parse, or the change
     could be neither shown nor checked.

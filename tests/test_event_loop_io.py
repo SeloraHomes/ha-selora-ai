@@ -19,6 +19,7 @@ from typing import Any
 from homeassistant.setup import async_setup_component
 import pytest
 
+from custom_components.selora_ai.const import SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED
 from custom_components.selora_ai.providers.selora_local import SeloraLocalProvider
 from custom_components.selora_ai.providers.selora_local.utilities import rag
 from custom_components.selora_ai.recipes.const import RECIPE_BUNDLE_DIR
@@ -222,3 +223,42 @@ async def test_utilities_docs_load_before_the_payload_is_built(
     finally:
         provider.set_call_kind(None)
     assert "RELEVANT DOCS:" in payload["messages"][-1]["content"]
+
+
+async def test_ollama_prewarm_reads_the_docs_off_the_loop(
+    hass: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fused model's pre-warm renders each kind's request to drop repeats
+    before any request is sent, and that render retrieves docs.
+
+    Driven through ``prewarm`` from a cold cache: calling ``_prewarm_kinds``
+    directly has no coroutine on the stack, and a corpus another test already
+    loaded hides the first read.
+    """
+    monkeypatch.setattr(rag, "_selora_local_doc_chunks", None)
+    monkeypatch.setattr(rag, "_selora_local_docs_corpus", None)
+    read_on_loop: list[bool] = []
+    real_read = rag._selora_local_read_doc_records
+
+    def _read() -> list[tuple[str, frozenset[str], str]]:
+        read_on_loop.append(asyncio._get_running_loop() is not None)
+        return real_read()
+
+    monkeypatch.setattr(rag, "_selora_local_read_doc_records", _read)
+    provider = SeloraLocalProvider(
+        hass, host="hub.local", selora_local_backend=SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED
+    )
+
+    async def _no_discovery() -> None:
+        return None
+
+    async def _no_request(*_args: Any, **_kwargs: Any) -> tuple[str, None]:
+        return "", None
+
+    monkeypatch.setattr(provider, "_ensure_lora_discovery", _no_discovery)
+    monkeypatch.setattr(provider, "send_request", _no_request)
+    provider._unified_model_settled = True
+
+    await provider.prewarm([])
+
+    assert read_on_loop == [False]

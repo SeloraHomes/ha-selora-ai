@@ -6566,11 +6566,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 summary.get("configured_count", 0),
                 summary.get("available_count", 0),
             )
-            # Auto-assign areas (safe)
-            area_result = await device_mgr.auto_assign_areas()
-            if area_result.get("assigned"):
-                _LOGGER.info("Auto-assigned %d devices to areas", len(area_result["assigned"]))
-
             async_dispatcher_send(hass, SIGNAL_DEVICES_UPDATED)
 
             discovered_count = summary.get("discovered_count", 0)

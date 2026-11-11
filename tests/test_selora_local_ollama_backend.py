@@ -11,6 +11,7 @@ family constant plus deliberately fictional numbers.
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -79,6 +80,10 @@ def make(
 ) -> SeloraLocalProvider:
     hass = MagicMock()
     hass.states.async_all.return_value = []
+    # A real executor: pre-warm loads the prompts and docs through it.
+    hass.async_add_executor_job = lambda func, *args: asyncio.get_running_loop().run_in_executor(
+        None, func, *args
+    )
     provider = SeloraLocalProvider(
         hass, host=HOST, selora_local_backend=backend, selora_local_ollama_model=model
     )

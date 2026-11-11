@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from functools import partial
 import hashlib
 import json
 import logging
@@ -555,16 +556,28 @@ def _to_plain_types(obj: Any) -> Any:
     return obj
 
 
-def _read_automations_yaml(path: Path, *, strict: bool = False) -> list[AutomationDict]:
+class AutomationsYamlError(HomeAssistantError):
+    """automations.yaml exists but cannot be read as a list of automations.
+
+    A writer that took it for an empty file would write back only its own
+    entry and drop every automation the user has.
+    """
+
+
+def _read_automations_yaml(path: Path, *, tolerant: bool = False) -> list[AutomationDict]:
     """Read and parse automations.yaml (runs in executor).
 
     Uses ruamel.yaml to correctly parse double-quoted on/off/yes/no as
     strings (not booleans), then converts the result to plain Python types
     so ruamel internals never leak into HA or other serialisation paths.
-    ``strict`` re-raises a read or parse failure for a caller that must not
-    mistake an unreadable file for one without the entry it looks for.
+
+    Raises ``AutomationsYamlError`` when the file exists but cannot be read or
+    parsed as a list. ``tolerant`` logs it and returns ``[]`` instead, for a
+    caller that only displays or scores automations and never writes the
+    file back.
     """
     from ruamel.yaml import YAML
+    from ruamel.yaml.error import YAMLError
 
     if not path.exists():
         return []
@@ -572,14 +585,22 @@ def _read_automations_yaml(path: Path, *, strict: bool = False) -> list[Automati
         text = path.read_text(encoding="utf-8").strip()
         if not text or text == "[]":
             return []
-        ryaml = YAML()
-        data = ryaml.load(text)
+        data = YAML().load(text)
+    except (OSError, ValueError, YAMLError) as exc:
+        error = AutomationsYamlError(f"automations.yaml could not be read: {exc}")
+        error.__cause__ = exc
+    else:
+        if data is None:
+            # Comments or a document marker only.
+            return []
         if isinstance(data, list):
             return _to_plain_types(data)
-    except Exception as exc:
-        _LOGGER.error("Error reading automations.yaml: %s", exc)
-        if strict:
-            raise
+        error = AutomationsYamlError(
+            f"automations.yaml must hold a list, not {type(data).__name__}"
+        )
+    if not tolerant:
+        raise error
+    _LOGGER.error("%s", error)
     return []
 
 
@@ -609,7 +630,9 @@ async def async_yaml_automation_snapshots(
     if not automation_ids:
         return []
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    entries = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    entries = await hass.async_add_executor_job(
+        partial(_read_automations_yaml, automations_path, tolerant=True)
+    )
     by_id = {str(a["id"]): a for a in entries if isinstance(a, dict) and a.get("id")}
     snapshots: list[tuple[str, str, str]] = []
     for automation_id in automation_ids:
@@ -2882,7 +2905,13 @@ async def async_update_automation(
         # the read, the entry loop, or the pre-write dump would otherwise leak the
         # event-bus listener (it processes every service call until unsubscribed).
         try:
-            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+            try:
+                existing = await hass.async_add_executor_job(
+                    _read_automations_yaml, automations_path
+                )
+            except AutomationsYamlError as exc:
+                _LOGGER.error("Not updating automation %s: %s", automation_id, exc)
+                return False
 
             found = False
             for i, a in enumerate(existing):
@@ -3139,7 +3168,11 @@ async def async_create_automation(
             automation[key] = normalized[key]
 
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            _LOGGER.error("Not creating automation %s: %s", alias, exc)
+            return {"success": False, "automation_id": None, "error": str(exc)}
         restoring = bool(
             restore_id
             and not any(a.get("id") == restore_id for a in existing)
@@ -3204,7 +3237,11 @@ async def async_toggle_automation(
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            _LOGGER.error("Not toggling automation %s: %s", automation_id, exc)
+            return False
 
         found = False
         for automation in existing:
@@ -3255,7 +3292,11 @@ async def async_delete_automation(
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            _LOGGER.error("Not deleting automation %s: %s", automation_id, exc)
+            return False
 
         target = next((a for a in existing if a.get("id") == automation_id), None)
         if target is None:
@@ -3327,7 +3368,11 @@ async def async_delete_automations_batch(
     ids_to_remove = set(automation_ids)
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            _LOGGER.error("Not deleting automations: %s", exc)
+            return []
 
         targets = [a for a in existing if a.get("id") in ids_to_remove]
         if not targets:
@@ -3430,19 +3475,12 @@ async def async_cleanup_orphaned_entities(hass: HomeAssistant) -> list[str]:
     from homeassistant.helpers import entity_registry as er
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
-
-    # If the file exists and has non-trivial content but parsed as empty,
-    # it's likely a YAML error — bail out to avoid deleting valid entities.
-    if not existing and await hass.async_add_executor_job(automations_path.exists):
-        try:
-            raw = await hass.async_add_executor_job(automations_path.read_text, "utf-8")
-            raw = raw.strip()
-        except OSError:
-            raw = ""
-        if raw and raw != "[]":
-            _LOGGER.warning("Skipping orphan cleanup: automations.yaml may be unreadable")
-            return []
+    try:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    except AutomationsYamlError as exc:
+        # Every Selora entity would look orphaned against an unread file.
+        _LOGGER.warning("Skipping orphan cleanup: %s", exc)
+        return []
 
     yaml_ids = {str(a.get("id", "")) for a in existing}
 

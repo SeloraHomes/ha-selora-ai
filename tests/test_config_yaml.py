@@ -109,7 +109,7 @@ async def test_a_preview_writes_nothing_and_the_token_applies_it(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     arguments = {
-        "yaml_path": "shell_command",
+        "yaml_path": "utility_meter",
         "action": "add",
         "content": "pool_pump_boost: curl -X POST http://pump.local/boost\n",
     }
@@ -117,7 +117,7 @@ async def test_a_preview_writes_nothing_and_the_token_applies_it(
     preview = await _set(hass, **arguments)
 
     assert preview["written"] is False
-    assert "+shell_command:" in preview["diff"]
+    assert "+utility_meter:" in preview["diff"]
     assert (config_dir / "configuration.yaml").read_text() == CONFIG
 
     applied = await _set(hass, **arguments, confirm_token=preview["confirm_token"])
@@ -128,7 +128,7 @@ async def test_a_preview_writes_nothing_and_the_token_applies_it(
     # unindented list style included; only the new key is added.
     assert written.startswith(CONFIG)
     assert written[len(CONFIG) :] == (
-        "shell_command:\n  pool_pump_boost: curl -X POST http://pump.local/boost\n"
+        "utility_meter:\n  pool_pump_boost: curl -X POST http://pump.local/boost\n"
     )
     assert applied["post_action"] == "restart_required"
     backup = config_dir / applied["backup"]
@@ -138,7 +138,7 @@ async def test_a_preview_writes_nothing_and_the_token_applies_it(
 async def test_a_token_from_before_a_change_writes_nothing(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
-    arguments = {"yaml_path": "shell_command", "action": "add", "content": "x: echo x\n"}
+    arguments = {"yaml_path": "utility_meter", "action": "add", "content": "x: echo x\n"}
     preview = await _set(hass, **arguments)
     path = config_dir / "configuration.yaml"
     path.write_text(CONFIG + "\nrecorder:\n  purge_keep_days: 5\n", encoding="utf-8")
@@ -147,17 +147,17 @@ async def test_a_token_from_before_a_change_writes_nothing(
 
     assert stale["confirm_token_mismatch"] is True
     assert stale["written"] is False
-    assert "shell_command" not in path.read_text()
+    assert "utility_meter" not in path.read_text()
 
 
 async def test_the_token_is_bound_to_the_exact_request(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
-    preview = await _set(hass, yaml_path="shell_command", action="add", content="x: echo x\n")
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo x\n")
 
     other = await _set(
         hass,
-        yaml_path="shell_command",
+        yaml_path="utility_meter",
         action="add",
         content="x: rm -rf /\n",
         confirm_token=preview["confirm_token"],
@@ -182,7 +182,7 @@ async def test_an_error_that_was_already_there_does_not_block_the_edit(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     with patch.object(config_yaml, "_config_errors", return_value=Counter({"old problem": 1})):
-        result = await _apply(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+        result = await _apply(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
 
     assert result["written"] is True
 
@@ -235,9 +235,9 @@ async def test_add_appends_to_a_list(hass: HomeAssistant, config_dir: Path) -> N
 async def test_add_will_not_overwrite_a_mapping_entry(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
-    await _apply(hass, yaml_path="shell_command", action="add", content="x: echo 1\n")
+    await _apply(hass, yaml_path="utility_meter", action="add", content="x: echo 1\n")
 
-    result = await _set(hass, yaml_path="shell_command", action="add", content="x: echo 2\n")
+    result = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo 2\n")
 
     assert "use 'replace'" in result["error"]
 
@@ -373,7 +373,7 @@ async def test_home_assistants_own_check_rolls_back_a_broken_edit(
 ) -> None:
     """End to end with the real configuration check: a rest entry missing its
     resource is invalid, and the file is left as it was."""
-    original = "shell_command:\n  hello: echo hello\n"
+    original = "utility_meter:\n  hello: echo hello\n"
     (config_dir / "configuration.yaml").write_text(original, encoding="utf-8")
 
     result = await _apply(hass, yaml_path="rest", action="add", content="- method: GET\n")
@@ -387,8 +387,8 @@ async def test_a_problem_that_was_already_there_is_not_blamed_on_the_edit(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     """The check reports positions, and the edit moves the existing invalid
-    shell_command down a line; it is still the same problem, not a new one."""
-    original = "recorder:\n  purge_keep_days: 3\nshell_command: 5\n"
+    utility_meter down a line; it is still the same problem, not a new one."""
+    original = "recorder:\n  purge_keep_days: 3\nutility_meter: 5\n"
     (config_dir / "configuration.yaml").write_text(original, encoding="utf-8")
 
     result = await _apply(
@@ -439,11 +439,11 @@ async def test_a_file_changed_during_the_check_is_not_overwritten(
         path.write_text(CONFIG + "recorder:\n  purge_keep_days: 5\n", encoding="utf-8")
         return Counter()
 
-    preview = await _set(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
     with patch.object(config_yaml, "_config_errors", side_effect=_someone_edits):
         result = await _set(
             hass,
-            yaml_path="shell_command",
+            yaml_path="utility_meter",
             action="add",
             content="x: echo\n",
             confirm_token=preview["confirm_token"],
@@ -451,7 +451,7 @@ async def test_a_file_changed_during_the_check_is_not_overwritten(
 
     assert "changed while this edit was being checked" in result["error"]
     assert "purge_keep_days: 5" in path.read_text()
-    assert "shell_command" not in path.read_text()
+    assert "utility_meter" not in path.read_text()
 
 
 async def test_no_packages_folder_is_guessed(hass: HomeAssistant, config_dir: Path) -> None:
@@ -488,7 +488,7 @@ async def test_a_private_config_file_stays_private(hass: HomeAssistant, config_d
     path = config_dir / "configuration.yaml"
     path.chmod(0o600)
 
-    result = await _apply(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    result = await _apply(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
 
     assert path.stat().st_mode & 0o777 == 0o600
     backup = config_dir / result["backup"]
@@ -545,7 +545,7 @@ async def test_a_parse_error_does_not_quote_the_file(hass: HomeAssistant, config
     )
 
     read = await _get(hass)
-    write = await _set(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    write = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
 
     for result in (read, write):
         assert "does not parse at line" in result["error"]
@@ -647,13 +647,13 @@ async def test_a_huge_diff_is_cut_but_the_token_still_applies_the_whole_edit(
 ) -> None:
     commands = "".join(f"cmd_{i}: echo {'x' * 60} {i}\n" for i in range(400))
 
-    preview = await _set(hass, yaml_path="shell_command", action="add", content=commands)
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content=commands)
 
     assert preview["diff_truncated"] is True
     assert len(preview["diff"]) <= 12000
     applied = await _set(
         hass,
-        yaml_path="shell_command",
+        yaml_path="utility_meter",
         action="add",
         content=commands,
         confirm_token=preview["confirm_token"],
@@ -683,7 +683,7 @@ async def test_a_planted_temp_symlink_is_not_written_through(
     outside.write_text("untouched\n", encoding="utf-8")
     (config_dir / ".configuration.yaml.selora-tmp").symlink_to(outside)
 
-    result = await _apply(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    result = await _apply(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
 
     assert result["written"] is True
     assert outside.read_text() == "untouched\n"
@@ -703,11 +703,11 @@ async def test_a_save_during_the_backup_is_not_overwritten(
         path.write_text(theirs, encoding="utf-8")
         return real_backup(*args)
 
-    preview = await _set(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
     with patch.object(config_yaml, "_backup", side_effect=_backup_while_someone_saves):
         result = await _set(
             hass,
-            yaml_path="shell_command",
+            yaml_path="utility_meter",
             action="add",
             content="x: echo\n",
             confirm_token=preview["confirm_token"],
@@ -781,7 +781,7 @@ async def test_a_symlinked_backup_folder_is_refused(
     link.parent.mkdir(parents=True, exist_ok=True)
     link.symlink_to(outside)
 
-    result = await _apply(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    result = await _apply(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
 
     assert "symlink" in result["error"]
     assert list(outside.iterdir()) == []
@@ -837,7 +837,7 @@ async def test_home_assistants_own_messages_are_redacted(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     (config_dir / "configuration.yaml").write_text(
-        "shell_command:\n  hello: echo hello\n", encoding="utf-8"
+        "utility_meter:\n  hello: echo hello\n", encoding="utf-8"
     )
 
     result = await _apply(
@@ -906,16 +906,16 @@ async def test_a_crlf_file_keeps_its_line_endings(hass: HomeAssistant, config_di
     crlf = CONFIG.replace("\n", "\r\n")
     path.write_bytes(crlf.encode())
 
-    preview = await _set(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
     added = [
         line
         for line in preview["diff"].splitlines()
         if line.startswith("+") and not line.startswith("+++")
     ]
-    assert added == ["+shell_command:", "+  x: echo"]  # nothing but the new key
+    assert added == ["+utility_meter:", "+  x: echo"]  # nothing but the new key
     applied = await _set(
         hass,
-        yaml_path="shell_command",
+        yaml_path="utility_meter",
         action="add",
         content="x: echo\n",
         confirm_token=preview["confirm_token"],
@@ -923,19 +923,19 @@ async def test_a_crlf_file_keeps_its_line_endings(hass: HomeAssistant, config_di
 
     written = path.read_bytes().decode()
     assert applied["written"] is True
-    assert written == crlf + "shell_command:\r\n  x: echo\r\n"
+    assert written == crlf + "utility_meter:\r\n  x: echo\r\n"
 
 
 async def test_a_line_ending_only_change_invalidates_the_token(
     hass: HomeAssistant, config_dir: Path
 ) -> None:
     path = config_dir / "configuration.yaml"
-    preview = await _set(hass, yaml_path="shell_command", action="add", content="x: echo\n")
+    preview = await _set(hass, yaml_path="utility_meter", action="add", content="x: echo\n")
     path.write_bytes(CONFIG.replace("\n", "\r\n").encode())
 
     result = await _set(
         hass,
-        yaml_path="shell_command",
+        yaml_path="utility_meter",
         action="add",
         content="x: echo\n",
         confirm_token=preview["confirm_token"],
@@ -1157,3 +1157,16 @@ async def test_a_restore_keeps_the_rules_an_edit_has_for_values(
 
     assert "included from another file" in refused_include["error"]
     assert "the only value this tool writes there" in refused_themes["error"]
+
+
+@pytest.mark.parametrize("key", ["shell_command", "command_line"])
+async def test_a_key_that_runs_host_commands_is_refused(
+    hass: HomeAssistant, config_dir: Path, key: str
+) -> None:
+    """The token is sent back by the agent that asked for the edit, so it
+    confirms nothing a person saw: a command added here runs on the next restart."""
+    result = await _set(hass, yaml_path=key, action="add", content="x: echo hi\n")
+
+    assert "runs commands on the host" in result["error"]
+    assert "confirm_token" not in result
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG

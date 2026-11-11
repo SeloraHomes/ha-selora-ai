@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from custom_components.selora_ai.automation_utils import (
+    AutomationsYamlError,
     _collect_referenced_resources,
     _looks_like_spoken_text,
     _parse_automation_yaml,
@@ -27,8 +28,10 @@ from custom_components.selora_ai.automation_utils import (
     _tts_speak_speaker_error,
     _write_automations_yaml,
     assess_automation_risk,
+    async_cleanup_orphaned_entities,
     async_create_automation,
     async_delete_automation,
+    async_delete_automations_batch,
     async_toggle_automation,
     async_update_automation,
     build_service_feedback,
@@ -1889,16 +1892,74 @@ class TestReadAutomationsYaml:
         assert len(result) == 1
         assert result[0]["id"] == "a"
 
-    def test_invalid_yaml_returns_empty(self, tmp_path: Path) -> None:
+    def test_comment_only_file(self, tmp_path: Path) -> None:
         p = tmp_path / "automations.yaml"
-        p.write_text("{{invalid: yaml: [", encoding="utf-8")
+        p.write_text("# nothing yet\n", encoding="utf-8")
         assert _read_automations_yaml(p) == []
 
-    def test_yaml_dict_returns_empty(self, tmp_path: Path) -> None:
-        """If YAML parses to a dict instead of list, should return []."""
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "{{invalid: yaml: [",
+            "key: value\n",
+            "- id: a\n  alias: A\n  alias: B\n",
+        ],
+        ids=["syntax", "mapping", "duplicate_key"],
+    )
+    def test_unreadable_file_raises(self, tmp_path: Path, text: str) -> None:
+        """A writer must never mistake an unreadable file for an empty one."""
         p = tmp_path / "automations.yaml"
-        p.write_text("key: value\n", encoding="utf-8")
-        assert _read_automations_yaml(p) == []
+        p.write_text(text, encoding="utf-8")
+        with pytest.raises(AutomationsYamlError):
+            _read_automations_yaml(p)
+        assert _read_automations_yaml(p, tolerant=True) == []
+
+    def test_undecodable_file_raises(self, tmp_path: Path) -> None:
+        p = tmp_path / "automations.yaml"
+        p.write_bytes(b"- id: \xff\xfe\n")
+        with pytest.raises(AutomationsYamlError):
+            _read_automations_yaml(p)
+
+
+class TestUnreadableAutomationsYamlIsNeverRewritten:
+    """Every writer leaves an unreadable automations.yaml exactly as it was."""
+
+    _BROKEN = "- id: a\n  alias: Kept\n  alias: Duplicate\n- id: b\n  alias: Also kept\n"
+
+    @pytest.fixture
+    def broken(self, hass: MagicMock) -> Path:
+        path = Path(hass.config.config_dir) / "automations.yaml"
+        path.write_text(self._BROKEN, encoding="utf-8")
+        return path
+
+    @pytest.mark.asyncio
+    async def test_create(self, hass: MagicMock, broken: Path, _patch_store: MagicMock) -> None:
+        result = await async_create_automation(
+            hass,
+            {
+                "alias": "New",
+                "trigger": [{"platform": "time", "at": "09:00"}],
+                "action": [{"action": "light.turn_on"}],
+            },
+        )
+        assert result["success"] is False
+        assert broken.read_text(encoding="utf-8") == self._BROKEN
+
+    @pytest.mark.asyncio
+    async def test_update_toggle_delete(
+        self, hass: MagicMock, broken: Path, _patch_store: MagicMock
+    ) -> None:
+        assert not await async_update_automation(
+            hass, "a", {"alias": "x", "trigger": [], "action": []}
+        )
+        assert not await async_toggle_automation(hass, "a", "automation.a", False)
+        assert not await async_delete_automation(hass, "a")
+        assert await async_delete_automations_batch(hass, ["a", "b"]) == []
+        assert broken.read_text(encoding="utf-8") == self._BROKEN
+
+    @pytest.mark.asyncio
+    async def test_orphan_cleanup_removes_nothing(self, hass: MagicMock, broken: Path) -> None:
+        assert await async_cleanup_orphaned_entities(hass) == []
 
 
 # ===================================================================
