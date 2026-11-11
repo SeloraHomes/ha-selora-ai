@@ -1544,6 +1544,17 @@ _LOW_CONTEXT_FALLBACK_DOMAINS: tuple[str, ...] = (
     "fan",
     "vacuum",
     "scene",
+    "todo",
+)
+
+# Request words that only count as a WHOLE word in a name, slug or area,
+# never as a substring of a longer one. They are verbs and particles that
+# appear in commands of every kind, so a substring hit is noise: "off" in
+# ``switch.coffee_maker`` made "turn off the music" send the coffee maker
+# and drop the speaker, and "all" in "hallway", "set" in "sunset" and
+# "put" in "computer" do the same.
+_WHOLE_WORD_ONLY_KEYWORDS = frozenset(
+    {"on", "off", "turn", "all", "out", "set", "put", "add", "get", "run"}
 )
 
 # Per-keyword scoring weights for relevance ranking. Calibrated so a
@@ -1611,6 +1622,25 @@ _CATEGORY_KEYWORD_TO_DOMAIN: dict[str, str] = {
     "vacuums": "vacuum",
     "scene": "scene",
     "scenes": "scene",
+    # A to-do list is named for its owner or shop ("Personal Tasks",
+    # "Trader Joe's"), so "put apples on the shopping list" names nothing
+    # the entity carries. "to-do" needs no key: normalize() splits it into
+    # "to" and "do", which the tokenizer drops, and "list" carries it.
+    "todo": "todo",
+    "todos": "todo",
+    "list": "todo",
+    "lists": "todo",
+    "shopping": "todo",
+    "grocery": "todo",
+    "groceries": "todo",
+    "task": "todo",
+    "tasks": "todo",
+    "chores": "todo",
+    "music": "media_player",
+    "song": "media_player",
+    "songs": "media_player",
+    "radio": "media_player",
+    "playlist": "media_player",
 }
 
 # Multilingual category words for the shipped conversational locales
@@ -1750,6 +1780,54 @@ _CATEGORY_KEYWORD_TO_DOMAIN.update(
         "altoparlante": "media_player",
         "altoparlanti": "media_player",
         "televisore": "media_player",
+        "musique": "media_player",
+        "chanson": "media_player",
+        "chansons": "media_player",
+        "musik": "media_player",
+        "lied": "media_player",
+        "lieder": "media_player",
+        "wiedergabeliste": "media_player",
+        "música": "media_player",
+        "musica": "media_player",
+        "canción": "media_player",
+        "cancion": "media_player",
+        "canciones": "media_player",
+        "emisora": "media_player",
+        "canzone": "media_player",
+        "canzoni": "media_player",
+        "brano": "media_player",
+        "brani": "media_player",
+        # ── todo ──
+        "liste": "todo",
+        "listes": "todo",
+        "courses": "todo",
+        "tâche": "todo",
+        "tâches": "todo",
+        "tache": "todo",
+        "taches": "todo",
+        "corvée": "todo",
+        "corvées": "todo",
+        "corvee": "todo",
+        "corvees": "todo",
+        "einkaufsliste": "todo",
+        "einkaufslisten": "todo",
+        "einkauf": "todo",
+        "einkaufen": "todo",
+        "aufgabe": "todo",
+        "aufgaben": "todo",
+        "hausarbeit": "todo",
+        "hausarbeiten": "todo",
+        "lista": "todo",
+        "listas": "todo",
+        "compra": "todo",
+        "compras": "todo",
+        "tarea": "todo",
+        "tareas": "todo",
+        "quehaceres": "todo",
+        "spesa": "todo",
+        "compito": "todo",
+        "compiti": "todo",
+        "faccende": "todo",
         # ── vacuum ──
         "aspirateur": "vacuum",
         "aspirateurs": "vacuum",
@@ -2069,7 +2147,9 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
     eid_local = eid.split(".", 1)[-1] if "." in eid else eid
     fname = str((entity.get("attributes") or {}).get("friendly_name", "")).lower()
     fname_tokens = set(re.split(r"[^a-z0-9]+", fname)) - {""}
+    eid_tokens = set(re.split(r"[^a-z0-9]+", eid_local)) - {""}
     area = (entity.get("area_name") or "").lower()
+    area_tokens = set(re.split(r"[^a-z0-9]+", area)) - {""}
     # Device brand (populated for media_player in the snapshot). Lets a
     # request like "the Sonos" rank media_player.living_room_2 whose
     # friendly_name carries no brand, so it survives the entity cap.
@@ -2078,15 +2158,16 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
 
     score = 0
     for kw in keywords:
+        whole_word = kw in _WHOLE_WORD_ONLY_KEYWORDS
         if kw in fname_tokens:
             score += _SCORE_FNAME_TOKEN_HIT
-        elif kw in fname:
+        elif not whole_word and kw in fname:
             score += _SCORE_FNAME_SUBSTRING_HIT
-        if kw in eid_local:
+        if kw in eid_tokens if whole_word else kw in eid_local:
             score += _SCORE_ENTITY_ID_HIT
         if kw in brand_tokens:
             score += _SCORE_BRAND_HIT
-        if area and kw in area:
+        if kw in area_tokens if whole_word else area and kw in area:
             score += _SCORE_AREA_HIT
         # Category keyword (lights, switches, covers, …) → boost every
         # entity in the matching domain so plural/category phrasing
