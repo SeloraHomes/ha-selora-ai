@@ -96,6 +96,7 @@ from .telemetry import record_activity
 _LOGGER = logging.getLogger(__name__)
 
 _STORE_VERSION = 1
+_AUTO_FLAGGED_SINCE = "auto_flagged_since"
 
 
 def _suggestion_reference_ids(suggestion: dict[str, Any]) -> set[str]:
@@ -155,6 +156,9 @@ class PatternStore:
         for s in self._data["suggestions"].values():
             s.setdefault("dismissed_at", None)
             s.setdefault("dismissal_reason", None)
+        # A change is flagged ``auto`` only from this release on: one recorded
+        # before is unflagged whoever made it, so it is not the user's for sure.
+        self._data["meta"].setdefault(_AUTO_FLAGGED_SINCE, datetime.now(UTC).isoformat())
 
     async def _get_loaded_data(self) -> PatternStoreData:
         await self._ensure_loaded()
@@ -290,6 +294,13 @@ class PatternStore:
             return list(entries)
         cutoff = since.isoformat()
         return [e for e in entries if e["ts"] >= cutoff]
+
+    async def get_user_history(self, since: datetime) -> dict[str, list[StateChange]]:
+        """State history since *since* in which an unflagged change is the
+        user's: none from before changes were flagged as an automation's."""
+        data = await self._get_loaded_data()
+        flagged = dt_util.parse_datetime(data["meta"][_AUTO_FLAGGED_SINCE])
+        return await self.get_all_history(max(since, flagged) if flagged else since)
 
     async def get_all_history(self, since: datetime | None = None) -> dict[str, list[StateChange]]:
         """Return state history for all entities."""

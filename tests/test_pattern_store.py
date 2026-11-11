@@ -428,12 +428,12 @@ async def test_ensure_loaded_initialises_empty_store(hass):
         ps._store = store_inst
 
         data = await ps._get_loaded_data()
+        assert set(data.pop("meta")) == {"auto_flagged_since"}
         assert data == {
             "state_history": {},
             "patterns": {},
             "suggestions": {},
             "deleted_hashes": {},
-            "meta": {},
         }
 
 

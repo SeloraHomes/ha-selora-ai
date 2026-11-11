@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.core import HomeAssistant, State
 
@@ -1015,7 +1015,9 @@ _NO_THREAD_ADDRESS_NOTE = (
 def _devices_with_connection(
     devices: Iterable[DeviceEntry], addresses: set[str]
 ) -> list[tuple[DeviceEntry, str, str]]:
-    """Devices registering one of these addresses as a connection, any separators."""
+    """Devices registering one of these addresses as a connection, any
+    separators, or inside an identifier: Zigbee2MQTT registers a device by
+    ``("mqtt", "zigbee2mqtt_0x00158d…")`` and no connection at all."""
     if not addresses:
         return []
     found: list[tuple[DeviceEntry, str, str]] = []
@@ -1024,7 +1026,18 @@ def _devices_with_connection(
             plain = re.sub(r"[^0-9a-fA-F]", "", str(value)).upper()
             if plain in addresses:
                 found.append((device, str(kind), plain))
+                break
+        else:
+            for kind, value in device.identifiers:
+                inside = {a.upper() for a in _ADDRESS_IN_IDENTIFIER.findall(str(value))}
+                if hit := inside & addresses:
+                    found.append((device, str(kind), min(hit)))
+                    break
     return found
+
+
+# 16 hex digits standing alone in an identifier, as ``0x…`` or between words.
+_ADDRESS_IN_IDENTIFIER: Final = re.compile(r"(?<![0-9a-fA-F])([0-9a-fA-F]{16})(?![0-9a-fA-F])")
 
 
 _MISSING_MATTER_NODE_NOTE = (

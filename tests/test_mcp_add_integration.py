@@ -9,15 +9,18 @@ setup that asks for one is refused and its flow aborted.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock
 
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     MockModule,
+    async_fire_time_changed,
     mock_config_flow,
     mock_integration,
     mock_platform,
@@ -25,7 +28,13 @@ from pytest_homeassistant_custom_component.common import (
 import voluptuous as vol
 
 from custom_components.selora_ai.const import DOMAIN
-from custom_components.selora_ai.flow_sessions import keep_open, owner_of
+from custom_components.selora_ai.flow_sessions import (
+    HANDED_TTL,
+    async_close_all,
+    drop_handed,
+    keep_open,
+    owner_of,
+)
 from custom_components.selora_ai.mcp_server import access as mcp_access
 from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 from custom_components.selora_ai.mcp_server.names import TOOL_ADD_INTEGRATION
@@ -173,6 +182,42 @@ async def test_a_setup_asking_for_a_login_is_handed_to_the_user(
     assert "client_action" not in result
     assert owner_of(hass, flow["flow_id"]) is None
     assert not hass.config_entries.async_entries("cloudy")
+
+
+async def test_a_setup_left_on_its_card_is_ended(hass: HomeAssistant, cloud: None) -> None:
+    await _add(hass, domain="cloudy")
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=HANDED_TTL + 1))
+    await hass.async_block_till_done()
+
+    assert not hass.config_entries.flow.async_progress()
+
+
+async def test_a_declined_setup_card_ends_its_flow(hass: HomeAssistant, cloud: None) -> None:
+    result = await _add(hass, domain="cloudy")
+
+    drop_handed(hass, result["flow_id"])
+
+    # Asked again, the setup starts afresh instead of being already in progress.
+    assert not hass.config_entries.flow.async_progress()
+    again = await _add(hass, domain="cloudy")
+    assert again["status"] == "needs_user", again
+
+
+async def test_only_a_handed_flow_is_ended(hass: HomeAssistant, cloud: None) -> None:
+    other = await hass.config_entries.flow.async_init("cloudy", context={"source": "user"})
+
+    drop_handed(hass, other["flow_id"])
+
+    assert [f["flow_id"] for f in hass.config_entries.flow.async_progress()] == [other["flow_id"]]
+
+
+async def test_unloading_ends_a_handed_flow(hass: HomeAssistant, cloud: None) -> None:
+    await _add(hass, domain="cloudy")
+
+    async_close_all(hass)
+
+    assert not hass.config_entries.flow.async_progress()
 
 
 async def test_a_browser_sign_in_is_handed_to_the_user(hass: HomeAssistant) -> None:

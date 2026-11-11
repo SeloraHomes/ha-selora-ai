@@ -234,20 +234,32 @@ async def async_ignore_discovered(hass: HomeAssistant, flow_id: str) -> dict[str
             )
         }
     row = next(
-        r for r in await async_list_discovered(hass, flow["handler"]) if r["flow_id"] == flow_id
+        (r for r in await async_list_discovered(hass, flow["handler"]) if r["flow_id"] == flow_id),
+        None,
     )
+    # A device its own integration found too is left off the list, and its
+    # flow_id still works: named after its integration, as an untitled card is.
+    if row is not None:
+        title = row["title"]
+    else:
+        try:
+            title = sanitize_untrusted_text(
+                (await async_get_integration(hass, flow["handler"])).name, 80
+            )
+        except IntegrationNotFound:
+            title = sanitize_untrusted_text(flow["handler"], 80)
     context = ConfigFlowContext(source=SOURCE_IGNORE)
     if "discovery_key" in flow["context"]:
         context["discovery_key"] = flow["context"]["discovery_key"]
     await hass.config_entries.flow.async_init(
         flow["handler"],
         context=context,
-        data={"unique_id": flow["context"]["unique_id"], "title": row["title"]},
+        data={"unique_id": flow["context"]["unique_id"], "title": title},
     )
     return {
         "status": "ignored",
-        "domain": row["domain"],
-        "title": row["title"],
+        "domain": flow["handler"],
+        "title": title,
         "hint": "Settings → Devices & services lists it under Ignored, where it can be brought back.",
     }
 
@@ -601,9 +613,9 @@ async def async_add_integration(
     from .flow_sessions import (  # noqa: PLC0415
         async_drive,
         async_step_texts,
+        hand_off,
         held_step,
         owner_of,
-        release,
     )
     from .helper_flow import _DEDICATED  # noqa: PLC0415
 
@@ -727,9 +739,10 @@ async def async_add_integration(
     if held and confirming and fields is not None and not login:
         return {"domain": domain, **outcome, "status": "needs_steps", "hint": _STEPS_HINT}
     if login or (confirming and written is not None):
-        # Let go, not aborted: the card continues this very flow.
+        # The card continues this very flow; declining it, or leaving it,
+        # ends it.
         handed = str(outcome.get("flow_id"))
-        release(hass, handed, abort=False)
+        hand_off(hass, hass.config_entries.flow, handed, adopted=adopt)
         if written:
             _keep_steps(hass, handed, written)
         return _hand_over(
@@ -790,7 +803,7 @@ async def async_add_integration(
         and _picks_found(held_step(hass, str(outcome.get("flow_id") or "")).get("data_schema"))
     ):
         handed = str(outcome.get("flow_id"))
-        release(hass, handed, abort=False)
+        hand_off(hass, hass.config_entries.flow, handed, adopted=adopt)
         return {
             **_hand_over(domain, integration.name, outcome, _CHOICE_HINT, []),
             **{k: outcome[k] for k in ("configured",) if k in outcome},

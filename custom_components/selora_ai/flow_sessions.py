@@ -15,6 +15,11 @@ flow stays open between calls and is continued by its ``flow_id``:
   (``async_call_later``, never a task sleeping out the delay); when it fires,
   the flow is aborted, or it would linger in progress. Unloading the
   integration aborts every open flow and cancels the timers.
+* **One handed to the user is still ours to end** (``hand_off``). The card
+  posts to Home Assistant's own flow endpoint, so no step reaches us again:
+  one timer, longer than a step's, aborts it unless it finished, and declining
+  the card aborts it at once (``drop_handed``). Left in progress, a second
+  setup of the same device is refused as ``already_in_progress``.
 """
 
 from __future__ import annotations
@@ -40,7 +45,11 @@ _LOGGER = logging.getLogger(__name__)
 
 # A flow left between steps this long is aborted.
 FLOW_TTL: Final = 15 * 60
+# A flow handed to the user on a card is aborted this long after, unless it
+# finished: time to fetch a password or press a button on the device.
+HANDED_TTL: Final = 60 * 60
 _KEY: Final = "_open_flows"
+_HANDED_KEY: Final = "_handed_flows"
 
 
 @dataclass
@@ -113,11 +122,56 @@ def release(hass: HomeAssistant, flow_id: str | None, *, abort: bool) -> None:
                 held.manager.async_abort(flow_id)
 
 
+def _handed(hass: HomeAssistant) -> dict[str, tuple[Any, Callable[[], None]]]:
+    return hass.data.setdefault(DOMAIN, {}).setdefault(_HANDED_KEY, {})
+
+
+@callback
+def hand_off(hass: HomeAssistant, manager: Any, flow_id: str, *, adopted: bool) -> None:
+    """Let the user finish *flow_id* on a card, aborting it if left alone.
+
+    A discovery is never aborted: it goes back to the Discovered list.
+    """
+    if (held := _flows(hass).get(flow_id)) is not None:
+        adopted = adopted or held.adopted
+    release(hass, flow_id, abort=False)
+    handed = _handed(hass)
+    if previous := handed.pop(flow_id, None):
+        previous[1]()
+    if adopted:
+        return
+
+    @callback
+    def _expire(_now: Any) -> None:
+        if handed.pop(flow_id, None) is not None:
+            with contextlib.suppress(UnknownFlow):
+                manager.async_abort(flow_id)
+
+    expiry = HassJob(_expire, "selora_ai handed flow expiry", cancel_on_shutdown=True)
+    handed[flow_id] = (manager, async_call_later(hass, HANDED_TTL, expiry))
+
+
+@callback
+def drop_handed(hass: HomeAssistant, flow_id: str) -> None:
+    """End a flow handed to the user, as closing Home Assistant's dialog does.
+
+    Only a flow handed off here: any other flow_id is left alone.
+    """
+    if (held := _handed(hass).pop(flow_id, None)) is None:
+        return
+    manager, cancel_timer = held
+    cancel_timer()
+    with contextlib.suppress(UnknownFlow):
+        manager.async_abort(flow_id)
+
+
 @callback
 def async_close_all(hass: HomeAssistant) -> None:
-    """Abort every open flow and cancel its timer — on unload."""
+    """Abort every open or handed flow and cancel its timer — on unload."""
     for flow_id in list(_flows(hass)):
         release(hass, flow_id, abort=True)
+    for flow_id in list(_handed(hass)):
+        drop_handed(hass, flow_id)
 
 
 # ── Walking a flow across calls ────────────────────────────────────────────
@@ -273,7 +327,7 @@ async def async_drive(
         return {"done": result}
     browser = kind in ("external", "progress", "external_step", "show_progress")
     if browser and hand_over and flow_id:
-        release(hass, flow_id, abort=False)
+        hand_off(hass, manager, str(flow_id), adopted=adopted)
         return {"status": "needs_browser", "flow_id": str(flow_id), "step": result.get("step_id")}
     release(hass, flow_id, abort=True)
     # One refused at its first step was never held, so release left it open;

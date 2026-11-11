@@ -17,9 +17,9 @@ from custom_components.selora_ai.home_suggestions import (
 )
 from custom_components.selora_ai.pattern_store import PatternStore
 from custom_components.selora_ai.usage_suggestions import (
+    async_scene_rows,
     automation_idea_rows,
     scene_candidates,
-    scene_rows,
 )
 
 LAMPS = ("light.sofa", "light.reading", "light.ceiling")
@@ -78,7 +78,7 @@ def test_everything_off_is_not_a_scene() -> None:
 
 
 async def test_scene_row_names_each_device_and_state(lamps: HomeAssistant) -> None:
-    rows = scene_rows(lamps, _history([0, 1, 2]))
+    rows = await async_scene_rows(lamps, _history([0, 1, 2]))
     assert len(rows) == 1
     row = rows[0]
     assert row["type"] == "create_scene"
@@ -88,7 +88,7 @@ async def test_scene_row_names_each_device_and_state(lamps: HomeAssistant) -> No
 
 
 async def test_changes_an_automation_made_are_not_the_users(lamps: HomeAssistant) -> None:
-    assert scene_rows(lamps, _history([0, 1, 2], auto=True)) == []
+    assert await async_scene_rows(lamps, _history([0, 1, 2], auto=True)) == []
 
 
 async def test_changes_far_apart_are_not_one_action(lamps: HomeAssistant) -> None:
@@ -96,17 +96,17 @@ async def test_changes_far_apart_are_not_one_action(lamps: HomeAssistant) -> Non
     history["light.ceiling"] = [
         {"state": "off", "prev": "on", "ts": _at(day, 30).isoformat()} for day in (0, 1, 2)
     ]
-    assert scene_rows(lamps, history) == []
+    assert await async_scene_rows(lamps, history) == []
 
 
 async def test_an_existing_scene_covers_the_habit(lamps: HomeAssistant) -> None:
     lamps.states.async_set("scene.evening", "unknown", {"entity_id": list(LAMPS)})
-    assert scene_rows(lamps, _history([0, 1, 2])) == []
+    assert await async_scene_rows(lamps, _history([0, 1, 2])) == []
 
 
 async def test_a_dismissed_scene_is_left_out_before_the_cap(lamps: HomeAssistant) -> None:
-    first = scene_rows(lamps, _history([0, 1, 2]))[0]["suggestion_id"]
-    assert scene_rows(lamps, _history([0, 1, 2]), {first}) == []
+    first = (await async_scene_rows(lamps, _history([0, 1, 2])))[0]["suggestion_id"]
+    assert await async_scene_rows(lamps, _history([0, 1, 2]), {first}) == []
 
 
 def _pattern_suggestion(
@@ -177,3 +177,57 @@ async def test_snoozing_tells_the_pattern_store(hass: HomeAssistant, store: Patt
     suggestion = await store.get_suggestion("abc")
     assert suggestion["status"] == "snoozed"
     assert suggestion["snooze_until"] > dt_util.utcnow().isoformat()
+
+
+async def test_a_dismissed_idea_is_not_suggested_again(hass: HomeAssistant) -> None:
+    """Dismissed for good, not for the week the suggestion alone is suppressed."""
+    pattern_store = PatternStore(hass)
+    hass.data.setdefault(DOMAIN, {})["entry"] = {"pattern_store": pattern_store}
+    pattern_id = await pattern_store.save_pattern(
+        {  # type: ignore[typeddict-item]
+            "type": "time_based",
+            "confidence": 0.9,
+            "entity_ids": ["light.porch"],
+            "description": "Porch light on at 19:00",
+            "evidence": {"_signature": "light.porch:on@19:00"},
+        }
+    )
+    await pattern_store.save_suggestion(
+        {**_pattern_suggestion(), "pattern_id": pattern_id}  # type: ignore[typeddict-item]
+    )
+
+    await async_dismiss_home_suggestion(hass, "pattern:abc")
+
+    # Neither a rescan nor the backfill of active patterns brings it back.
+    assert not await pattern_store.get_patterns(status="active")
+    (pattern,) = await pattern_store.get_patterns()
+    assert pattern["status"] == "dismissed"
+
+
+async def test_changes_from_before_they_were_flagged_are_not_the_users(
+    lamps: HomeAssistant, store: PatternStore
+) -> None:
+    """An automation's change recorded before the ``auto`` flag existed looks
+    like the user's: the history read for scenes starts when flagging did."""
+    for entity_id, entries in _history([0, 1, 2]).items():
+        for e in entries:
+            await store.record_state_change(entity_id, e["state"], e["prev"], e["ts"])
+    data = await store._get_loaded_data()
+    data["meta"]["auto_flagged_since"] = (_at(2) + timedelta(hours=1)).isoformat()
+    since = _at(0) - timedelta(days=1)
+
+    assert await store.get_all_history(since)
+    assert await store.get_user_history(since) == {}
+
+
+async def test_a_group_and_its_members_are_one_device(lamps: HomeAssistant) -> None:
+    lamps.states.async_set("light.living", "off", {"entity_id": ["light.sofa", "light.reading"]})
+    settings = (("light.living", "on"), ("light.sofa", "on"), ("light.reading", "on"))
+
+    # Two lamps and their group, switched on together, are not a scene of 3.
+    assert await async_scene_rows(lamps, _history([0, 1, 2], settings)) == []
+    # With a third device, the scene holds the lamps, not the group too.
+    (row,) = await async_scene_rows(
+        lamps, _history([0, 1, 2], (*settings, ("light.ceiling", "off")))
+    )
+    assert {e["entity_id"] for e in row["entities"]} == set(LAMPS)
