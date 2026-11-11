@@ -110,19 +110,37 @@ class OnvifCamera:
         self._session = async_get_clientsession(hass)
         self._device_url = f"http://{host}:{port}/onvif/device_service"
         self._skew = timedelta()
+        # Some cameras (Uniview with HTTP authentication on Digest) want the
+        # login at the HTTP level too, besides the WS-Security one.
+        self._http_login: aiohttp.DigestAuthMiddleware | None = None
+        self._login: tuple[str, str] | None = None
+
+    async def _post(self, url: str, body: str, header: str) -> tuple[int, bytes, str]:
+        async with self._session.post(
+            url,
+            data=_envelope(body, header),
+            headers={"Content-Type": "application/soap+xml; charset=utf-8"},
+            timeout=_TIMEOUT,
+            **({"middlewares": (self._http_login,)} if self._http_login else {}),
+        ) as resp:
+            raw = await resp.content.read(_MAX_RESPONSE + 1)
+            return resp.status, raw, resp.headers.get("WWW-Authenticate", "")
 
     async def _call(self, url: str, body: str, header: str = "") -> ET.Element:
         try:
-            async with self._session.post(
-                url,
-                data=_envelope(body, header),
-                headers={"Content-Type": "application/soap+xml; charset=utf-8"},
-                timeout=_TIMEOUT,
-            ) as resp:
-                raw = await resp.content.read(_MAX_RESPONSE + 1)
-                status = resp.status
+            status, raw, challenge = await self._post(url, body, header)
+            if (
+                status == 401
+                and self._login
+                and self._http_login is None
+                and challenge.lower().startswith("digest")
+            ):
+                self._http_login = aiohttp.DigestAuthMiddleware(*self._login)
+                status, raw, challenge = await self._post(url, body, header)
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise OnvifError(f"the camera did not answer ONVIF: {exc}") from exc
+        if status == 401 and self._login:
+            raise OnvifAuthError("the camera refused the username or password")
         if len(raw) > _MAX_RESPONSE:
             raise OnvifError("the camera's answer was too large")
         try:
@@ -158,6 +176,8 @@ class OnvifCamera:
 
     async def async_profiles(self, username: str, password: str) -> list[Profile]:
         """Every media profile with its RTSP URI, largest first."""
+        # Before the clock: a camera asking for an HTTP login asks it for that too.
+        self._login = (username, password)
         await self._sync_clock()
 
         def auth() -> str:

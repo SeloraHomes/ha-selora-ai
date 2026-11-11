@@ -145,3 +145,43 @@ async def test_an_oversized_answer_is_refused(hass: HomeAssistant, aioclient_moc
 
     with pytest.raises(OnvifError, match="too large"):
         await OnvifCamera(hass, "192.168.1.60").async_profiles("admin", "pw")
+
+
+async def test_a_camera_wanting_an_http_login_gets_one(hass: HomeAssistant) -> None:
+    """Uniview with HTTP authentication on Digest answers 401 to every call
+    until the login comes at the HTTP level too, besides WS-Security."""
+    answers = {
+        "GetSystemDateAndTime": _clock(datetime.now(UTC)),
+        "GetCapabilities": _CAPABILITIES,
+        "GetProfiles": _PROFILES,
+        "GetStreamUri": _URI,
+    }
+    camera = OnvifCamera(hass, "192.168.1.60")
+    calls: list[bool] = []
+
+    async def _post(url: str, body: str, header: str) -> tuple[int, bytes, str]:
+        calls.append(camera._http_login is not None)
+        if camera._http_login is None:
+            return 401, b"<html>401</html>", 'Digest realm="IPC", nonce="n"'
+        text = next(t for op, t in answers.items() if f":{op}" in body)
+        return 200, text.encode(), ""
+
+    camera._post = _post  # type: ignore[method-assign]
+
+    profiles = await camera.async_profiles("frigate", "pw")
+
+    assert [p.token for p in profiles] == ["main", "sub"]
+    assert calls[:2] == [False, True]
+    assert calls.count(False) == 1
+
+
+async def test_an_http_login_refused_is_a_refused_login(hass: HomeAssistant) -> None:
+    camera = OnvifCamera(hass, "192.168.1.60")
+
+    async def _post(url: str, body: str, header: str) -> tuple[int, bytes, str]:
+        return 401, b"<html>401</html>", 'Digest realm="IPC", nonce="n"'
+
+    camera._post = _post  # type: ignore[method-assign]
+
+    with pytest.raises(OnvifAuthError):
+        await camera.async_profiles("frigate", "wrong")

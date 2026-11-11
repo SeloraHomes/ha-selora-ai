@@ -140,7 +140,9 @@ TOOL_ADD_INTEGRATION = ToolDef(
         "asks them to do something on the device (press its button, allow "
         "access in its app) or whether to go on without it: the answer asks "
         "you for `steps` to show on the card. A custom integration is "
-        "installed from HACS first. Helpers use create_helper."
+        "installed from HACS first. Helpers use create_helper. A camera at a "
+        "network address, ONVIF or not, is add_cameras_to_frigate when that tool "
+        "is offered: its card asks only for the login."
     ),
     params=(
         ToolParam(
@@ -2539,7 +2541,10 @@ TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
             name="hosts",
             type="array",
             items_type="string",
-            description="Only the cameras at these network addresses (IP or hostname).",
+            description=(
+                "Only the cameras at these network addresses (IP or hostname), with "
+                "the port as host:port when the user gave one."
+            ),
         ),
         ToolParam(
             name="stream_urls",

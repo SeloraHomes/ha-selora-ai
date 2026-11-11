@@ -54,7 +54,10 @@ async def test_only_local_addresses_named_in_chat_are_kept(hass: HomeAssistant) 
             return [(socket.AF_INET, 0, 0, "", ("192.168.1.71", 0))]
         raise OSError("unknown host")
 
-    with patch.object(hass.loop, "getaddrinfo", AsyncMock(side_effect=_resolve)):
+    with (
+        patch.object(hass.loop, "getaddrinfo", AsyncMock(side_effect=_resolve)),
+        patch.object(discovery, "async_ask_hosts", AsyncMock(return_value={})),
+    ):
         cameras = await async_user_cameras(
             hass, ["192.168.1.70", "8.8.8.8", "cam.local", "kitchen", "192.168.1.70"]
         )
@@ -235,3 +238,66 @@ async def test_a_second_network_does_not_crowd_out_the_lan(hass: HomeAssistant) 
 
     assert "192.168.2.192" in hosts and "10.42.42.2" in hosts
     assert len(hosts) == 506
+
+
+def test_uniview_is_known_by_its_model_alone() -> None:
+    match = (
+        _MATCH.replace("name/Garage%20Cam", "name/IPC2128LR3-DPF28LM-F")
+        .replace("hardware/RLC-810A", "hardware/IPC2128LR3-DPF28LM-F")
+        .replace("mfr/Reolink", "mfr/NVT")
+        .format(xaddrs="http://192.168.1.54:6109/onvif/device_service")
+    )
+
+    camera = parse_probe_match(match.encode())
+
+    assert camera is not None
+    assert (camera.name, camera.brand, camera.port) == ("IPC2128LR3-DPF28LM-F", "uniview", 6109)
+
+
+def test_reolinks_placeholder_and_dahuas_models_are_not_uniview() -> None:
+    assert discovery._brand("IPC-BO") is None
+    assert discovery._brand("IPC-HDW2431T Dahua") == "dahua"
+
+
+async def test_a_named_address_is_asked_for_its_port_and_maker(hass: HomeAssistant) -> None:
+    """The multicast probe stays on the hub's network; the camera is asked
+    directly, and its answer gives the port it serves ONVIF on."""
+    answer = NetworkCamera("192.168.1.54", 6109, "IPC2128LR3", "uniview", "onvif")
+    with patch.object(
+        discovery, "async_ask_hosts", AsyncMock(return_value={"192.168.1.54": answer})
+    ) as ask:
+        (camera,) = await async_user_cameras(hass, ["192.168.1.54"])
+
+    ask.assert_awaited_once_with(["192.168.1.54"])
+    assert camera == NetworkCamera("192.168.1.54", 6109, "IPC2128LR3", "uniview", "user")
+
+
+async def test_a_port_the_user_gave_beats_the_answer(hass: HomeAssistant) -> None:
+    answer = NetworkCamera("192.168.1.54", 80, "IPC2128LR3", "uniview", "onvif")
+    with patch.object(
+        discovery, "async_ask_hosts", AsyncMock(return_value={"192.168.1.54": answer})
+    ):
+        (camera,) = await async_user_cameras(hass, ["192.168.1.54:6109"])
+
+    assert (camera.host, camera.port, camera.brand) == ("192.168.1.54", 6109, "uniview")
+
+
+def test_a_port_is_split_from_an_address_only_when_it_is_one() -> None:
+    assert discovery.split_port("192.168.1.54:6109") == ("192.168.1.54", 6109)
+    assert discovery.split_port("192.168.1.54") == ("192.168.1.54", 0)
+    assert discovery.split_port("cam.local:nope") == ("cam.local:nope", 0)
+    assert discovery.split_port("fe80::1") == ("fe80::1", 0)
+
+
+def test_the_answer_is_kept_by_the_address_that_sent_it() -> None:
+    """A camera may name another address inside (behind NAT); the one asked
+    is the one it answers for."""
+    protocol = discovery._ProbeProtocol(frozenset({"192.168.1.54"}))
+
+    protocol.datagram_received(
+        _MATCH.format(xaddrs="http://10.0.0.9:6109/onvif/device_service").encode(),
+        ("192.168.1.54", 3702),
+    )
+
+    assert protocol.by_sender["192.168.1.54"].port == 6109
+    assert protocol.all_answered.is_set()

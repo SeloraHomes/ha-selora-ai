@@ -24,6 +24,7 @@ from custom_components.selora_ai.frigate.cameras import (
 from custom_components.selora_ai.frigate.client import FrigateClient, FrigateError
 from custom_components.selora_ai.frigate.discovery import NetworkCamera
 from custom_components.selora_ai.frigate.onvif import OnvifAuthError, OnvifError, Profile
+from custom_components.selora_ai.frigate.rtsp import RtspAuthError, RtspUnreachable
 from custom_components.selora_ai.home_suggestions import (
     async_dismiss_home_suggestion,
     async_home_suggestions,
@@ -410,10 +411,23 @@ def test_objects_are_labels_or_the_default() -> None:
 def no_probe() -> Any:
     """No test sends a WS-Discovery probe; the ones about network cameras
     say what it finds."""
-    with patch(
-        "custom_components.selora_ai.frigate.discovery.async_probe", AsyncMock(return_value=[])
-    ) as probe:
+    with (
+        patch(
+            "custom_components.selora_ai.frigate.discovery.async_probe", AsyncMock(return_value=[])
+        ) as probe,
+        patch(
+            "custom_components.selora_ai.frigate.discovery.async_ask_hosts",
+            AsyncMock(return_value={}),
+        ),
+    ):
         yield probe
+
+
+@pytest.fixture(autouse=True)
+def rtsp() -> Any:
+    """No test opens an RTSP connection; each camera serves nothing by default."""
+    with patch.object(frigate_setup, "async_describe", AsyncMock(return_value=404)) as describe:
+        yield describe
 
 
 async def _card(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -655,9 +669,14 @@ async def test_a_refused_login_writes_nothing_and_names_the_camera(
 
 
 async def test_a_reolink_without_onvif_uses_its_known_streams(
-    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, no_probe: AsyncMock
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    no_probe: AsyncMock,
+    rtsp: AsyncMock,
 ) -> None:
     no_probe.return_value = [_GARAGE]
+    rtsp.return_value = 200
     _frigate_api(aioclient_mock)
     action = await _card(hass, {})
 
@@ -1474,3 +1493,150 @@ def test_rtsps_is_read_through_ffmpeg_with_a_lowercase_scheme() -> None:
         "ffmpeg:rtsps://10.0.0.2:322/stream0#video=copy#audio=aac"
     )
     assert go2rtc_source("rtsp://10.0.0.2:554/stream0") == "rtsp://10.0.0.2:554/stream0"
+
+
+# ── A camera named by its address ─────────────────────────────────────────
+
+
+async def test_an_address_names_that_camera_alone(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """Home Assistant's other cameras are not on a card asked for one address:
+    pressing Add would have added them too."""
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    home.camera("Yard", "main", "rtsp://192.168.1.40/live")
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_EMPTY_CONFIG)
+
+    result = await ToolExecutor(hass, MagicMock(), is_admin=True).execute(
+        "add_cameras_to_frigate", {"hosts": ["192.168.1.54"]}
+    )
+    action = await _card(hass, {"hosts": ["192.168.1.54"]})
+
+    assert [c["address"] for c in action["cameras"]] == ["192.168.1.54"]
+    assert "skipped" not in result or result["skipped"] == []
+
+
+async def test_an_address_home_assistant_has_keeps_its_camera(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    home.camera("Yard", "main", "rtsp://192.168.1.40/live")
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_EMPTY_CONFIG)
+
+    action = await _card(hass, {"hosts": ["192.168.1.20"]})
+
+    assert [(c["source"], c["name"]) for c in action["cameras"]] == [("home_assistant", "Porch")]
+
+
+async def test_an_address_with_its_port_is_asked_on_that_port(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """Uniview serves ONVIF on its web port, which can be anything (6109)."""
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {"hosts": ["192.168.1.54:6109"]})
+    assert "skipped" not in action or not action["skipped"]
+    tried: list[str] = []
+
+    async def _profiles(self: Any, username: str, password: str) -> list[Profile]:
+        tried.append(self._device_url)
+        return _profiles_for("192.168.1.54")
+
+    with patch.object(frigate_setup.OnvifCamera, "async_profiles", _profiles):
+        result = await _confirm(
+            hass, action, {"192.168.1.54": {"username": "admin", "password": "p"}}
+        )
+
+    assert tried == ["http://192.168.1.54:6109/onvif/device_service"]
+    assert result["status"] == "added"
+
+
+async def test_the_port_a_named_camera_answers_with_is_used(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _frigate_api(aioclient_mock)
+    answer = NetworkCamera("192.168.1.54", 6109, "IPC2128LR3-DPF28LM-F", "uniview", "onvif")
+    tried: list[str] = []
+
+    async def _profiles(self: Any, username: str, password: str) -> list[Profile]:
+        tried.append(self._device_url)
+        return _profiles_for("192.168.1.54")
+
+    with (
+        patch(
+            "custom_components.selora_ai.frigate.discovery.async_ask_hosts",
+            AsyncMock(return_value={"192.168.1.54": answer}),
+        ),
+        patch.object(frigate_setup.OnvifCamera, "async_profiles", _profiles),
+    ):
+        action = await _card(hass, {"hosts": ["192.168.1.54"]})
+        result = await _confirm(
+            hass, action, {"192.168.1.54": {"username": "admin", "password": "p"}}
+        )
+
+    (row,) = action["cameras"]
+    assert (row["name"], row["brand"]) == ("IPC2128LR3-DPF28LM-F", "uniview")
+    assert tried == ["http://192.168.1.54:6109/onvif/device_service"]
+    assert result["status"] == "added"
+
+
+async def test_without_onvif_each_brands_stream_is_asked_for(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, rtsp: AsyncMock
+) -> None:
+    """A camera that says nothing about itself: the paths cameras are known to
+    serve are asked for in turn, and the one it serves is written."""
+    _frigate_api(aioclient_mock)
+    rtsp.side_effect = lambda host, port, path, *_: 200 if path.startswith("unicast/") else 404
+    action = await _card(hass, {"hosts": ["192.168.1.54"]})
+
+    with patch.object(
+        frigate_setup.OnvifCamera, "async_profiles", AsyncMock(side_effect=OnvifError("off"))
+    ):
+        result = await _confirm(
+            hass, action, {"192.168.1.54": {"username": "admin", "password": "p"}}
+        )
+
+    assert result["status"] == "added"
+    streams = _sent_config(aioclient_mock)["go2rtc"]["streams"]
+    assert list(streams.values()) == [
+        ["rtsp://admin:p@192.168.1.54:554/unicast/c1/s0/live"],
+        ["rtsp://admin:p@192.168.1.54:554/unicast/c1/s1/live"],
+    ]
+    assert rtsp.await_args_list[0].args[:3] == ("192.168.1.54", 554, "h264Preview_01_main")
+
+
+async def test_an_address_the_hub_cannot_reach_says_so(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, rtsp: AsyncMock
+) -> None:
+    """Not "turn ONVIF on": the camera is on a network the hub has no route to."""
+    _frigate_api(aioclient_mock)
+    rtsp.side_effect = RtspUnreachable("timed out")
+    action = await _card(hass, {"hosts": ["192.168.1.54"]})
+
+    with patch.object(
+        frigate_setup.OnvifCamera, "async_profiles", AsyncMock(side_effect=OnvifError("off"))
+    ):
+        result = await _confirm(
+            hass, action, {"192.168.1.54": {"username": "admin", "password": "p"}}
+        )
+
+    assert "cannot reach 192.168.1.54" in result["camera_errors"]["192.168.1.54"]
+    assert _sent_config(aioclient_mock) is None
+
+
+async def test_a_login_the_stream_refuses_is_reported(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, rtsp: AsyncMock
+) -> None:
+    _frigate_api(aioclient_mock)
+    rtsp.side_effect = RtspAuthError("refused")
+    action = await _card(hass, {"hosts": ["192.168.1.54"]})
+
+    with patch.object(
+        frigate_setup.OnvifCamera, "async_profiles", AsyncMock(side_effect=OnvifError("off"))
+    ):
+        result = await _confirm(
+            hass, action, {"192.168.1.54": {"username": "admin", "password": "wrong"}}
+        )
+
+    assert result["camera_errors"] == {
+        "192.168.1.54": "The camera refused this username or password."
+    }

@@ -293,6 +293,15 @@ Devices & services does.
     back in the report, and `client_action_result` checks that entry exists
     in that integration before it records anything. Sending users to Settings
     instead had them leave the chat for the one step it could not do.
+  - **A login step that also asks for what the model knows is filled first.**
+    When the step has a required field besides the login with no default (a
+    host, a name — not `_LOGIN_NAMES`), the call that reaches it answers
+    `needs_details`; the next call's `fields` are never submitted but become
+    the card's `prefill` (that step's own plain fields, never a login), and
+    the card opens with them in. Handed over at once, ONVIF's card was empty
+    although the user had just typed the camera's address. For `onvif`, a
+    given host is also asked directly (`async_ask_hosts`) for its ONVIF port
+    and name, since the form says 80 and a Uniview serves on its web port.
   - **Over MCP there is no card**, so the result carries `setup_url`:
     `?setup_flow=<flow_id>` on the panel (from `async_link_base`, the address
     a browser can reach), which `selora_ai/integration_setup_open` turns into

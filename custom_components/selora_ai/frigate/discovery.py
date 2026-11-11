@@ -41,6 +41,8 @@ _LOGGER = logging.getLogger(__name__)
 
 _MULTICAST: Final = ("239.255.255.250", 3702)
 _PROBE_WAIT: Final = 3.0
+# A probe sent to the addresses named in chat ends once each has answered.
+_ASK_WAIT: Final = 2.0
 _MAX_DATAGRAM: Final = 64 * 1024
 _CACHE: Final = "_frigate_network_cameras"
 SUGGESTION_CACHE: Final = "_frigate_suggestion_cache"
@@ -68,7 +70,10 @@ _CAMERA_DOMAINS: Final = {
 }
 _HOST_PLACEHOLDERS: Final = ("host", "ip_address", "ip", "address")
 _STREAM_SCHEMES: Final = frozenset({"rtsp", "rtsps", "rtspx", "rtmp", "rtmps", "http", "https"})
-_BRANDS: Final = ("reolink", "hikvision", "dahua", "amcrest")
+_BRANDS: Final = ("reolink", "hikvision", "dahua", "amcrest", "uniview")
+# Uniview names its cameras IPC followed by the model number ("IPC2128LR3");
+# Reolink's placeholder is "IPC-BO" and Dahua's models are "IPC-HDW…".
+_UNIVIEW_MODELS: Final = re.compile(r"\bIPC\d{3}", re.IGNORECASE)
 _REOLINK_MODELS: Final = re.compile(
     r"\b(E1|RLC|RLN|Lumus|Argus|TrackMix|Duo|CX\d|Elite|Go ?Plus)", re.IGNORECASE
 )
@@ -109,6 +114,8 @@ def _brand(text: str) -> str | None:
     if named is None and _REOLINK_MODELS.search(text):
         # Reolink names its hardware by model alone ("E1Zoom"), not by maker.
         return "reolink"
+    if named is None and (_UNIVIEW_MODELS.search(text) or re.search(r"\bunv\b", lowered)):
+        return "uniview"
     return named
 
 
@@ -163,12 +170,19 @@ def parse_probe_match(data: bytes) -> NetworkCamera | None:
 
 
 class _ProbeProtocol(asyncio.DatagramProtocol):
-    def __init__(self) -> None:
+    def __init__(self, waiting_for: frozenset[str] = frozenset()) -> None:
         self.found: dict[str, NetworkCamera] = {}
+        # The answer from each address, whatever address it names inside.
+        self.by_sender: dict[str, NetworkCamera] = {}
+        self._waiting_for = waiting_for
+        self.all_answered = asyncio.Event()
 
     def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
         if len(data) <= _MAX_DATAGRAM and (camera := parse_probe_match(data)) is not None:
             self.found.setdefault(camera.host, camera)
+            self.by_sender.setdefault(str(addr[0]), camera)
+            if self._waiting_for and self._waiting_for <= self.by_sender.keys():
+                self.all_answered.set()
 
 
 async def async_probe(
@@ -194,6 +208,38 @@ async def async_probe(
     finally:
         transport.close()
     return list(protocol.found.values())
+
+
+async def async_ask_hosts(hosts: list[str], wait: float = _ASK_WAIT) -> dict[str, NetworkCamera]:
+    """What each of these addresses answers to a probe sent to it, by address.
+
+    The multicast probe stays on the hub's own network; one sent to an
+    address crosses to another the hub can route to, and the answer names
+    the port the camera serves ONVIF on and who made it.
+    """
+    if not hosts:
+        return {}
+    loop = asyncio.get_running_loop()
+    try:
+        transport, protocol = await loop.create_datagram_endpoint(
+            lambda: _ProbeProtocol(frozenset(hosts)),
+            local_addr=("0.0.0.0", 0),  # noqa: S104 — replies come back here
+        )
+    except OSError as exc:
+        _LOGGER.debug("ONVIF probe could not open a socket: %s", exc)
+        return {}
+    try:
+        for host in hosts:
+            transport.sendto(_PROBE.format(message_id=uuid.uuid4()).encode(), (host, _MULTICAST[1]))
+        async with asyncio.timeout(wait):
+            await protocol.all_answered.wait()
+    except TimeoutError:
+        pass
+    except OSError as exc:
+        _LOGGER.debug("ONVIF probe could not be sent: %s", exc)
+    finally:
+        transport.close()
+    return {h: c for h, c in protocol.by_sender.items() if h in hosts}
 
 
 async def _local_hosts(hass: HomeAssistant) -> list[str]:
@@ -264,24 +310,47 @@ async def async_user_cameras(hass: HomeAssistant, hosts: list[str]) -> list[Netw
 
     A name must resolve to a local address: a model handed "the E1 Zoom from
     the Kitchen" passed "kitchen" as the address, and a dotless name looks
-    like a LAN hostname. The port is unknown (0) until the camera is asked.
+    like a LAN hostname. An address may carry its ONVIF port
+    ("192.168.1.54:6109"); otherwise the camera is asked for it, and a camera
+    that does not answer gets 0, for the known ports to be tried.
     """
     cameras: list[NetworkCamera] = []
     for given in dict.fromkeys(str(h).strip().lower() for h in hosts):
         if not given:
             continue
+        name, port = split_port(given)
         try:
-            ipaddress.ip_address(given)
-            address = given
+            ipaddress.ip_address(name)
+            address = name
         except ValueError:
             try:
-                infos = await hass.loop.getaddrinfo(given, None, family=socket.AF_INET)
+                infos = await hass.loop.getaddrinfo(name, None, family=socket.AF_INET)
             except OSError:
                 continue
             address = str(infos[0][4][0]) if infos else ""
         if address and is_local_host(address):
-            cameras.append(NetworkCamera(address, 0, given, None, "user"))
-    return cameras
+            cameras.append(NetworkCamera(address, port, name, None, "user"))
+    answers = await async_ask_hosts([c.host for c in cameras])
+    return [
+        NetworkCamera(
+            c.host,
+            c.port or answer.port,
+            answer.name if c.name == c.host else c.name,
+            answer.brand,
+            c.source,
+        )
+        if (answer := answers.get(c.host))
+        else c
+        for c in cameras
+    ]
+
+
+def split_port(given: str) -> tuple[str, int]:
+    """``host:port`` as its host and port; a bare host or IPv6 address has 0."""
+    if given.count(":") != 1:
+        return given, 0
+    host, _, port = given.partition(":")
+    return (host, int(port)) if port.isdigit() and 0 < int(port) < 65536 else (given, 0)
 
 
 def user_streams(urls: list[str]) -> list[NetworkCamera]:

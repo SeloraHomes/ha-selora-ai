@@ -17,6 +17,7 @@ hold the AI provider's credentials, which are never configured automatically.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
@@ -44,7 +45,7 @@ from homeassistant.loader import (
 import voluptuous as vol
 
 from .const import DOMAIN
-from .helper_flow import _FLOW_ERRORS, is_credential_name
+from .helper_flow import _FLOW_ERRORS, _describe_fields, is_credential_name
 from .helpers import sanitize_untrusted_text
 
 if TYPE_CHECKING:
@@ -477,9 +478,15 @@ def _keep_steps(hass: HomeAssistant, flow_id: str, steps: list[str]) -> None:
 
 
 def _hand_over(
-    domain: str, name: str, outcome: dict[str, Any], hint: str, steps: list[str]
+    domain: str,
+    name: str,
+    outcome: dict[str, Any],
+    hint: str,
+    steps: list[str],
+    prefill: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """A step for the user to fill in themselves, on a card in the chat."""
+    """A step for the user to fill in themselves, on a card in the chat,
+    with what is already known of it filled in."""
     flow_id = str(outcome["flow_id"])
     return {
         "requires_approval": True,
@@ -492,9 +499,79 @@ def _hand_over(
             "domain": domain,
             "label": sanitize_untrusted_text(name, 80),
             **({"steps": steps} if steps else {}),
+            **({"prefill": prefill, "prefill_step": outcome.get("step")} if prefill else {}),
         },
         "hint": hint,
     }
+
+
+_DETAILS_HINT: Final = (
+    "This step also takes a login, which the user types on the setup card. "
+    "Call again with this flow_id and `fields` holding only the other fields "
+    "you know from the conversation (the address, a name), never the login, "
+    "and nothing you would have to guess: the card opens with them filled in. "
+    "With none known, call again with `fields` {}."
+)
+_PREFILL_MAX: Final = 200
+# The other half of a login: the user's to type with the password.
+_LOGIN_NAMES: Final = frozenset({"username", "user", "user_name", "login", "email", "account"})
+
+
+def _fillable(fields: list[dict[str, Any]]) -> bool:
+    """Whether a login step has a required field besides the login with no
+    default: one the model may already know (a host, a name)."""
+    return any(
+        f.get("required")
+        and "default" not in f
+        and "is_set" not in f
+        and str(f.get("name") or "").lower() not in _LOGIN_NAMES
+        for f in fields
+        if "name" in f
+    )
+
+
+async def _prefill(
+    hass: HomeAssistant, domain: str, values: dict[str, Any], fields: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """The values given for a login step that the card may show: its own
+    fields, never a login, plain values only."""
+    named = {f["name"]: f for f in fields if "name" in f}
+    prefill: dict[str, Any] = {}
+    for key, value in values.items():
+        field_ = named.get(str(key))
+        if (
+            field_ is None
+            or "is_set" in field_
+            or is_credential_name(str(key))
+            or str(key).lower() in _LOGIN_NAMES
+        ):
+            continue
+        if isinstance(value, str):
+            prefill[str(key)] = sanitize_untrusted_text(value, _PREFILL_MAX)
+        elif isinstance(value, bool | int | float):
+            prefill[str(key)] = value
+    if domain == "onvif" and "port" in named and "port" not in prefill:
+        prefill.update(await _onvif_answer(str(prefill.get("host") or ""), named))
+    return prefill
+
+
+async def _onvif_answer(host: str, named: dict[str, Any]) -> dict[str, Any]:
+    """The port an ONVIF camera serves on, and its name, from the camera: the
+    form's default port is 80, and a camera may serve on any (Uniview: its
+    web port). A camera that does not answer leaves the form as it is."""
+    from .frigate.discovery import async_ask_hosts  # noqa: PLC0415
+
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return {}
+    answer = (await async_ask_hosts([host])).get(host)
+    if answer is None:
+        return {}
+    said: dict[str, Any] = {"port": answer.port}
+    if "name" in named and answer.name and answer.name != host:
+        said["name"] = sanitize_untrusted_text(answer.name, 60)
+    return said
 
 
 _CHOICE_HINT: Final = (
@@ -660,6 +737,18 @@ async def async_add_integration(
                 if owner_of(hass, row["flow_id"]) is None
             ],
         }
+    held_fields = (
+        _describe_fields(held_step(hass, str(flow_id)).get("data_schema"))
+        if flow_id and owner_of(hass, str(flow_id)) == ("integration", domain)
+        else []
+    )
+    held_login = _asks_for_credential(held_fields)
+    prefill: dict[str, Any] = {}
+    if held_login and fields is not None:
+        # The login step is the card's: what the model knows of its other
+        # fields is shown filled in there, never submitted.
+        prefill = await _prefill(hass, domain, fields, held_fields)
+        fields = None
     withheld = bool(fields) and _carries_credential(fields or {})
     if withheld:
         # Never submitted: the step is described again, and goes to the card.
@@ -733,6 +822,10 @@ async def async_add_integration(
     # Assistant only says what to allow, not where on the device, so the model
     # is asked for those steps first (the flow stays held), and the card shows
     # them.
+    if login and not held_login and _fillable(outcome.get("fields") or []):
+        # Reached just now: the model fills what it knows (the address it was
+        # given) before the card asks the user for the login and the rest.
+        return {"domain": domain, **outcome, "status": "needs_details", "hint": _DETAILS_HINT}
     held = bool(flow_id) and not adopt
     confirming = outcome.get("status") == "needs_confirmation"
     written = _clean_steps(steps) if held and fields is None and steps is not None else None
@@ -751,6 +844,7 @@ async def async_add_integration(
             outcome,
             _LOGIN_HINT if login else _DEVICE_HINT,
             written or [],
+            prefill,
         )
     if not flow_id and "done" not in outcome and "error" not in outcome:
         # What the user may mean is already found, or already set up: a step

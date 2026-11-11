@@ -141,13 +141,26 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   first (`GetSystemDateAndTime`, unauthenticated) so the WS-Security timestamp
   matches it, then the media service, the profiles with their resolutions, and
   each profile's RTSP URI. The largest profile is recorded, the smallest is
-  detected on. A camera named by address has no known ONVIF port, so 80, 8000
-  (Reolink), 8080 and 2020 (Tapo) are tried in turn; a refused login ends the
-  search. A name given as an address must resolve to a local IP — a model once
-  passed a room name — and a rejected one is answered with the cameras the scan
-  found. A camera that does not answer ONVIF falls back to its brand's known
-  paths (Reolink, Hikvision, Dahua/Amcrest) when the brand is known; Reolink is
-  recognised by its model names too, since its hardware scope omits the maker.
+  detected on. A camera named by address is asked directly with a WS-Discovery
+  probe (`async_ask_hosts`): the multicast scan never leaves the hub's network,
+  but a probe sent to one address reaches another network the hub routes to,
+  and the answer gives the ONVIF port (Uniview serves it on its web port, which
+  can be anything) and the maker. A port the user gave (`host:port`) wins. A
+  camera that does not answer the probe is tried on 80, 8000 (Reolink), 8080
+  and 2020 (Tapo) in turn; a refused login ends the search. A name given as an
+  address must resolve to a local IP — a model once passed a room name — and a
+  rejected one is answered with the cameras the scan found.
+- **Without ONVIF, the known paths are asked over RTSP** (`frigate/rtsp.py`, one
+  DESCRIBE with the card's login): the brand's when known (Reolink, Hikvision,
+  Dahua/Amcrest, Uniview — Reolink and Uniview are recognised by model names
+  too, since their scopes often omit the maker), otherwise each brand's until
+  the camera answers 200. Its answer also tells the errors apart: nothing
+  answering at the address is "the hub cannot reach it" (another network),
+  not "turn ONVIF on", which sent a user to a setting that was already on.
+- **Naming a camera asks for that camera alone.** With `hosts` or `stream_urls`
+  and no `entity_ids`, Home Assistant's other cameras are neither on the card
+  nor listed as skipped: the card adds everything on it, and a user who named
+  one address once got two more cameras on it.
   HA's own ONVIF library is an integration requirement, installed only once
   that integration is set up, so it is not used.
 - **A camera without ONVIF** (Wyze, many cheap cameras) is added from the stream
