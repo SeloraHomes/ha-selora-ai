@@ -31,6 +31,7 @@ from custom_components.selora_ai.const import DOMAIN
 from custom_components.selora_ai.flow_sessions import (
     HANDED_TTL,
     async_close_all,
+    async_restart_handed,
     drop_handed,
     keep_open,
     owner_of,
@@ -209,6 +210,42 @@ async def test_only_a_handed_flow_is_ended(hass: HomeAssistant, cloud: None) -> 
 
     drop_handed(hass, other["flow_id"])
 
+    assert [f["flow_id"] for f in hass.config_entries.flow.async_progress()] == [other["flow_id"]]
+
+
+async def test_check_again_hands_off_the_new_flow(hass: HomeAssistant, cloud: None) -> None:
+    """Started from the browser, the restarted flow was ours to end no more:
+    declining the card left it in progress."""
+    card = (await _add(hass, domain="cloudy"))["flow_id"]
+
+    restarted = await async_restart_handed(hass, card)
+
+    (flow,) = hass.config_entries.flow.async_progress()
+    assert restarted == {"flow_id": flow["flow_id"]}
+    assert flow["flow_id"] != card
+    # Declined with the card's own flow_id: the new flow is the one ended.
+    drop_handed(hass, card)
+    assert not hass.config_entries.flow.async_progress()
+
+
+async def test_a_restarted_flow_left_alone_is_ended(hass: HomeAssistant, cloud: None) -> None:
+    card = (await _add(hass, domain="cloudy"))["flow_id"]
+    await async_restart_handed(hass, card)
+    await async_restart_handed(hass, card)
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=HANDED_TTL + 1))
+    await hass.async_block_till_done()
+
+    assert not hass.config_entries.flow.async_progress()
+    assert not hass.data[DOMAIN]["_handed_flow_aliases"]
+
+
+async def test_only_a_handed_flow_is_restarted(hass: HomeAssistant, cloud: None) -> None:
+    other = await hass.config_entries.flow.async_init("cloudy", context={"source": "user"})
+
+    result = await async_restart_handed(hass, other["flow_id"])
+
+    assert "error" in result
     assert [f["flow_id"] for f in hass.config_entries.flow.async_progress()] == [other["flow_id"]]
 
 

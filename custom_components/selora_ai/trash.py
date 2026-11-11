@@ -295,7 +295,10 @@ async def _restore_automation(hass: HomeAssistant, entry: dict[str, Any]) -> Non
     )
     from .helpers import get_automation_store, is_selora_automation  # noqa: PLC0415
 
-    automation_id = entry.get("id")
+    # A string, as _read_automations_yaml returns every id: an entry trashed
+    # from a hand-written `id: 17000…` may still hold the number.
+    raw_id = entry.get("id")
+    automation_id = str(raw_id) if raw_id is not None else None
     path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
         try:

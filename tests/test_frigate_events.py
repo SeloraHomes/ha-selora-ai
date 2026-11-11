@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -12,6 +13,8 @@ from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.selora_ai.const import DOMAIN
+from custom_components.selora_ai.frigate import events as frigate_events
 from custom_components.selora_ai.frigate.events import (
     async_find_events,
     async_known_names,
@@ -729,6 +732,24 @@ async def test_a_frigate_that_does_not_answer_names_nobody(
     aioclient_mock.get(f"{FRIGATE}/api/config", exc=TimeoutError)
 
     assert await async_known_names(hass) == []
+
+
+async def test_a_failed_lookup_is_retried_long_before_the_ttl(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """A Frigate that missed one call must not hide whom it knows for 5 minutes."""
+    aioclient_mock.get(f"{FRIGATE}/api/config", exc=TimeoutError)
+    assert await async_known_names(hass) == []
+    aioclient_mock.clear_requests()
+    _api(aioclient_mock, [], {**_CONFIG, "face_recognition": {"enabled": True}})
+    aioclient_mock.get(f"{FRIGATE}/api/faces", json={"Alice": ["a.webp"]})
+
+    deadline, _ = hass.data[DOMAIN][frigate_events._NAMES_CACHE]
+    assert deadline - time.monotonic() <= frigate_events._NAMES_RETRY
+    # As if the retry window ran out.
+    hass.data[DOMAIN][frigate_events._NAMES_CACHE] = (time.monotonic() - 1, [])
+
+    assert "Alice" in await async_known_names(hass)
 
 
 def test_the_chat_context_says_whom_the_cameras_recognise(hass: HomeAssistant) -> None:

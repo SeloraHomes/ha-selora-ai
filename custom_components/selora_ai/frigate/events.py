@@ -121,6 +121,10 @@ _NOT_YET: Final = (
 # asks, and a Frigate that is slow or restarting must not hold the turn up.
 _NAMES_CACHE: Final = "_frigate_known_names"
 _NAMES_TTL: Final = 300
+# A failed lookup is kept briefly: long enough that every chat turn does not
+# wait _NAMES_WAIT on a Frigate that is down, short enough that a hiccup does
+# not hide the known names for the full TTL.
+_NAMES_RETRY: Final = 30
 _NAMES_WAIT: Final = 2.0
 _MAX_NAMES: Final = 50
 # How long after an object leaves its description can still be on its way.
@@ -572,12 +576,13 @@ async def async_known_names(hass: HomeAssistant) -> list[str]:
     """
     domain_data = hass.data.setdefault(DOMAIN, {})
     cached = domain_data.get(_NAMES_CACHE)
-    if cached is not None and time.monotonic() - cached[0] < _NAMES_TTL:
+    if cached is not None and time.monotonic() < cached[0]:
         return list(cached[1])
     client = FrigateClient.from_hass(hass)
     if client is None:
         return []
     names: list[str] = []
+    ttl = _NAMES_TTL
     try:
         async with asyncio.timeout(_NAMES_WAIT):
             config = await client.get_config()
@@ -588,8 +593,9 @@ async def async_known_names(hass: HomeAssistant) -> list[str]:
                 names += [sanitize_untrusted_text(str(n), 60) for n in plates]
     except (FrigateError, TimeoutError) as exc:
         _LOGGER.debug("Frigate's known names unavailable: %s", exc)
+        ttl = _NAMES_RETRY
     names = list(dict.fromkeys(n for n in names if n))[:_MAX_NAMES]
-    domain_data[_NAMES_CACHE] = (time.monotonic(), names)
+    domain_data[_NAMES_CACHE] = (time.monotonic() + ttl, names)
     return names
 
 

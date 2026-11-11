@@ -29,6 +29,13 @@ Admin-only, always on, MCP only.
   stay out.
 - **A key whose value is an `!include` is refused** — its content is in the other
   file, and replacing the tag would orphan it.
+- **No new tag in written content** (`_new_tag`): `!secret`, `!include*` and
+  `!env_var` make HA read a value the diff never shows, and a `rest` entry sends
+  it to its `resource` on `rest.reload` — the same self-confirmed-token problem
+  as host commands. A tag already in the file may be carried along unchanged;
+  inside a list, the whole item must match one already there, since keeping the
+  `!secret` while changing the item's URL is the leak. So an entry holding a
+  secret is the user's to edit.
 - **Two steps.** Without `confirm_token` nothing is written; the result carries
   the diff and a token = hash(path, current file bytes, action, key, content). The
   same request with that token writes; a changed file or request gets a fresh

@@ -14,8 +14,12 @@ import { interpolate } from "../shared/i18n.js";
 
 // The card's flow_id → { flowId, status, step, values, texts, error }, where
 // flowId is the flow it is on now: Check again starts another. In memory only: a login
-// typed on the card is never saved, and a reload reads the step again.
+// typed on the card is never saved, and a reload reads the step again. A card
+// that is done keeps only that it is gone, so what was typed on it (a
+// password) does not stay for the life of the tab; the oldest cards go first
+// past MAX_FLOWS, and one drawn again reads its step again.
 const FLOWS = new Map();
+const MAX_FLOWS = 20;
 
 /** Another step to fill in: the card stays open, showing it. */
 export class SetupStepError extends Error {}
@@ -66,23 +70,39 @@ function show(state, step) {
   if (step.type === "menu") state.values = {};
 }
 
+/** The card is done: keep that it is gone, and its words while it still
+ * shows a reason with Check again, never what was typed on it. */
+function retire(state, { keepTexts = false } = {}) {
+  state.status = "gone";
+  state.values = {};
+  state.step = undefined;
+  if (!keepTexts) state.texts = {};
+}
+
+/** The card was declined: its setup is over, whatever it was showing. */
+export function forgetIntegrationSetup(cardId) {
+  const state = FLOWS.get(String(cardId || ""));
+  if (state) {
+    retire(state);
+    state.stuck = false;
+  }
+}
+
 /** Read the step the flow is on, once per flow; the card redraws when it lands. */
 function load(host, action) {
   const flowId = String(action.flow_id || "");
   if (FLOWS.has(flowId)) return FLOWS.get(flowId);
   const state = { flowId, status: "loading", values: {}, texts: {} };
   FLOWS.set(flowId, state);
-  Promise.all([
-    host.hass.callApi("GET", `config/config_entries/flow/${flowId}`),
-    readTexts(host.hass, action.domain),
-  ])
-    .then(([step, texts]) => {
-      state.texts = texts;
+  while (FLOWS.size > MAX_FLOWS) FLOWS.delete(FLOWS.keys().next().value);
+  host.hass
+    .callApi("GET", `config/config_entries/flow/${flowId}`)
+    // The words only for a step there is to show.
+    .then(async (step) => {
+      state.texts = await readTexts(host.hass, action.domain);
       show(state, step);
     })
-    .catch(() => {
-      state.status = "gone";
-    })
+    .catch(() => retire(state))
     .finally(() => host.requestUpdate?.());
   return state;
 }
@@ -151,7 +171,7 @@ export async function submitIntegrationSetup(hass, action) {
     if (acted) {
       // What the user did on the device was not enough for this setup: the
       // card stays, with the reason and a fresh start.
-      state.status = "gone";
+      retire(state, { keepTexts: true });
       state.error = reason;
       state.stuck = true;
       throw new SetupStepError(reason);
@@ -177,6 +197,10 @@ export async function submitIntegrationSetup(hass, action) {
  * move the setup on: most such steps (a TV's Allow prompt) are retried by
  * Continue, and starting over loses a discovered device's address. Pressed
  * by the user, as closing Home Assistant's own dialog ends a flow.
+ *
+ * The server starts it, not this card: the new flow is handed off as the
+ * first was, so declining the card (which names the card's flow_id) or
+ * leaving it ends the new one too.
  */
 async function restart(host, action, state) {
   state.status = "loading";
@@ -184,33 +208,31 @@ async function restart(host, action, state) {
   state.stuck = false;
   host.requestUpdate?.();
   try {
-    await host.hass.callApi(
-      "DELETE",
-      `config/config_entries/flow/${state.flowId}`,
-    );
-  } catch {
-    // Already ended: starting afresh is all that is left.
-  }
-  try {
-    const step = await host.hass.callApi("POST", "config/config_entries/flow", {
-      handler: action.domain,
-      show_advanced_options: false,
+    const started = await host.hass.callWS({
+      type: "selora_ai/integration_setup_restart",
+      flow_id: String(action.flow_id || ""),
     });
-    state.flowId = step.flow_id;
-    if (step.type === "abort") {
-      state.status = "gone";
+    if (started.reason) {
       state.error =
         text(
           state,
           action,
-          `abort.${step.reason}`,
-          step.description_placeholders,
-        ) || step.reason;
+          `abort.${started.reason}`,
+          started.description_placeholders,
+        ) || started.reason;
+      retire(state);
     } else {
-      show(state, step);
+      state.flowId = started.flow_id;
+      show(
+        state,
+        await host.hass.callApi(
+          "GET",
+          `config/config_entries/flow/${started.flow_id}`,
+        ),
+      );
     }
   } catch (err) {
-    state.status = "gone";
+    retire(state);
     state.error = err?.body?.message || err?.message || String(err);
   }
   host.requestUpdate?.();

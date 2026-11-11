@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { runClientAction } from "../client-actions.js";
-import { renderIntegrationSetupRow } from "../integration-setup.js";
+import {
+  forgetIntegrationSetup,
+  renderIntegrationSetupRow,
+} from "../integration-setup.js";
 
 function flatten(node) {
   if (node == null || typeof node === "boolean") return "";
@@ -202,6 +205,29 @@ describe("integration setup card", () => {
     vi.unstubAllGlobals();
   });
 
+  it("forgets what was typed once the card is declined", async () => {
+    const { host, action } = setup([]);
+    await loaded(host, action);
+    const typed = handlers(renderIntegrationSetupRow(host, action));
+    typed[1]({ target: { value: "hunter2" } });
+    expect(JSON.stringify(renderIntegrationSetupRow(host, action))).toContain(
+      "hunter2",
+    );
+
+    forgetIntegrationSetup(action.flow_id);
+
+    const out = renderIntegrationSetupRow(host, action);
+    expect(flatten(out)).toContain("This setup is no longer open.");
+    expect(JSON.stringify(out)).not.toContain("hunter2");
+  });
+
+  it("reads no words for a setup that is gone", async () => {
+    const { host, action, callApi } = setup([]);
+    callApi.mockRejectedValue({ status_code: 404 });
+    await loaded(host, action);
+    expect(host.hass.callWS).not.toHaveBeenCalled();
+  });
+
   it("says when the setup is no longer open", async () => {
     const { host, action, callApi } = setup([]);
     callApi.mockRejectedValue({ status_code: 404 });
@@ -245,12 +271,18 @@ describe("a step asking the user to act on the device", () => {
       hass: {
         language: "en",
         callApi,
-        callWS: vi.fn(async () => ({
-          resources: {
-            "component.apple_tv.config.step.protocol_disabled.description":
-              "Pairing is required for `{protocol}` but it is disabled on the device.",
-          },
-        })),
+        callWS: vi.fn(async (msg) => {
+          calls.push(["WS", msg.type, msg.flow_id]);
+          if (msg.type === "selora_ai/integration_setup_restart") {
+            return { flow_id: "fresh" };
+          }
+          return {
+            resources: {
+              "component.apple_tv.config.step.protocol_disabled.description":
+                "Pairing is required for `{protocol}` but it is disabled on the device.",
+            },
+          };
+        }),
       },
       _t: (_key, fallback) => fallback,
       requestUpdate: vi.fn(),
@@ -316,16 +348,14 @@ describe("a step asking the user to act on the device", () => {
 
     await checkAgain();
 
+    // The server ends the setup and starts the new one, so it is still the
+    // server's to end when the card is declined or left.
     expect(calls).toContainEqual([
-      "DELETE",
-      `config/config_entries/flow/${action.flow_id}`,
-      undefined,
+      "WS",
+      "selora_ai/integration_setup_restart",
+      action.flow_id,
     ]);
-    expect(calls).toContainEqual([
-      "POST",
-      "config/config_entries/flow",
-      { handler: "apple_tv", show_advanced_options: false },
-    ]);
+    expect(calls.some(([method]) => method === "DELETE")).toBe(false);
     // The fresh setup's step is shown, and answered on its own flow.
     expect(flatten(renderIntegrationSetupRow(host, action))).not.toContain(
       "Check again",

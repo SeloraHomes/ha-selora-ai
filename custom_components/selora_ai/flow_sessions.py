@@ -19,7 +19,9 @@ flow stays open between calls and is continued by its ``flow_id``:
   posts to Home Assistant's own flow endpoint, so no step reaches us again:
   one timer, longer than a step's, aborts it unless it finished, and declining
   the card aborts it at once (``drop_handed``). Left in progress, a second
-  setup of the same device is refused as ``already_in_progress``.
+  setup of the same device is refused as ``already_in_progress``. Check again
+  on the card restarts it here too (``async_restart_handed``), so the new flow
+  is handed off in its place and the card's flow_id still reaches it.
 """
 
 from __future__ import annotations
@@ -50,6 +52,7 @@ FLOW_TTL: Final = 15 * 60
 HANDED_TTL: Final = 60 * 60
 _KEY: Final = "_open_flows"
 _HANDED_KEY: Final = "_handed_flows"
+_ALIAS_KEY: Final = "_handed_flow_aliases"
 
 
 @dataclass
@@ -122,8 +125,22 @@ def release(hass: HomeAssistant, flow_id: str | None, *, abort: bool) -> None:
                 held.manager.async_abort(flow_id)
 
 
-def _handed(hass: HomeAssistant) -> dict[str, tuple[Any, Callable[[], None]]]:
+@dataclass
+class _HandedFlow:
+    manager: Any
+    cancel_timer: Callable[[], None]
+    # The integration, so Check again can start it afresh.
+    handler: str
+    adopted: bool
+
+
+def _handed(hass: HomeAssistant) -> dict[str, _HandedFlow]:
     return hass.data.setdefault(DOMAIN, {}).setdefault(_HANDED_KEY, {})
+
+
+def _aliases(hass: HomeAssistant) -> dict[str, str]:
+    """A card's flow_id → the flow Check again started in its place."""
+    return hass.data.setdefault(DOMAIN, {}).setdefault(_ALIAS_KEY, {})
 
 
 @callback
@@ -137,32 +154,80 @@ def hand_off(hass: HomeAssistant, manager: Any, flow_id: str, *, adopted: bool) 
     release(hass, flow_id, abort=False)
     handed = _handed(hass)
     if previous := handed.pop(flow_id, None):
-        previous[1]()
-    if adopted:
+        previous.cancel_timer()
+    try:
+        handler = str(manager.async_get(flow_id).get("handler") or "")
+    except UnknownFlow:
         return
 
     @callback
     def _expire(_now: Any) -> None:
-        if handed.pop(flow_id, None) is not None:
+        if (held := handed.pop(flow_id, None)) is None:
+            return
+        aliases = _aliases(hass)
+        for card in [card for card, current in aliases.items() if current == flow_id]:
+            del aliases[card]
+        if not held.adopted:
             with contextlib.suppress(UnknownFlow):
                 manager.async_abort(flow_id)
 
     expiry = HassJob(_expire, "selora_ai handed flow expiry", cancel_on_shutdown=True)
-    handed[flow_id] = (manager, async_call_later(hass, HANDED_TTL, expiry))
+    handed[flow_id] = _HandedFlow(
+        manager, async_call_later(hass, HANDED_TTL, expiry), handler, adopted
+    )
 
 
 @callback
 def drop_handed(hass: HomeAssistant, flow_id: str) -> None:
     """End a flow handed to the user, as closing Home Assistant's dialog does.
 
-    Only a flow handed off here: any other flow_id is left alone.
+    *flow_id* is the card's: the flow Check again started in its place is the
+    one ended. Only a flow handed off here, and never a discovery: any other
+    flow_id is left alone.
     """
+    flow_id = _aliases(hass).pop(flow_id, flow_id)
     if (held := _handed(hass).pop(flow_id, None)) is None:
         return
-    manager, cancel_timer = held
-    cancel_timer()
+    held.cancel_timer()
+    if not held.adopted:
+        with contextlib.suppress(UnknownFlow):
+            held.manager.async_abort(flow_id)
+
+
+async def async_restart_handed(hass: HomeAssistant, card_flow_id: str) -> dict[str, Any]:
+    """Check again: end the card's setup and start its integration afresh.
+
+    The new flow is handed off as the first was, so declining the card or
+    leaving it ends it too; started from the browser, nothing here would know
+    of it and it would stay in progress. A discovery the user restarts is
+    ended as well: they asked to start over, as Home Assistant's dialog does.
+    """
+    from homeassistant.config_entries import SOURCE_USER  # noqa: PLC0415
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+
+    aliases = _aliases(hass)
+    current = aliases.pop(card_flow_id, card_flow_id)
+    held = _handed(hass).pop(current, None)
+    if held is None or not held.handler:
+        return {"error": "That setup is no longer open."}
+    held.cancel_timer()
     with contextlib.suppress(UnknownFlow):
-        manager.async_abort(flow_id)
+        held.manager.async_abort(current)
+    try:
+        step = await held.manager.async_init(
+            held.handler, context={"source": SOURCE_USER, "show_advanced_options": False}
+        )
+    except HomeAssistantError as exc:
+        return {"error": sanitize_untrusted_text(str(exc), 200)}
+    if step.get("type") == "abort":
+        return {
+            "reason": str(step.get("reason") or step.get("type") or ""),
+            "description_placeholders": dict(step.get("description_placeholders") or {}),
+        }
+    new_id = str(step["flow_id"])
+    hand_off(hass, held.manager, new_id, adopted=False)
+    aliases[card_flow_id] = new_id
+    return {"flow_id": new_id}
 
 
 @callback
@@ -170,6 +235,7 @@ def async_close_all(hass: HomeAssistant) -> None:
     """Abort every open or handed flow and cancel its timer — on unload."""
     for flow_id in list(_flows(hass)):
         release(hass, flow_id, abort=True)
+    _aliases(hass).clear()
     for flow_id in list(_handed(hass)):
         drop_handed(hass, flow_id)
 
