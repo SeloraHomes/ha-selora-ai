@@ -237,7 +237,11 @@ _BRAND_STREAMS: Final = {
         "cam/realmonitor?channel=1&subtype=0",
         "cam/realmonitor?channel=1&subtype=1",
     ),
+    "uniview": ("unicast/c1/s0/live", "unicast/c1/s1/live"),
 }
+# The brands whose stream paths are known, tried in turn for a camera that
+# does not say who made it.
+STREAM_BRANDS: Final = tuple(_BRAND_STREAMS)
 
 
 def brand_streams(brand: str | None, host: str) -> tuple[str, str] | None:

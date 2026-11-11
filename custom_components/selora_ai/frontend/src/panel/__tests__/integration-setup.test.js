@@ -367,3 +367,57 @@ describe("a step asking the user to act on the device", () => {
     ]);
   });
 });
+
+describe("integration setup card, filled in", () => {
+  const CONFIGURE = {
+    type: "form",
+    step_id: "configure",
+    data_schema: [
+      { name: "name", type: "string", required: true },
+      { name: "host", type: "string", required: true },
+      { name: "port", type: "integer", required: true, default: 80 },
+      { name: "username", type: "string" },
+      { name: "password", type: "string" },
+    ],
+  };
+
+  it("opens with what the assistant knows, and the user adds the login", async () => {
+    const { host, action, callApi } = setup(
+      [{ type: "create_entry", title: "Gate", result: { entry_id: "e2" } }],
+      CONFIGURE,
+    );
+    action.prefill = {
+      host: "192.168.1.54",
+      port: 6109,
+      name: "Gate",
+      other: "x",
+    };
+    action.prefill_step = "configure";
+    const row = await loaded(host, action);
+    expect(flatten(row)).toContain("192.168.1.54");
+    const typed = handlers(row);
+    typed[3]({ target: { value: "admin" } });
+    typed[4]({ target: { value: "pw" } });
+
+    await runClientAction(host.hass, action);
+
+    expect(callApi).toHaveBeenLastCalledWith(
+      "POST",
+      `config/config_entries/flow/${action.flow_id}`,
+      {
+        name: "Gate",
+        host: "192.168.1.54",
+        port: 6109,
+        username: "admin",
+        password: "pw",
+      },
+    );
+  });
+
+  it("leaves a different step to its defaults", async () => {
+    const { host, action } = setup([], CONFIGURE);
+    action.prefill = { host: "192.168.1.54" };
+    action.prefill_step = "user";
+    expect(flatten(await loaded(host, action))).not.toContain("192.168.1.54");
+  });
+});

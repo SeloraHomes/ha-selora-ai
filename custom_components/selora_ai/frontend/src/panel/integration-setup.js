@@ -88,6 +88,21 @@ export function forgetIntegrationSetup(cardId) {
   }
 }
 
+/**
+ * What the assistant already knows of the step the card opens on (the
+ * address the user gave), filled in over the form's defaults. Only that
+ * step's own top-level fields; a later step starts from its defaults.
+ */
+function prefill(state, step, action) {
+  const known = action.prefill;
+  if (step.type !== "form" || !known || step.step_id !== action.prefill_step)
+    return;
+  const names = new Set((step.data_schema || []).map((field) => field.name));
+  for (const [name, value] of Object.entries(known)) {
+    if (names.has(name)) state.values[name] = value;
+  }
+}
+
 /** Read the step the flow is on, once per flow; the card redraws when it lands. */
 function load(host, action) {
   const flowId = String(action.flow_id || "");
@@ -101,6 +116,7 @@ function load(host, action) {
     .then(async (step) => {
       state.texts = await readTexts(host.hass, action.domain);
       show(state, step);
+      prefill(state, step, action);
     })
     .catch(() => retire(state))
     .finally(() => host.requestUpdate?.());

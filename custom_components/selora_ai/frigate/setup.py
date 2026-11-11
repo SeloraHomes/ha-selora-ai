@@ -33,6 +33,7 @@ from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
 from .cameras import (
     FIXES,
+    STREAM_BRANDS,
     Candidate,
     Skipped,
     Stream,
@@ -58,10 +59,12 @@ from .discovery import (
     async_user_cameras,
     cached_cameras,
     merge,
+    split_port,
     user_streams,
 )
 from .moving import async_moved_camera
 from .onvif import ONVIF_PORTS, OnvifAuthError, OnvifCamera, OnvifError, Profile
+from .rtsp import RTSP_PORT, RtspAuthError, RtspError, RtspUnreachable, async_describe
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -264,9 +267,15 @@ async def _gather(
     if hosts or stream_urls:
         found = merge(user_streams(stream_urls), await async_user_cameras(hass, hosts))
         named = {f.host for f in found}
+        if not entity_ids:
+            # Naming a camera by address asks for that camera alone: Home
+            # Assistant's others are neither offered nor reported as skipped.
+            chosen = [c for c in chosen if urlsplit(c.main.url).hostname in named]
+            # One Frigate has is still reported, by the address below.
+            skipped, in_frigate = [], {}
         given_names = {f.name for f in found}
         for given in hosts + stream_urls:
-            host = (urlsplit(given).hostname if "://" in given else given) or given
+            host = (urlsplit(given).hostname if "://" in given else split_port(given)[0]) or given
             if host.strip().lower() not in named | given_names:
                 skipped.append(
                     Skipped(
@@ -495,6 +504,36 @@ async def _async_onvif_profiles(
     raise error
 
 
+async def _async_known_streams(
+    found: NetworkCamera, username: str, password: str
+) -> tuple[str, str] | None:
+    """The main and sub stream at a path cameras are known to serve, when ONVIF
+    could not say: the camera's brand's, or each brand's in turn when unknown.
+
+    A known brand's path is kept when the camera cannot be asked over RTSP;
+    an unknown one's only when the camera says it serves it.
+    """
+    brands = [found.brand] if found.brand in STREAM_BRANDS else list(STREAM_BRANDS)
+    for brand in brands:
+        guessed = brand_streams(brand, found.host)
+        if guessed is None:
+            continue
+        main = urlsplit(guessed[0])
+        path = main.path.lstrip("/") + (f"?{main.query}" if main.query else "")
+        try:
+            status = await async_describe(
+                found.host, main.port or RTSP_PORT, path, username, password
+            )
+        except (RtspAuthError, RtspUnreachable):
+            raise
+        except RtspError:
+            # Something answers, but not RTSP on that port: no other path will do.
+            return guessed if brand == found.brand else None
+        if status == 200:
+            return guessed
+    return None
+
+
 async def _resolve_network(
     hass: HomeAssistant, camera: _Network, username: str, password: str
 ) -> tuple[Candidate | None, str | None]:
@@ -515,9 +554,20 @@ async def _resolve_network(
     try:
         profiles = await _async_onvif_profiles(hass, found, username, password)
     except OnvifAuthError:
+        _LOGGER.info("%s refused the login over ONVIF", found.host)
         return None, "The camera refused this username or password."
-    except OnvifError:
-        guessed = brand_streams(found.brand, found.host)
+    except OnvifError as exc:
+        _LOGGER.info("%s did not answer ONVIF (%s); trying its known streams", found.host, exc)
+        try:
+            guessed = await _async_known_streams(found, username, password)
+        except RtspAuthError:
+            _LOGGER.info("%s refused the login for its RTSP stream", found.host)
+            return None, "The camera refused this username or password."
+        except RtspUnreachable:
+            return None, (
+                f"The hub cannot reach {found.host}. If the camera is on another network, "
+                "connect that network to the hub's, or give the camera an address on it."
+            )
         if guessed is None:
             return None, (
                 "The camera did not answer ONVIF. Turn ONVIF on in its settings, or give "

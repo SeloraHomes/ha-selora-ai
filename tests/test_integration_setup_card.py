@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 import inspect
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.core import HomeAssistant
@@ -223,3 +223,124 @@ async def test_declining_a_setup_card_ends_its_flow(hass: HomeAssistant, cloud: 
     )
 
     assert not hass.config_entries.flow.async_progress()
+
+
+class _CameraFlow(ConfigFlow):
+    """ONVIF's shape: search or not, then the address, port and login."""
+
+    VERSION = 1
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> Any:
+        if user_input:
+            return await self.async_step_configure()
+        return self.async_show_form(
+            step_id="user", data_schema=vol.Schema({vol.Required("auto", default=True): bool})
+        )
+
+    async def async_step_configure(self, user_input: dict[str, Any] | None = None) -> Any:
+        if user_input is None:
+            return self.async_show_form(
+                step_id="configure",
+                data_schema=vol.Schema(
+                    {
+                        vol.Required("name"): str,
+                        vol.Required("host"): str,
+                        vol.Required("port", default=80): int,
+                        vol.Optional("username"): str,
+                        vol.Optional("password"): str,
+                    }
+                ),
+            )
+        return self.async_create_entry(title=user_input["name"], data=user_input)
+
+
+@pytest.fixture
+def onvif(hass: HomeAssistant) -> Iterator[None]:
+    mock_integration(
+        hass,
+        MockModule(
+            "onvif",
+            async_setup_entry=AsyncMock(return_value=True),
+            partial_manifest={"config_flow": True},
+        ),
+    )
+    mock_platform(hass, "onvif.config_flow", None)
+    with mock_config_flow("onvif", _CameraFlow):
+        yield
+
+
+async def _to_configure(executor: ToolExecutor) -> dict[str, Any]:
+    first = await executor.execute("add_integration", {"domain": "onvif"})
+    return await executor.execute(
+        "add_integration",
+        {"domain": "onvif", "flow_id": first["flow_id"], "fields": {"auto": False}},
+    )
+
+
+async def test_the_card_opens_with_the_address_the_user_gave(
+    hass: HomeAssistant, onvif: None
+) -> None:
+    """A login step asking for an address too is not handed over empty: the
+    model fills what it knows first, and only the login is left to type."""
+    executor = ToolExecutor(hass, DeviceManager(hass), is_admin=True)
+
+    details = await _to_configure(executor)
+    assert details["status"] == "needs_details"
+    assert "requires_approval" not in details
+
+    with patch(
+        "custom_components.selora_ai.frigate.discovery.async_ask_hosts",
+        AsyncMock(return_value={}),
+    ):
+        result = await executor.execute(
+            "add_integration",
+            {
+                "domain": "onvif",
+                "flow_id": details["flow_id"],
+                "fields": {"host": "192.168.1.54", "password": "leaked", "nope": 1},
+            },
+        )
+
+    assert result["requires_approval"] is True
+    action = result["client_action"]
+    assert action["prefill"] == {"host": "192.168.1.54"}
+    assert action["prefill_step"] == "configure"
+    assert "leaked" not in str(result)
+    (flow,) = hass.config_entries.flow.async_progress()
+    assert flow["step_id"] == "configure"
+
+
+async def test_an_onvif_camera_says_its_own_port_and_name(hass: HomeAssistant, onvif: None) -> None:
+    """The form's default port is 80; a Uniview serves ONVIF on its web port."""
+    from custom_components.selora_ai.frigate.discovery import NetworkCamera
+
+    executor = ToolExecutor(hass, DeviceManager(hass), is_admin=True)
+    details = await _to_configure(executor)
+    answer = NetworkCamera("192.168.1.54", 6109, "IPC2128LR3", "uniview", "onvif")
+
+    with patch(
+        "custom_components.selora_ai.frigate.discovery.async_ask_hosts",
+        AsyncMock(return_value={"192.168.1.54": answer}),
+    ):
+        result = await executor.execute(
+            "add_integration",
+            {"domain": "onvif", "flow_id": details["flow_id"], "fields": {"host": "192.168.1.54"}},
+        )
+
+    assert result["client_action"]["prefill"] == {
+        "host": "192.168.1.54",
+        "port": 6109,
+        "name": "IPC2128LR3",
+    }
+
+
+async def test_knowing_nothing_still_opens_the_card(hass: HomeAssistant, onvif: None) -> None:
+    executor = ToolExecutor(hass, DeviceManager(hass), is_admin=True)
+    details = await _to_configure(executor)
+
+    result = await executor.execute(
+        "add_integration", {"domain": "onvif", "flow_id": details["flow_id"], "fields": {}}
+    )
+
+    assert result["requires_approval"] is True
+    assert "prefill" not in result["client_action"]
