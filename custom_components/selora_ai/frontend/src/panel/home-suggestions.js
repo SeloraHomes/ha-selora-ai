@@ -45,7 +45,8 @@ export async function loadHomeSuggestions(host) {
 
 /** Take *suggestion* off the list; *how* is "dismiss" (for good) or "snooze". */
 async function putAway(host, suggestion, how) {
-  host._homeSuggestions = (host._homeSuggestions || []).filter(
+  const before = host._homeSuggestions || [];
+  host._homeSuggestions = before.filter(
     (s) => s.suggestion_id !== suggestion.suggestion_id,
   );
   try {
@@ -55,6 +56,16 @@ async function putAway(host, suggestion, how) {
     });
   } catch (err) {
     console.error(`Failed to ${how} home suggestion`, err);
+    // Not put away: gone from the list now, it would be back on the next
+    // load as though the press did nothing.
+    host._homeSuggestions = before;
+    host._showToast?.(
+      host._t(
+        "home_suggestion_put_away_failed",
+        "Couldn't put that suggestion away. Try again.",
+      ),
+      "error",
+    );
     return;
   }
   // Discovered devices and Frigate steps come one at a time: the server has

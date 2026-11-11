@@ -674,6 +674,32 @@ async def test_a_tv_is_set_up_with_its_own_integration_not_dlna(hass: HomeAssist
     assert {r["flow_id"] for r in by_name} == {own["flow_id"], speaker["flow_id"]}
 
 
+async def test_a_discovery_left_off_the_list_can_still_be_ignored(hass: HomeAssistant) -> None:
+    """DLNA's find of a TV its maker's integration found too is not listed,
+    and its flow_id still works."""
+    _register(hass, "dlna_dmr")
+    _register(hass, "samsungtv")
+    with mock_config_flow("dlna_dmr", _LampFlow), mock_config_flow("samsungtv", _TvFlow):
+        dlna = await hass.config_entries.flow.async_init(
+            "dlna_dmr",
+            context={"source": "zeroconf"},
+            data={"host": "10.0.0.9", "serial": "uuid:tv-1", "name": "[TV] Samsung"},
+        )
+        await hass.config_entries.flow.async_init(
+            "samsungtv",
+            context={"source": "zeroconf"},
+            data={"host": "10.0.0.9", "serial": "tv-1", "name": "Samsung"},
+        )
+        assert dlna["flow_id"] not in {r["flow_id"] for r in await async_list_discovered(hass)}
+
+        result = await _mcp(hass, TOOL_IGNORE_DISCOVERED, flow_id=dlna["flow_id"])
+
+    assert result["status"] == "ignored", result
+    assert result["title"] == "dlna_dmr"
+    (entry,) = hass.config_entries.async_entries("dlna_dmr")
+    assert entry.source == SOURCE_IGNORE
+
+
 async def test_a_host_asked_for_comes_with_the_addresses_already_known(
     hass: HomeAssistant, lamps: None
 ) -> None:

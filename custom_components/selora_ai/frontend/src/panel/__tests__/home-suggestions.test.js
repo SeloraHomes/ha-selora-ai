@@ -317,6 +317,22 @@ describe("renderHomeSuggestions", () => {
     ]);
   });
 
+  it("keeps a row it could not put away, and says so", async () => {
+    const h = host(numbered(2));
+    h._showToast = vi.fn();
+    h.hass.callWS = vi.fn(async () => {
+      throw new Error("offline");
+    });
+    const [, , dismiss] = handlers(renderHomeSuggestions(h));
+
+    await dismiss();
+    expect(titles(renderHomeSuggestions(h))).toEqual(["Leak 1", "Leak 2"]);
+    expect(h._showToast).toHaveBeenCalledWith(
+      expect.stringContaining("Try again"),
+      "error",
+    );
+  });
+
   it("dismisses a row for good", async () => {
     const h = host(numbered(2));
     h.hass.callWS = vi.fn(async ({ type }) =>

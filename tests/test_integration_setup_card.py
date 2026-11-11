@@ -194,3 +194,32 @@ async def test_a_reported_entry_that_does_not_check_out_is_not_recorded(
 
     assert session["messages"][0]["approval_status"] == "denied"
     assert "no record" in session["messages"][-1]["content"]
+
+
+async def test_declining_a_setup_card_ends_its_flow(hass: HomeAssistant, cloud: None) -> None:
+    from custom_components.selora_ai import _resolve_approval  # noqa: PLC0415
+
+    store = _store(hass)
+    executor = ToolExecutor(hass, DeviceManager(hass), is_admin=True)
+    result = await executor.execute("add_integration", {"domain": "cloudy"})
+    (action,) = _pending_client_actions_from_log([{"tool": "add_integration", "result": result}])
+    await store.append_message(
+        "sess-1",
+        "assistant",
+        "This step is yours.",
+        intent="command_approval",
+        command_approval={
+            "proposal_id": "prop-1",
+            "approval_kind": "client_action",
+            "calls": [],
+            "deletes": [],
+            "actions": [],
+            "client_actions": [action],
+        },
+    )
+
+    await _resolve_approval(
+        hass, _connection(), {"id": 1}, store, MagicMock(), "sess-1", "prop-1", "deny"
+    )
+
+    assert not hass.config_entries.flow.async_progress()

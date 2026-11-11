@@ -317,6 +317,29 @@ async def test_a_zigbee_ieee_address_finds_its_device_not_a_thread_note(
     assert "thread_note" not in result
 
 
+async def test_a_zigbee2mqtt_address_finds_its_device_not_a_thread_note(
+    hass: HomeAssistant, home: dict[str, dr.DeviceEntry]
+) -> None:
+    """Zigbee2MQTT names a device by its IEEE address and registers that
+    address only in its identifier."""
+    mqtt = MockConfigEntry(domain="mqtt")
+    mqtt.add_to_hass(hass)
+    plug = dr.async_get(hass).async_get_or_create(
+        config_entry_id=mqtt.entry_id,
+        identifiers={("mqtt", "zigbee2mqtt_0x00158d0001234567")},
+        name="0x00158d0001234567",
+    )
+    er.async_get(hass).async_get_or_create(
+        "switch", "mqtt", "plug", suggested_object_id="plug", config_entry=mqtt, device_id=plug.id
+    )
+    hass.states.async_set("switch.plug", "on", {"friendly_name": "0x00158d0001234567"})
+
+    result = await _tool_search_entities(hass, {"query": "0x00158d0001234567"})
+
+    assert [m["entity_id"] for m in result["matches"]] == ["switch.plug"]
+    assert "thread_note" not in result
+
+
 async def test_a_node_disabled_in_home_assistant_is_ours_not_external(
     hass: HomeAssistant, home: dict[str, dr.DeviceEntry]
 ) -> None:

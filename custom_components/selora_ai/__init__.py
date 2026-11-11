@@ -5791,6 +5791,13 @@ async def _resolve_approval(
 
     if scope == "deny":
         await store.set_approval_status(session_id, message_index, "denied")
+        # A declined setup card ends its flow, or a second setup of the same
+        # device is refused as already in progress.
+        from .flow_sessions import drop_handed  # noqa: PLC0415
+
+        for action in approval.get("client_actions") or []:
+            if isinstance(action, dict) and action.get("kind") == "integration_setup":
+                drop_handed(hass, str(action.get("flow_id") or ""))
         denial_text = _approval_phrase(_APPROVAL_DENIED_BY_LANG, effective_language)
         persisted = await store.append_message(
             session_id, "assistant", denial_text, intent="answer"

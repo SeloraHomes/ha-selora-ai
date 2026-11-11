@@ -459,6 +459,7 @@ export function _onComposerKeydown(host, e) {
   if (
     e.key === "ArrowRight" &&
     host._ghost?.suffix &&
+    !_listOpen(host) &&
     e.target.selectionStart === e.target.value.length &&
     e.target.selectionEnd === e.target.value.length
   ) {
@@ -836,8 +837,17 @@ function _suggestionGhost(host) {
   );
 }
 
-function _ghostSuffix(host) {
-  return _suggestionGhost(host) || host._ghost?.suffix || null;
+// While the list is open Tab takes its highlighted row, so only that row's
+// tail is shown: a vocabulary word ghosted beside a fuzzy hit ("light" →
+// "Kitchen Light") promised what Tab would not insert.
+export function _ghostSuffix(host) {
+  if (_listOpen(host)) return _suggestionGhost(host);
+  return host._ghost?.suffix || null;
+}
+
+function _listOpen(host) {
+  const ac = host._autocomplete;
+  return !!(ac?.open && ac.items?.length);
 }
 
 // Insert the ghost-suggestion suffix at the caret. Returns true if a

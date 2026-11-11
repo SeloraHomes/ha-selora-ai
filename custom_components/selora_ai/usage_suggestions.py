@@ -52,7 +52,7 @@ _MIN_SCENE_SIZE: Final = 3
 _MIN_SCENE_DAYS: Final = 3
 _SCENE_LOOKBACK: Final = timedelta(days=14)
 _MAX_SCENE_IDEAS: Final = 2
-# Bounds the event-loop work: candidates are pairwise intersections of bursts.
+# Bounds the work: candidates are pairwise intersections of bursts.
 _MAX_BURSTS: Final = 200
 
 # States a scene can be asked to restore; the rest are on the way to one.
@@ -144,18 +144,26 @@ def automation_idea_rows(
     return rows
 
 
+def _group_members(hass: HomeAssistant, entity_ids: set[str]) -> dict[str, set[str]]:
+    """The members of each group among *entity_ids* (a light group, a
+    ``group.*``): the entities its state lists."""
+    out: dict[str, set[str]] = {}
+    for entity_id in entity_ids:
+        state = hass.states.get(entity_id)
+        listed = state.attributes.get("entity_id") if state is not None else None
+        if isinstance(listed, (list, tuple)) and listed:
+            out[entity_id] = {str(e) for e in listed}
+    return out
+
+
 def _bursts(
-    hass: HomeAssistant, history: dict[str, list[StateChange]]
+    history: dict[str, list[StateChange]], members: dict[str, set[str]]
 ) -> list[tuple[datetime, frozenset[_Setting]]]:
     """The user's own changes, grouped into bursts: what each burst left each
-    device at, and when it started."""
-    ignored = resolve_ignored_entity_ids(hass)
+    device at, and when it started. *history* holds only the devices a scene
+    may set; *members* the members of each group among them."""
     changes: list[tuple[datetime, str, str]] = []
     for entity_id, entries in history.items():
-        if entity_id in ignored or hass.states.get(entity_id) is None:
-            continue
-        if not scene_supports(hass, entity_id):
-            continue
         for e in entries:
             if e.get("auto") or e["state"] in _TRANSIENT_STATES:
                 continue
@@ -171,9 +179,21 @@ def _bursts(
     for group in groups:
         # The last change wins: switched on, then off again, is off.
         settings = {entity_id: state for _, entity_id, state in group}
+        # A group switched on switches its members with it: one device, not
+        # two lamps and their group.
+        for entity_id in [e for e in settings if members.get(e, set()) & settings.keys()]:
+            del settings[entity_id]
         if len(settings) >= _MIN_SCENE_SIZE:
             bursts.append((group[0][0], frozenset(settings.items())))
     return bursts[-_MAX_BURSTS:]
+
+
+def _habits(
+    history: dict[str, list[StateChange]], members: dict[str, set[str]]
+) -> list[tuple[frozenset[_Setting], int]]:
+    """Bursts and their repeats, read in the executor: thousands of changes
+    parsed and up to ``_MAX_BURSTS`` squared intersections."""
+    return scene_candidates(_bursts(history, members))
 
 
 def scene_candidates(
@@ -208,7 +228,7 @@ def scene_candidates(
     return kept
 
 
-def scene_rows(
+async def async_scene_rows(
     hass: HomeAssistant,
     history: dict[str, list[StateChange]],
     put_away: Collection[str] = (),
@@ -216,9 +236,20 @@ def scene_rows(
     """Scenes for the devices the user keeps setting together, leaving out
     the ones in ``put_away`` before counting, so the next habit takes the
     place of a dismissed one."""
+    ignored = resolve_ignored_entity_ids(hass)
+    settable = {
+        entity_id: entries
+        for entity_id, entries in history.items()
+        if entity_id not in ignored
+        and hass.states.get(entity_id) is not None
+        and scene_supports(hass, entity_id)
+    }
+    habits = await hass.async_add_executor_job(
+        _habits, settable, _group_members(hass, set(settable))
+    )
     groups = _scene_groups(hass)
     rows: list[HomeSuggestion] = []
-    for settings, days in scene_candidates(_bursts(hass, history)):
+    for settings, days in habits:
         entity_ids = sorted(e for e, _ in settings)
         # An existing scene already does this; the burst was it. An automation
         # mentioning them is not: its changes never count as the user's, and it
@@ -255,9 +286,11 @@ async def async_usage_suggestions(
     store = get_pattern_store(hass)
     if store is None:
         return []
-    history = await store.get_all_history(since=dt_util.utcnow() - _SCENE_LOOKBACK)
+    history = await store.get_user_history(dt_util.utcnow() - _SCENE_LOOKBACK)
     pending = await store.get_suggestions(status="pending")
-    rows = scene_rows(hass, history, put_away) + automation_idea_rows(hass, pending, automations)
+    rows = await async_scene_rows(hass, history, put_away) + automation_idea_rows(
+        hass, pending, automations
+    )
     return [r for r in rows if r["suggestion_id"] not in put_away]
 
 
@@ -278,6 +311,12 @@ async def async_put_away_pattern_suggestion(
             "dismissed",
             dismissed_at=dt_util.utcnow().isoformat(),
         )
+        # Dismissed for good: the suggestion alone is suppressed for a week,
+        # then its pattern, still active, is suggested again under a new id.
+        # A dismissed pattern is never brought back by a rescan.
+        suggestion = await store.get_suggestion(pattern_suggestion_id)
+        if suggestion and (pattern_id := suggestion.get("pattern_id")):
+            await store.update_pattern_status(pattern_id, "dismissed")
     else:
         await store.update_suggestion_status(
             pattern_suggestion_id,
