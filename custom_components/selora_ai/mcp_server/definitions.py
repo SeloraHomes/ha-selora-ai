@@ -1344,8 +1344,8 @@ _TOOL_DEFINITIONS.extend(
             name=TOOL_SET_CONFIG_YAML,
             description=(
                 "Edit Home Assistant's YAML configuration — LAST RESORT, for what no "
-                "other tool reaches: YAML-only integrations (rest, command_line, "
-                "shell_command, notify platforms, template, mqtt, knx …), package files, "
+                "other tool reaches: YAML-only integrations (rest, notify platforms, "
+                "template, mqtt, knx …), package files, "
                 "and themes. Use the dedicated tools for automations, scripts, scenes, "
                 "helpers and dashboards. yaml_path is one top-level key from the "
                 "allowlist (automation/script/scene only in a package file), a theme's "
@@ -1635,9 +1635,8 @@ _TOOL_DEFINITIONS.extend(
                 "Create a text file under www/, themes/, custom_templates/ or dashboards/ "
                 "— card files, theme assets, Jinja macros, YAML dashboards. Replacing an "
                 "existing file needs overwrite=true, and the old version is backed up. "
-                "A file a browser runs (www/ .js, .html, .svg …) comes back with "
-                "requires_confirmation and writes nothing: show the user what it does, and "
-                "only once they agree call again with confirmed=true. from_backup "
+                "A file a browser runs (www/ .js, .html, .svg, .css …) is refused: "
+                "cards come from HACS. from_backup "
                 "instead of content writes one of the file's backups back (list them "
                 "with selora_read_file backups=true), which also undoes a delete. Edit "
                 "configuration.yaml and packages with selora_set_config_yaml. Requires "
@@ -1656,13 +1655,6 @@ _TOOL_DEFINITIONS.extend(
                     "overwrite": {
                         "type": "boolean",
                         "description": "Replace the file if it exists. Off by default.",
-                    },
-                    "confirmed": {
-                        "type": "boolean",
-                        "description": (
-                            "Set ONLY after the user agreed to a file that came back "
-                            "with requires_confirmation."
-                        ),
                     },
                 },
             },

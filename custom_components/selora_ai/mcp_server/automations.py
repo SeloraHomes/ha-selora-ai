@@ -919,6 +919,7 @@ async def _delete_idless_automation_by_alias(
     """
     from ..automation_utils import (  # noqa: PLC0415
         AUTOMATIONS_YAML_LOCK,
+        AutomationsYamlError,
         _read_automations_yaml,
         _write_automations_yaml,
     )
@@ -935,7 +936,10 @@ async def _delete_idless_automation_by_alias(
         )
 
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            return {"error": f"Not deleted: {exc}"}
         matches = [a for a in existing if _is_idless_match(a)]
         if not matches:
             return {
@@ -1090,13 +1094,17 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
     from ..automation_utils import (  # noqa: PLC0415
         AUTOMATIONS_YAML_LOCK,
+        AutomationsYamlError,
         _read_automations_yaml,
         _write_automations_yaml,
     )
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        except AutomationsYamlError as exc:
+            return {"error": f"Not deleted: {exc}"}
         previous = list(existing)
         remaining = [
             a

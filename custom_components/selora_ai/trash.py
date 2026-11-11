@@ -287,6 +287,7 @@ async def _restore_automation(hass: HomeAssistant, entry: dict[str, Any]) -> Non
 
     from .automation_utils import (  # noqa: PLC0415
         AUTOMATIONS_YAML_LOCK,
+        AutomationsYamlError,
         _attach_selora_label_to_entity,
         _read_automations_yaml,
         _write_automations_yaml,
@@ -297,7 +298,10 @@ async def _restore_automation(hass: HomeAssistant, entry: dict[str, Any]) -> Non
     automation_id = entry.get("id")
     path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, path)
+        try:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, path)
+        except AutomationsYamlError as exc:
+            raise TrashRestoreError("unreadable", str(exc)) from exc
         # Two automations under one id load as one; two id-less ones under one
         # alias cannot be told apart by the alias-keyed delete.
         if automation_id and any(a.get("id") == automation_id for a in existing):
@@ -335,6 +339,7 @@ async def _restore_scene(hass: HomeAssistant, entry: dict[str, Any]) -> None:
     from .helpers import get_scene_store  # noqa: PLC0415
     from .scene_utils import (  # noqa: PLC0415
         _SCENES_YAML_LOCK,
+        ScenesYamlError,
         _get_scenes_path,
         _read_scenes_yaml,
         _write_scenes_yaml,
@@ -343,7 +348,10 @@ async def _restore_scene(hass: HomeAssistant, entry: dict[str, Any]) -> None:
     scene_id = entry.get("id")
     path = _get_scenes_path(hass)
     async with _SCENES_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_scenes_yaml, path)
+        try:
+            existing = await hass.async_add_executor_job(_read_scenes_yaml, path)
+        except ScenesYamlError as exc:
+            raise TrashRestoreError("unreadable", str(exc)) from exc
         if scene_id and any(isinstance(s, dict) and s.get("id") == scene_id for s in existing):
             raise TrashRestoreError("in_use")
         # An id-less scene is deleted by its name, which must stay unique.

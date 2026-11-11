@@ -24,7 +24,6 @@ from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .types import (
-        AreaAssignmentResult,
         CleanupResult,
         FlowResult,
         NetworkDiscoveryResult,
@@ -178,57 +177,6 @@ class DeviceManager:
                 "active_initiated_count": len(active_initiated),
             },
         }
-
-    # ── Area auto-assignment ────────────────────────────────────
-
-    async def auto_assign_areas(self) -> AreaAssignmentResult:
-        """Match device names to existing HA areas and assign them.
-
-        Uses case-insensitive substring matching:
-          - Device named "basement" → area "basement"
-          - Device named "Kitchen" → area "Kitchen"
-          - Device named "Living Room Sonos" → area "Living Room"
-        Only assigns devices that don't already have an area.
-        """
-        from homeassistant.helpers import area_registry as ar
-
-        dev_reg = dr.async_get(self.hass)
-        area_reg = ar.async_get(self.hass)
-
-        # Build area lookup: lowercase name → area_id
-        areas = {area.name.lower(): area.id for area in area_reg.async_list_areas()}
-
-        assigned: list[dict[str, str]] = []
-
-        for device in device_entries(dev_reg):
-            if device.area_id:
-                continue  # already assigned
-            name = (device.name or "").lower()
-            if not name:
-                continue
-
-            # Try exact match first, then substring match
-            matched_area_id = None
-            matched_area_name = None
-            for area_name, area_id in areas.items():
-                if area_name == name or area_name in name or name in area_name:
-                    matched_area_id = area_id
-                    matched_area_name = area_name
-                    break
-
-            if matched_area_id:
-                dev_reg.async_update_device(device.id, area_id=matched_area_id)
-                assigned.append(
-                    {
-                        "device": device.name or "",
-                        "area": matched_area_name or "",
-                    }
-                )
-                _LOGGER.info(
-                    "Auto-assigned device '%s' to area '%s'", device.name, matched_area_name
-                )
-
-        return {"assigned": assigned}
 
     # ── Reset & cleanup ──────────────────────────────────────────
 

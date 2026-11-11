@@ -17,13 +17,13 @@ ha-mcp's file tools. All four are admin-only.
   narrowed, not closed — closing it means descriptor-relative traversal, and
   swapping a folder needs write access to the config folder, which already
   reaches `configuration.yaml`.
-- **Browser code in `www/` needs `confirmed: true`** (`.js`, `.mjs`, `.html`,
+- **Browser code is never written to `www/`** (`.js`, `.mjs`, `.html`,
   `.svg` …, and `.css` — registered as a `css` resource it styles every page,
-  and `url()` lookups can carry what it reads off the page). `selora_add_dashboard_resource` adds a `/local/` path without
-  confirmation because the file was put there by HACS or the user; one this
-  tool writes was put there by the agent, so writing, then registering, would
-  skip the confirmation an external URL needs. The `approval_required` opt-out
-  is honoured.
+  and `url()` lookups can carry what it reads off the page). Registered as a
+  dashboard resource it runs in every admin's browser with their session, and
+  a `confirmed` flag would not guard it: the agent that writes the file sets
+  the flag too. `selora_add_dashboard_resource` adds a `/local/` path because
+  the file there came from HACS or the user, never from this tool.
   - **Decided by extension AND by the type the web server would serve**
     (`_is_browser_code`): `.xht`, `.xml`, `.xsl` render as documents that run
     script in Home Assistant's origin, and a hand-kept list missed them.
@@ -45,7 +45,7 @@ ha-mcp's file tools. All four are admin-only.
   matched by EXACT name, never by glob: `a.*.bak` also matches `a.txt`'s.
 - **Backups are reached only through the file they belong to.** `backups=true`
   lists them, `backup` reads one, and `from_backup` writes one back. That
-  write is an ordinary write: browser code waits for confirmation, and
-  replacing a file needs `overwrite`. A reference that is not one of that
+  write is an ordinary write: browser code is refused, and replacing a file
+  needs `overwrite`. A reference that is not one of that
   file's own listed backups is refused (`fs_safety.backup_path`), so a
   backup reference reaches nothing else.

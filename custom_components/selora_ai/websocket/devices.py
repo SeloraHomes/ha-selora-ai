@@ -8,6 +8,7 @@ lazily at registration time, after the package has loaded).
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from functools import partial
 import logging
 from typing import Any
 
@@ -92,7 +93,9 @@ async def _handle_websocket_get_device_detail(
 
         automations_path = Path(hass.config.config_dir) / "automations.yaml"
         try:
-            yaml_autos = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+            yaml_autos = await hass.async_add_executor_job(
+                partial(_read_automations_yaml, automations_path, tolerant=True)
+            )
             identifiers = set(entity_ids) | {device_id}
             for auto in yaml_autos:
                 if _automation_references_device(auto, identifiers):

@@ -15,7 +15,12 @@ Admin-only, always on, MCP only.
   `themes/<name>.yaml`. Names are checked as plain `[a-z0-9_-]` before joining,
   and the joined path again after symlinks resolve. `secrets.yaml` and `.storage`
   are unreachable by construction.
-- **ha-mcp's key allowlist** (`_ALLOWED_KEYS`), `automation` / `script` / `scene`
+- **No key that runs a command on the host** (`_HOST_COMMAND_KEYS`:
+  `shell_command`, `command_line`). The token below confirms nothing a person
+  saw — the agent that asks for the edit sends it back — so a prompt-injected
+  agent could add one and restart. The refusal tells the agent to hand the
+  YAML to the user.
+- **ha-mcp's key allowlist, less those** (`_ALLOWED_KEYS`), `automation` / `script` / `scene`
   in package files only, a theme's name in a theme file, and ONE nested path:
   `frontend.themes`, whose value must be exactly `!include_dir_merge_named themes`
   — the include that makes the themes folder load, which ha-mcp cannot add. Not

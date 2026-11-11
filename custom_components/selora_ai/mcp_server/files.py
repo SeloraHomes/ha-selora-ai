@@ -42,7 +42,6 @@ async def _tool_write_file(hass: HomeAssistant, arguments: dict[str, Any]) -> di
         str(arguments.get("file", "")),
         content if isinstance(content, str) else None,
         overwrite=_opt_bool(arguments.get("overwrite")) is True,
-        confirmed=_opt_bool(arguments.get("confirmed")) is True,
         from_backup=_opt_str(arguments.get("from_backup")),
     )
 

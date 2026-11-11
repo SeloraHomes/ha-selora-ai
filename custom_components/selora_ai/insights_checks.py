@@ -22,6 +22,7 @@ from collections.abc import Callable, Collection, Iterable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 import logging
 import math
 from pathlib import Path
@@ -151,7 +152,9 @@ async def async_run_checks(hass: HomeAssistant) -> list[CheckResult]:
     # automation findings.
     path = Path(hass.config.config_dir) / "automations.yaml"
     try:
-        automations = await hass.async_add_executor_job(_read_automations_yaml, path)
+        automations = await hass.async_add_executor_job(
+            partial(_read_automations_yaml, path, tolerant=True)
+        )
     except Exception:  # noqa: BLE001 — automation checks are best-effort
         _LOGGER.debug("Could not read automations.yaml for checks", exc_info=True)
         automations = []

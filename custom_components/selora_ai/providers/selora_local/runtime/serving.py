@@ -698,6 +698,9 @@ class _ServingMixin:
 
     async def _run_prewarm(self, entities: list[Any] | None) -> None:
         """The pre-warm loop itself. See prewarm() for what it is for."""
+        # Before _prewarm_kinds: it renders the request synchronously, and the
+        # render retrieves docs, which would open the corpus on the loop.
+        await self._ensure_specialist_prompts_loaded()
         await self._ensure_lora_discovery()
         ok = 0
         kinds = self._prewarm_kinds(entities or [])

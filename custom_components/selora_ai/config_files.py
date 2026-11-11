@@ -14,12 +14,10 @@ one is ``blueprint/save``'s job). Modelled on ha-mcp's file tools.
   backup first. A delete backs up too. A file's backups are listed and read
   with the file's own path, and written back with ``from_backup`` — the same
   write, so the same confirmation.
-* **Code a browser runs (and CSS it applies) needs ``confirmed: true``.** A ``/local/`` path can be
-  registered as a dashboard resource without confirmation, because the file
-  was put there by HACS or the user. A file this tool writes was put there by
-  the agent, so ``.js``, ``.html``, ``.svg`` and the like in ``www/`` are
-  confirmed here instead — or writing, then registering, would skip the
-  confirmation an external URL needs.
+* **Code a browser runs (and CSS it applies) is never written to ``www/``.**
+  Registered as a dashboard resource, it runs in every admin's browser with
+  their session. A ``confirmed`` flag would not stop it: the agent that writes
+  the file sets the flag too. Card and theme code comes from HACS or the user.
 * Configuration YAML is ``config_yaml``'s: ``configuration.yaml`` and packages
   are not reachable here, so its allowlist and checks cannot be bypassed.
 """
@@ -281,7 +279,7 @@ async def async_read(
     return result
 
 
-def _needs_confirmation(rel: str) -> bool:
+def _is_served_browser_code(rel: str) -> bool:
     return rel.startswith("www/") and _is_browser_code(rel)
 
 
@@ -291,7 +289,6 @@ async def async_write(
     content: str | None,
     *,
     overwrite: bool = False,
-    confirmed: bool = False,
     from_backup: str | None = None,
 ) -> dict[str, Any]:
     """Create a text file, or replace one with ``overwrite``, backing it up.
@@ -300,8 +297,6 @@ async def async_write(
     ``content``: a deleted file is made again, a replaced one needs
     ``overwrite`` like any other replacement.
     """
-    from .command_policy_options import resolve_command_policy_options  # noqa: PLC0415
-
     if from_backup is not None:
         if content is not None:
             return {"error": "Pass content or from_backup, not both."}
@@ -313,18 +308,14 @@ async def async_write(
         path, rel = await _async_resolve(hass, file, write=True)
     except FileToolError as exc:
         return {"error": str(exc)}
-    if (
-        _needs_confirmation(rel)
-        and not confirmed
-        and resolve_command_policy_options(hass).approval_required
-    ):
+    if _is_served_browser_code(rel):
         return {
             "written": False,
-            "requires_confirmation": True,
             "file": rel,
-            "reason": (
-                "This file is code a browser runs when it is loaded from /local/. Show "
-                "the user what it does; once they agree, call again with confirmed=true."
+            "error": (
+                "This file is code a browser runs when it is loaded from /local/, so "
+                "Selora does not write it. Install the card from HACS, or show the user "
+                "the code to add themselves."
             ),
         }
 
