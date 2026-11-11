@@ -119,6 +119,33 @@ def test_anything_else_is_left_to_the_model(message: str) -> None:
     assert opening_search(message, NOW, cameras=CAMERAS, names=["Sam"]) is None
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "When was the last time someone came to the door?",
+        "Show me cars that drove past the street yesterday",
+    ],
+)
+def test_filler_words_are_not_a_description(message: str) -> None:
+    """A query ranks the events by relevance; "the last time" asks for the newest."""
+    found = opening_search(message, NOW, cameras=CAMERAS)
+
+    assert found is not None
+    assert "query" not in found
+
+
+def test_a_place_phrase_does_not_name_a_camera() -> None:
+    """ "in front of the garage" is the garage camera, not one called "front"."""
+    found = opening_search(
+        "Was someone in front of the garage today?",
+        NOW,
+        cameras={"front": "Front", "garage": "Garage"},
+    )
+
+    assert found is not None
+    assert found["cameras"] == ["garage"]
+
+
 def test_this_month_starts_on_the_first() -> None:
     found = opening_search("Which camera saw a bus this month?", NOW)
     assert found == {"query": "bus", "start": "2026-11-01T00:00:00"}

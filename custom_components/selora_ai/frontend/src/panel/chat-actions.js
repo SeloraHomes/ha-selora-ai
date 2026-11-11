@@ -9,6 +9,7 @@ import { logChatTurn } from "./dev-tools.js";
 import { requestNextPrompt } from "./next-prompt.js";
 import { answerCamera } from "./describe-actions.js";
 import { answerFaces } from "./faces-actions.js";
+import { forgetIntegrationSetup } from "./integration-setup.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -133,6 +134,15 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
       // message matches the locale the user has been seeing in chat.
       ...(this.hass?.language ? { language: this.hass.language } : {}),
     });
+    if (result.status === "denied") {
+      // The server ended the setup; what was typed on its card goes too.
+      for (const action of originatingMsg?.command_approval?.client_actions ||
+        []) {
+        if (action?.kind === "integration_setup") {
+          forgetIntegrationSetup(action.flow_id);
+        }
+      }
+    }
     if (originatingMsg) {
       originatingMsg.approval_status = result.status;
       // Draws the card's tick once; a reloaded session does not replay it.

@@ -3392,6 +3392,20 @@ class TestAsyncToggleAutomation:
         match = [a for a in content if a.get("id") == "selora_ai_existing1"]
         assert match[0]["initial_state"] is False
 
+    @pytest.mark.asyncio
+    async def test_toggle_a_hand_written_numeric_id(
+        self, hass: MagicMock, tmp_automations_yaml: Path, automation_service_calls
+    ) -> None:
+        """HA reads `id: 1700000000000` as the string the panel sends back."""
+        tmp_automations_yaml.write_text(
+            "- id: 1700000000000\n  alias: Porch\n  triggers: []\n  actions: []\n",
+            encoding="utf-8",
+        )
+
+        assert await async_toggle_automation(hass, "1700000000000", "automation.porch", False)
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        assert content[0]["initial_state"] is False
+
 
 class TestAsyncDeleteAutomation:
     """Tests for async_delete_automation."""

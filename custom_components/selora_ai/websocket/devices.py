@@ -187,9 +187,37 @@ async def _handle_websocket_integration_setup_open(
     connection.send_result(msg["id"], {"session_id": session["id"]})
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/integration_setup_restart",
+        vol.Required("flow_id"): vol.All(str, vol.Length(min=1, max=64)),
+    }
+)
+async def _handle_websocket_integration_setup_restart(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Check again on a setup card: its integration's setup, started afresh.
+
+    Returns the new ``flow_id``, or the ``reason`` it ended at once with.
+    """
+    if not _require_admin(connection, msg):
+        return
+    from ..flow_sessions import async_restart_handed  # noqa: PLC0415
+
+    result = await async_restart_handed(hass, msg["flow_id"])
+    if "error" in result:
+        connection.send_error(msg["id"], "not_found", result["error"])
+        return
+    connection.send_result(msg["id"], result)
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the devices websocket commands."""
     from homeassistant.components import websocket_api
 
     websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
     websocket_api.async_register_command(hass, _handle_websocket_integration_setup_open)
+    websocket_api.async_register_command(hass, _handle_websocket_integration_setup_restart)

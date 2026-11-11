@@ -211,6 +211,55 @@ def _tag_of(value: Any) -> str | None:
     return str(tag_value) if isinstance(tag_value, str) and tag_value.startswith("!") else None
 
 
+def _plain(value: Any) -> Any:
+    """``value`` as plain data with its tags kept, comparable with ``==``."""
+    tag = _tag_of(value)
+    body: Any
+    if isinstance(value, dict):
+        body = {str(key): _plain(item) for key, item in value.items()}
+    elif isinstance(value, list):
+        body = [_plain(item) for item in value]
+    else:
+        body = getattr(value, "value", value) if tag else value
+    return (tag, body) if tag else body
+
+
+def _first_tag(value: Any) -> str | None:
+    if tag := _tag_of(value):
+        return tag
+    items = value.values() if isinstance(value, dict) else value if isinstance(value, list) else ()
+    for item in items:
+        if found := _first_tag(item):
+            return found
+    return None
+
+
+def _new_tag(new: Any, old: Any) -> str | None:
+    """The first tag in ``new`` that ``old`` does not already hold where it is.
+
+    A tag makes Home Assistant read something the diff never shows: ``!secret``
+    the secret's value, ``!include`` another file, ``!env_var`` the environment.
+    In a ``rest`` entry that value goes to whatever ``resource`` names, and the
+    preview token is no human confirmation (the agent sends it back), so only a
+    tag the file already has is kept. Inside a list the whole item must match
+    one already there: keeping the ``!secret`` while changing the item's URL
+    would send the secret somewhere new.
+    """
+    if tag := _tag_of(new):
+        return None if _plain(new) == _plain(old) else tag
+    if isinstance(new, dict):
+        old_map = old if isinstance(old, dict) else {}
+        for key, item in new.items():
+            if found := _new_tag(item, old_map.get(key)):
+                return found
+    elif isinstance(new, list):
+        kept = [_plain(item) for item in old] if isinstance(old, list) else []
+        for item in new:
+            if (found := _first_tag(item)) and _plain(item) not in kept:
+                return found
+    return None
+
+
 _MASK: Final = "***"
 
 
@@ -544,6 +593,12 @@ def _apply(data: Any, kind: str, yaml_path: str, action: str, value: Any) -> Any
         raise ConfigYamlError(
             f"'{yaml_path}' is included from another file ({_tag_of(current)} "
             f"{getattr(current, 'value', '')}); edit that file instead."
+        )
+    if action != "remove" and (tag := _new_tag(value, current)):
+        raise ConfigYamlError(
+            f"Selora does not write a new {sanitize_untrusted_text(tag, 40)} reference, "
+            "or change an entry that has one: Home Assistant fills it in from a file "
+            "the diff never shows. Show the user the YAML to add themselves."
         )
     if action == "remove":
         if yaml_path not in data:

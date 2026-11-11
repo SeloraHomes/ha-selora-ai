@@ -594,7 +594,14 @@ def _read_automations_yaml(path: Path, *, tolerant: bool = False) -> list[Automa
             # Comments or a document marker only.
             return []
         if isinstance(data, list):
-            return _to_plain_types(data)
+            automations: list[AutomationDict] = _to_plain_types(data)
+            # HA reads an id through cv.string, so a hand-written `id: 1700000000000`
+            # is the automation "1700000000000" everywhere but here; every id
+            # comparison against the entity's attribute must see the same string.
+            for automation in automations:
+                if isinstance(automation, dict) and automation.get("id") is not None:
+                    automation["id"] = str(automation["id"])
+            return automations
         error = AutomationsYamlError(
             f"automations.yaml must hold a list, not {type(data).__name__}"
         )

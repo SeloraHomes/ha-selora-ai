@@ -136,9 +136,28 @@ _ENDS_DESCRIPTION: Final = frozenset(
         "did",
         "how",
         "many",
+        # Never part of what was seen: "the last time someone came", "show me
+        # cars" — a query of "time someone" turns a newest-first search into
+        # one ranked by relevance.
+        "me",
+        "us",
+        "you",
+        "time",
+        "times",
+        "first",
+        "ever",
+        "there",
+        "all",
+        "every",
     }
 )
 _DESCRIBES_MORE: Final = frozenset({"with", "carrying", "wearing", "holding", "pulling"})
+# Where a camera-name word only places something: "in front of the garage"
+# names the garage camera, not one called "front".
+_POSITION_OF: Final = re.compile(
+    r"\b(?:in front|in back|on top|on the side|at the (?:front|back|side|top)|"
+    r"(?:to|on) the (?:left|right)) of\b"
+)
 _WORD: Final = re.compile(r"[a-z0-9']+|[^\sa-z0-9']")
 # A description with no time asks about any time; a week keeps the search on
 # the events a home still has (Frigate's default retention) and in reach.
@@ -195,7 +214,8 @@ def opening_search(
     # on its own, never adding a label.
     if not labels and not query and not named:
         return None
-    chosen = [key for key, name in (cameras or {}).items() if _names_camera(text, key, name)]
+    placed = _POSITION_OF.sub(" ", text)
+    chosen = [key for key, name in (cameras or {}).items() if _names_camera(placed, key, name)]
     if not (query or named or chosen or _WATCHED.search(text) or _PLACE.search(text)):
         return None
     window = _range(text, now)
