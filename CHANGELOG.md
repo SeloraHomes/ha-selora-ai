@@ -1,3 +1,37 @@
+## [1.3.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.2.0...v1.3.0) (2026-11-12)
+
+### Features
+
+* answer camera questions faster ([e6d1925](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e6d192508456a52b49182f7b992ca46267dfd884))
+* find Matter devices by their node id ([f16b570](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f16b570e4592e8b01d3282de838d74b35d185af8))
+* ghost the suggested name in the composer ([f262516](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f262516d7a73da5629af217f6acf5f7a495e9022))
+* link devices in home suggestion reasons ([128b240](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/128b2409fa6d934ba437efd96f74697b46f0f882))
+* **local:** serve the fused model from the hub ([8c587f4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8c587f41a6b74e85fc339bc5c48b48ac2ed9139a))
+* **mcp:** advertise a server icon ([4a75bc5](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4a75bc5d8bee2c59b96129c7cc703f4972aa6a75))
+* **mcp:** set up discovered devices ([db1ad31](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/db1ad31208fa8fdd89a0cf65fb6cc3659aa0678b))
+* one suggestion list on the chat home ([61385f8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/61385f8d231cad28989db048b43bfefe6320ad4a))
+* rename Frigate to Selora Vision ([332227f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/332227fbb0501a8b10d22b3dd59d05291c95af3f))
+* show your own icons and remember list sort order ([044e544](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/044e544c6ac35c11c1156a121b5bc72820e62260))
+* suggest and guide setting up discovered devices ([ffc22e7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ffc22e7b314c5e4dd3819e8f9a82432a04f235c2))
+* suggest scenes from repeated actions ([b5c3578](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b5c3578b157f34500c13451aee22dd94b6bff529))
+
+### Bug Fixes
+
+* act on the only fan instead of asking ([62a86f3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/62a86f3c672d5bc6406abf5630757abad8329ada))
+* add a network camera from its address alone ([8e6cee4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8e6cee45276114ab3adef91bd68c963ecc4af866))
+* answer before offering camera detection ([b345e36](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b345e362735c1f18e1889e19b4eab2db5c94e7e0))
+* close the 1.3.0 leak and security findings ([eb0cd5d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/eb0cd5dfb3dfde3e85c7759f9f5608ee8ff479de))
+* close the 1.3.0 release review findings ([1812433](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1812433748bb875c0252d767a6f1665937cd03fe))
+* close the last 1.3.0 review findings ([376d89c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/376d89cc541a309c4605de440a7ed3ab269da958))
+* finish the 1.3.0 setup, ideas and translations ([a29b2e3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a29b2e3c2ed7d33b382b8fea3e1bc21d03bd4025))
+* keep camera lists free of same-name tiles ([9f1f3af](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9f1f3af709a648665a5313e31982da069360f2f4))
+* keep the requested device for Selora Local ([1acd085](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1acd0851e6790df53c73f75362f271a0fb2881d3))
+* let every automation be toggled ([0ecdcca](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0ecdccaf4285c1b27579975dd7436b67685cb602))
+* **mcp:** require mcp:write for JWT admin tools ([7acfdb2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7acfdb28beb40ad0807fa39e94c207727fb8cd63))
+* send the weather reading to Selora AI Local ([ae8e8df](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ae8e8df87aebe0a24c7630b46a567914a1c339e8))
+* set up recipe integrations on continue ([1caf421](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1caf421d87f4e8e9a3c4bd6a97a11e9a3a30423b))
+* show what each flow step sets ([7b0f3a7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7b0f3a746d7e5a4ba07d67a8b3328eb71e225534))
+
 ## [1.2.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.1.0...v1.2.0) (2026-11-02)
 
 ### Features
