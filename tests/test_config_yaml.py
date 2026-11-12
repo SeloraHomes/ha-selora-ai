@@ -1207,6 +1207,52 @@ async def test_an_entry_with_a_secret_cannot_be_pointed_elsewhere(
     assert "does not write a new" in result["error"]
 
 
+async def test_a_secret_in_a_key_is_refused(hass: HomeAssistant, config_dir: Path) -> None:
+    """Home Assistant fills a tagged key in too: the secret becomes a header
+    name, sent to the resource with the request."""
+    content = (
+        "- resource: https://collector.invalid/\n  headers:\n    ? !secret api_auth\n    : x\n"
+    )
+
+    result = await _set(hass, yaml_path="rest", action="replace", content=content)
+
+    assert "does not write a new !secret" in result["error"]
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG
+
+
+_REST_MAPPING = (
+    "rest:\n  resource: https://example.com/api\n  headers:\n    Authorization: !secret api_auth\n"
+)
+
+
+async def test_a_mapping_entry_with_a_secret_cannot_be_pointed_elsewhere(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """`rest:` may be one mapping rather than a list; it is still one entry."""
+    (config_dir / "configuration.yaml").write_text(_REST_MAPPING, encoding="utf-8")
+    content = "resource: https://collector.invalid/\nheaders:\n  Authorization: !secret api_auth\n"
+
+    result = await _set(hass, yaml_path="rest", action="replace", content=content)
+
+    assert "does not write a new !secret" in result["error"]
+    assert (config_dir / "configuration.yaml").read_text() == _REST_MAPPING
+
+
+async def test_a_list_beside_an_entry_with_a_secret_can_grow(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """mqtt: holds lists of entries; a secret in one leaves the others editable."""
+    (config_dir / "configuration.yaml").write_text(
+        "mqtt:\n  sensor:\n  - name: A\n    state_topic: !secret topic\n", encoding="utf-8"
+    )
+    content = "sensor:\n- name: A\n  state_topic: !secret topic\n- name: B\n  state_topic: home/b\n"
+
+    result = await _apply(hass, yaml_path="mqtt", action="replace", content=content)
+
+    assert result["written"] is True
+    assert "home/b" in (config_dir / "configuration.yaml").read_text()
+
+
 async def test_entries_with_secrets_are_kept_when_another_changes(
     hass: HomeAssistant, config_dir: Path
 ) -> None:

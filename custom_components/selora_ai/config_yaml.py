@@ -216,7 +216,11 @@ def _plain(value: Any) -> Any:
     tag = _tag_of(value)
     body: Any
     if isinstance(value, dict):
-        body = {str(key): _plain(item) for key, item in value.items()}
+        # A key keeps its tag too: `? !secret name` is a key Home Assistant
+        # fills in from secrets.yaml.
+        body = {
+            (_plain(key) if _tag_of(key) else str(key)): _plain(item) for key, item in value.items()
+        }
     elif isinstance(value, list):
         body = [_plain(item) for item in value]
     else:
@@ -224,13 +228,22 @@ def _plain(value: Any) -> Any:
     return (tag, body) if tag else body
 
 
-def _first_tag(value: Any) -> str | None:
+def _first_tag(value: Any, *, into_lists: bool = True) -> str | None:
+    """The first tag on ``value``, its keys or anything under it.
+
+    ``into_lists=False`` stops at lists: what a mapping holds as its own,
+    rather than through the entries of a list it carries.
+    """
     if tag := _tag_of(value):
         return tag
-    items = value.values() if isinstance(value, dict) else value if isinstance(value, list) else ()
-    for item in items:
-        if found := _first_tag(item):
-            return found
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if found := _tag_of(key) or _first_tag(item, into_lists=into_lists):
+                return found
+    elif isinstance(value, list) and into_lists:
+        for item in value:
+            if found := _first_tag(item):
+                return found
     return None
 
 
@@ -241,13 +254,17 @@ def _new_tag(new: Any, old: Any) -> str | None:
     the secret's value, ``!include`` another file, ``!env_var`` the environment.
     In a ``rest`` entry that value goes to whatever ``resource`` names, and the
     preview token is no human confirmation (the agent sends it back), so only a
-    tag the file already has is kept. Inside a list the whole item must match
-    one already there: keeping the ``!secret`` while changing the item's URL
-    would send the secret somewhere new.
+    tag the file already has is kept, and only with the entry around it
+    unchanged: keeping the ``!secret`` while changing the entry's URL would send
+    the secret somewhere new. An entry is a list item, or a mapping holding the
+    tag other than through a list (``rest:`` written as one mapping is an entry
+    too; ``mqtt:``'s lists of sensors are not).
     """
     if tag := _tag_of(new):
         return None if _plain(new) == _plain(old) else tag
     if isinstance(new, dict):
+        if (tag := _first_tag(new, into_lists=False)) and _plain(new) != _plain(old):
+            return tag
         old_map = old if isinstance(old, dict) else {}
         for key, item in new.items():
             if found := _new_tag(item, old_map.get(key)):
