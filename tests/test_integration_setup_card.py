@@ -243,11 +243,12 @@ class _CameraFlow(ConfigFlow):
                 step_id="configure",
                 data_schema=vol.Schema(
                     {
-                        vol.Required("name"): str,
-                        vol.Required("host"): str,
+                        # Core's own defaults: None until the flow knows one.
+                        vol.Required("name", default=None): str,
+                        vol.Required("host", default=None): str,
                         vol.Required("port", default=80): int,
-                        vol.Optional("username"): str,
-                        vol.Optional("password"): str,
+                        vol.Optional("username", default=""): str,
+                        vol.Optional("password", default=""): str,
                     }
                 ),
             )

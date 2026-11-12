@@ -32,10 +32,13 @@ Admin-only, always on, MCP only.
 - **No new tag in written content** (`_new_tag`): `!secret`, `!include*` and
   `!env_var` make HA read a value the diff never shows, and a `rest` entry sends
   it to its `resource` on `rest.reload` — the same self-confirmed-token problem
-  as host commands. A tag already in the file may be carried along unchanged;
-  inside a list, the whole item must match one already there, since keeping the
-  `!secret` while changing the item's URL is the leak. So an entry holding a
-  secret is the user's to edit.
+  as host commands. A tag already in the file may be carried along unchanged,
+  and only with its whole entry unchanged, since keeping the `!secret` while
+  changing the entry's URL is the leak. An entry is a list item, or a mapping
+  that holds the tag other than through a list: `rest:` written as one mapping
+  (HA accepts it) is an entry, `mqtt:`'s lists are not. Keys count —
+  `? !secret x` is filled in as a header name. So an entry holding a secret is
+  the user's to edit.
 - **Two steps.** Without `confirm_token` nothing is written; the result carries
   the diff and a token = hash(path, current file bytes, action, key, content). The
   same request with that token writes; a changed file or request gets a fresh

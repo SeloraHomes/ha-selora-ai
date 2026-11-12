@@ -519,10 +519,11 @@ _LOGIN_NAMES: Final = frozenset({"username", "user", "user_name", "login", "emai
 
 def _fillable(fields: list[dict[str, Any]]) -> bool:
     """Whether a login step has a required field besides the login with no
-    default: one the model may already know (a host, a name)."""
+    default: one the model may already know (a host, a name). An empty
+    default is none: ONVIF's form defaults its name and host to None."""
     return any(
         f.get("required")
-        and "default" not in f
+        and f.get("default") in (None, "")
         and "is_set" not in f
         and str(f.get("name") or "").lower() not in _LOGIN_NAMES
         for f in fields
