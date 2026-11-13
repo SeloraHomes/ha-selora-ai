@@ -108,9 +108,11 @@ const plugins = [
         ],
       ]),
 
-  // 6. Create the GitLab tag + release page
+  // 6. Create the GitLab tag + release page. Wrapped so a failed "included in
+  //    version X" comment on a merged MR warns instead of failing a release
+  //    that is already out (scripts/semantic-release-gitlab.mjs).
   [
-    "@semantic-release/gitlab",
+    "./scripts/semantic-release-gitlab.mjs",
     {
       gitlabUrl: "https://gitlab.com",
       gitlabApiPathPrefix: "/api/v4",

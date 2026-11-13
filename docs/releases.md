@@ -24,7 +24,11 @@ Config: `release.config.js`. Plugins run in order:
 3. **changelog** — prepends to `CHANGELOG.md`.
 4. **exec (prepareCmd)** — bumps `manifest.json`, rebuilds the frontend bundle.
 5. **git** — commits `chore(release): X.Y.Z [skip ci]` back to `main`.
-6. **gitlab** — creates the GitLab tag + release page.
+6. **gitlab** — creates the GitLab tag + release page. Loaded through
+   `scripts/semantic-release-gitlab.mjs`: its last step, an "included in
+   version X" note on each merged MR, runs after everything has shipped and
+   only warns when a note fails to post. A red release job therefore means
+   the release did not finish; check the GitHub release before re-running.
 7. **exec (publishCmd)** — runs `scripts/github-release.mjs` to mirror to GitHub and upload the HACS zip.
 
 ### Major versions
