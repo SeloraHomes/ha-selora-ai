@@ -155,6 +155,8 @@ def test_openai_capacity_is_per_model(model: str, expected: bool) -> None:
         ("gemini-pro", False),
         ("gemini-1.5-pro", True),
         ("gemini-2.5-flash", True),
+        ("gemini-4-carbon", True),
+        ("gemini-4-hydrogen", True),
     ],
 )
 def test_gemini_capacity_is_per_model(model: str, expected: bool) -> None:

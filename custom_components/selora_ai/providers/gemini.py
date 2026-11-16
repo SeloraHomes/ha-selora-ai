@@ -7,10 +7,12 @@ endpoints with query-parameter authentication (``?key=…``) to avoid
 
 from __future__ import annotations
 
+import base64
 from collections.abc import AsyncIterator
 import json
 import logging
 from typing import TYPE_CHECKING, Any
+import uuid
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -23,6 +25,50 @@ if TYPE_CHECKING:
     from ..types import LLMUsageInfo
 
 _LOGGER = logging.getLogger(__name__)
+
+# Gemini 3 models sign each step's function call with a ``thoughtSignature``
+# and refuse the next request (HTTP 400, "Function call is missing a
+# thought_signature in functionCall parts") unless the call is replayed with
+# it. A call the model never made — one we write into the history ourselves —
+# has no signature to replay; Google documents this value as the one that
+# skips the check for such a call. The field is protobuf ``bytes``, which
+# REST JSON carries base64-encoded as every real signature arrives, so the
+# sentinel goes out encoded the same way (the API also takes it bare).
+SYNTHETIC_THOUGHT_SIGNATURE = base64.b64encode(b"skip_thought_signature_validator").decode()
+
+# Stamped on a response so the calls of one model turn are replayed as one
+# turn. The signature rides on the turn's FIRST call only; a parallel call
+# split into a turn of its own would be an unsigned step.
+_ROUND_KEY = "_selora_round"
+
+
+def _tool_call_from_part(part: dict[str, Any], call_id: str) -> dict[str, Any] | None:
+    """The neutral tool call in a ``functionCall`` part, keeping its signature."""
+    fc = part.get("functionCall")
+    if not isinstance(fc, dict) or not fc.get("name"):
+        return None
+    call: dict[str, Any] = {
+        "id": call_id,
+        "name": fc["name"],
+        "arguments": fc.get("args", {}),
+    }
+    signature = part.get("thoughtSignature")
+    if isinstance(signature, str) and signature:
+        call["thought_signature"] = signature
+    return call
+
+
+def _replayed_call(tool_call: dict[str, Any]) -> dict[str, Any]:
+    """A tool call as it goes back into the history, signature included."""
+    replayed: dict[str, Any] = {
+        "name": tool_call["name"],
+        "arguments": tool_call["arguments"],
+    }
+    if tool_call.get("thought_signature"):
+        replayed["thought_signature"] = tool_call["thought_signature"]
+    elif tool_call.get("synthetic"):
+        replayed["thought_signature"] = SYNTHETIC_THOUGHT_SIGNATURE
+    return replayed
 
 
 class GeminiProvider(LLMProvider):
@@ -133,14 +179,15 @@ class GeminiProvider(LLMProvider):
             tool_calls = msg.get("_tool_calls")
             if tool_calls:
                 for tc in tool_calls:
-                    parts.append(
-                        {
-                            "functionCall": {
-                                "name": tc["name"],
-                                "args": tc["arguments"],
-                            }
+                    call_part: dict[str, Any] = {
+                        "functionCall": {
+                            "name": tc["name"],
+                            "args": tc["arguments"],
                         }
-                    )
+                    }
+                    if tc.get("thought_signature"):
+                        call_part["thoughtSignature"] = tc["thought_signature"]
+                    parts.append(call_part)
 
             if parts:
                 contents.append({"role": gemini_role, "parts": parts})
@@ -222,15 +269,9 @@ class GeminiProvider(LLMProvider):
         parts = candidates[0].get("content", {}).get("parts", [])
         result: list[dict[str, Any]] = []
         for i, part in enumerate(parts):
-            fc = part.get("functionCall")
-            if fc and fc.get("name"):
-                result.append(
-                    {
-                        "id": f"call_{i}",
-                        "name": fc["name"],
-                        "arguments": fc.get("args", {}),
-                    }
-                )
+            call = _tool_call_from_part(part, f"call_{i}")
+            if call is not None:
+                result.append(call)
         return result
 
     def append_tool_result(
@@ -240,20 +281,25 @@ class GeminiProvider(LLMProvider):
         tool_call: dict[str, Any],
         result: dict[str, Any],
     ) -> None:
-        # Append the model's response (with the function call)
+        # The caller hands over one call at a time; every call of the same
+        # response joins the model turn the first one opened.
+        round_id = response_data.setdefault(_ROUND_KEY, uuid.uuid4().hex)
+        if (
+            len(messages) >= 2
+            and messages[-2].get(_ROUND_KEY) == round_id
+            and "_tool_responses" in messages[-1]
+        ):
+            messages[-2]["_tool_calls"].append(_replayed_call(tool_call))
+            messages[-1]["_tool_responses"].append({"name": tool_call["name"], "result": result})
+            return
         if response_data.get("candidates"):
             messages.append(
                 {
                     "role": "assistant",
-                    "_tool_calls": [
-                        {
-                            "name": tool_call["name"],
-                            "arguments": tool_call["arguments"],
-                        }
-                    ],
+                    _ROUND_KEY: round_id,
+                    "_tool_calls": [_replayed_call(tool_call)],
                 }
             )
-        # Append our function response
         messages.append(
             {
                 "role": "user",
@@ -277,9 +323,7 @@ class GeminiProvider(LLMProvider):
         messages.append(
             {
                 "role": "assistant",
-                "_tool_calls": [
-                    {"name": tc["name"], "arguments": tc["arguments"]} for tc in tool_calls
-                ],
+                "_tool_calls": [_replayed_call(tc) for tc in tool_calls],
             }
         )
         # Append all function responses in one user turn
@@ -400,15 +444,9 @@ class GeminiProvider(LLMProvider):
                 for part in parts:
                     if "text" in part:
                         yield part["text"]
-                    fc = part.get("functionCall")
-                    if fc:
-                        tool_calls.append(
-                            {
-                                "id": f"call_{len(tool_calls)}",
-                                "name": fc["name"],
-                                "arguments": fc.get("args", {}),
-                            }
-                        )
+                    call = _tool_call_from_part(part, f"call_{len(tool_calls)}")
+                    if call is not None:
+                        tool_calls.append(call)
 
         self._report_usage(stream_usage or None)
 

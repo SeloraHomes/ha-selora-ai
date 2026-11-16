@@ -175,10 +175,11 @@ _LARGE_CONTEXT_FAMILIES = (
     "o3",
     "o4",
     # Gemini 1.0 Pro served exactly 32K, which is the threshold with no margin;
-    # 1.5 onward is ≥1M.
+    # 1.5 onward is ≥1M, Gemini 4 included.
     "gemini-1.5",
     "gemini-2",
     "gemini-3",
+    "gemini-4",
 )
 
 
