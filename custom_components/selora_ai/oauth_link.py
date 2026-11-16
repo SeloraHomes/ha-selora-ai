@@ -33,7 +33,7 @@ import logging
 import secrets
 import time
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
 from homeassistant.components import websocket_api
@@ -185,6 +185,35 @@ def _known_ha_origins(hass: HomeAssistant) -> set[str]:
     return origins
 
 
+def _is_mdns_origin(origin: str) -> bool:
+    """Whether ``origin`` is a bare http(s) origin on an mDNS ``.local`` host.
+
+    ``homeassistant.local`` is how most people first reach HA, yet ``get_url``
+    never returns it unless the user typed it in as the internal URL — with
+    none configured, the internal URL is the LAN IP. A ``.local`` name only
+    resolves over multicast DNS on the local link (RFC 6762), so it cannot
+    point a callback at a host on the internet, which is what the known-origin
+    check guards against. Connect accepts plain-http ``.local`` redirect URIs
+    for the same reason.
+    """
+    try:
+        parts = urlsplit(origin)
+        parts.port  # noqa: B018 — raises ValueError on a malformed port
+    except ValueError:
+        return False
+    host = (parts.hostname or "").rstrip(".")
+    return (
+        parts.scheme.lower() in ("http", "https")
+        and host.endswith(".local")
+        and host != ".local"
+        and not parts.username
+        and not parts.password
+        and parts.path in ("", "/")
+        and not parts.query
+        and not parts.fragment
+    )
+
+
 def _resolve_callback_base(hass: HomeAssistant, panel_origin: str = "") -> str:
     """Return the URL prefix the OAuth callback should land on.
 
@@ -205,13 +234,14 @@ def _resolve_callback_base(hass: HomeAssistant, panel_origin: str = "") -> str:
     Falls back to ``_resolve_external_url`` when:
 
     * no panel_origin was passed (older panel build, non-panel caller), OR
-    * the panel_origin doesn't match any URL HA thinks it serves
-      (defensive — we don't want a stray ``Origin`` header to redirect
-      OAuth callbacks to an attacker-controlled host).
+    * the panel_origin doesn't match any URL HA thinks it serves and isn't
+      an mDNS ``.local`` origin (defensive — we don't want a stray
+      ``Origin`` header to redirect OAuth callbacks to an
+      attacker-controlled host).
     """
     if panel_origin:
         candidate = panel_origin.rstrip("/")
-        if candidate.lower() in _known_ha_origins(hass):
+        if candidate.lower() in _known_ha_origins(hass) or _is_mdns_origin(candidate):
             return candidate
     return _resolve_external_url(hass)
 
