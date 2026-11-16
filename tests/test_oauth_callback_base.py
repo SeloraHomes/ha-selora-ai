@@ -18,8 +18,10 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from homeassistant.helpers.network import NoURLAvailableError
+import pytest
 
 from custom_components.selora_ai.oauth_link import (
+    _is_mdns_origin,
     _known_ha_origins,
     _resolve_callback_base,
 )
@@ -203,3 +205,65 @@ def test_callback_base_case_insensitive_match() -> None:
     # Returns the panel's exact casing (the OAuth provider will canonicalise
     # at its end); we just confirm the match succeeded.
     assert base.lower() == "http://homeassistant.local:8123"
+
+
+def test_callback_base_accepts_mdns_origin_with_only_an_ip_internal_url() -> None:
+    """No internal URL configured, so ``get_url`` reports the LAN IP — a panel
+    opened via ``homeassistant.local`` must still get its callback there, not
+    on the external URL the user may not be able to reach."""
+    with patch(
+        "custom_components.selora_ai.oauth_link.get_url",
+        side_effect=_fake_get_url(
+            internal="http://192.168.1.20:8123",
+            external="https://example.duckdns.org",
+        ),
+    ):
+        base = _resolve_callback_base(object(), "http://homeassistant.local:8123")
+    assert base == "http://homeassistant.local:8123"
+
+
+def test_callback_base_still_accepts_ip_origin() -> None:
+    with patch(
+        "custom_components.selora_ai.oauth_link.get_url",
+        side_effect=_fake_get_url(
+            internal="http://192.168.1.20:8123",
+            external="https://example.duckdns.org",
+        ),
+    ):
+        base = _resolve_callback_base(object(), "http://192.168.1.20:8123")
+    assert base == "http://192.168.1.20:8123"
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://homeassistant.local:8123",
+        "https://my-hub.local",
+        "HTTP://HomeAssistant.LOCAL:8123",
+        "http://homeassistant.local.:8123",
+    ],
+)
+def test_mdns_origin_accepted(origin: str) -> None:
+    assert _is_mdns_origin(origin)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://evil.example.com",
+        "http://homeassistant.local@evil.example.com",
+        "http://evil.example.com#.local",
+        "http://evil.example.com/.local",
+        "http://homeassistant.local.evil.example.com",
+        "http://homeassistant.local:8123/path",
+        "http://homeassistant.local:8123?x=1",
+        "http://user:pw@homeassistant.local:8123",
+        "http://homeassistant.local:notaport",
+        "ftp://homeassistant.local",
+        "javascript://homeassistant.local",
+        "http://.local",
+        "",
+    ],
+)
+def test_mdns_origin_rejected(origin: str) -> None:
+    assert not _is_mdns_origin(origin)
