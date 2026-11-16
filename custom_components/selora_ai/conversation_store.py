@@ -41,8 +41,9 @@ _CONVERSATIONS_STORAGE_VERSION = 1
 # keeping the first message for context and the latest N-1 for recency).
 _SESSION_MAX_MESSAGES = 100
 
-# Maximum number of chat sessions retained.  When exceeded the oldest
-# sessions (by updated_at) are evicted to stay within budget.
+# Maximum number of chat sessions retained per owner.  When exceeded the
+# owner's oldest sessions (by updated_at) are evicted to stay within budget —
+# per owner, so one person's chatting never evicts another's conversations.
 _SESSION_MAX_COUNT = 200
 
 # Maximum automation ids remembered per session (see set_automation_status).
@@ -63,6 +64,11 @@ _SESSION_SEARCH_TEXT_MAX = 4000
 # period spares a chat just opened in another tab or browser — and
 # append_message recreates a pruned session under its id regardless.
 _EMPTY_SESSION_GRACE = timedelta(hours=1)
+
+# Owners remembered for removed sessions (see ConversationStore._remove).
+# Only a turn still in flight can recreate one, so the most recent removals
+# are the ones that matter.
+_FORMER_OWNERS_MAX = 1000
 
 
 def _bounded_search_text(messages: list[ChatMessage]) -> str:
@@ -87,24 +93,98 @@ def _created_before(session: SessionData, cutoff: datetime) -> bool:
     return created is None or dt_util.as_utc(created) < cutoff
 
 
+async def _ha_owner_id(hass: HomeAssistant) -> str | None:
+    """Return the id of Home Assistant's owner account, if there is one."""
+    for user in await hass.auth.async_get_users():
+        if user.is_owner:
+            return user.id
+    return None
+
+
+def mcp_session_owner(caller_id: str) -> str:
+    """The owner recorded on a session an MCP caller creates.
+
+    Namespaced so an MCP client never sees the panel conversations of the Home
+    Assistant user whose token it holds, nor the other way round.
+    """
+    return f"mcp:{caller_id}"
+
+
 class ConversationStore:
-    """Thin wrapper around HA's Store for persisting chat sessions."""
+    """Thin wrapper around HA's Store for persisting chat sessions.
+
+    Every session belongs to one owner: the Home Assistant user id for the
+    panel, ``mcp_session_owner(...)`` for an MCP caller. Listing is filtered
+    by owner, and the entry points that take a session id refuse one owned by
+    someone else (``belongs_to_other``). Sessions stored before owners existed
+    belong to Home Assistant's owner account.
+    """
 
     def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
         self._store: Store[dict[str, Any]] = Store(
             hass,
             version=_CONVERSATIONS_STORAGE_VERSION,
             key=_CONVERSATIONS_STORAGE_KEY,
         )
         self._data: dict[str, Any] | None = None
+        self._legacy_owner: str | None = None
+        self._former_owners: dict[str, str] = {}
 
     async def _ensure_loaded(self) -> None:
         if self._data is None:
             raw = await self._store.async_load()
-            self._data = raw if isinstance(raw, dict) else {"sessions": {}}
+            # Resolved BEFORE the sessions are published: a request reaching
+            # the store while this awaits would otherwise see the loaded data
+            # with no legacy owner, and treat every older session as shared.
+            legacy_owner = await _ha_owner_id(self._hass)
+            if self._data is None:
+                self._legacy_owner = legacy_owner
+                self._data = raw if isinstance(raw, dict) else {"sessions": {}}
 
-    async def list_sessions(self) -> list[SessionSummary]:
-        """Return summaries of sessions that hold messages, newest first.
+    def _remove(self, session_id: str) -> None:
+        """Delete a session, remembering who owned it.
+
+        A turn still in flight when its session is deleted, evicted or pruned
+        recreates it on its next ``append_message``. Remembering the owner is
+        what keeps that recreated conversation with the person who had it,
+        whichever code path appends, instead of falling to the HA owner.
+        """
+        if self._data is None:
+            return
+        session = self._data["sessions"].pop(session_id, None)
+        owner = self._owner_of(session) if session is not None else None
+        if owner:
+            self._former_owners[session_id] = owner
+            while len(self._former_owners) > _FORMER_OWNERS_MAX:
+                del self._former_owners[next(iter(self._former_owners))]
+
+    def _owner_of(self, session: SessionData) -> str | None:
+        """Who a session belongs to; one stored without an owner is the HA owner's.
+
+        None only for an ownerless session in a home with no owner account
+        (never past onboarding): it stays shared, as every session once was.
+        """
+        return session.get("owner") or self._legacy_owner
+
+    def _visible_to(self, session: SessionData, owner: str) -> bool:
+        session_owner = self._owner_of(session)
+        return session_owner is None or session_owner == owner
+
+    async def belongs_to_other(self, session_id: str, owner: str) -> bool:
+        """Whether ``session_id`` exists and belongs to someone other than ``owner``.
+
+        A session that does not exist is not someone else's: each caller
+        handles a missing id as it always has (not found, or a fresh session).
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        return session is not None and not self._visible_to(session, owner)
+
+    async def list_sessions(self, owner: str) -> list[SessionSummary]:
+        """Return summaries of ``owner``'s sessions that hold messages, newest first.
 
         An empty session is a chat opened and never used, so it is not listed.
         """
@@ -114,7 +194,7 @@ class ConversationStore:
         summaries = []
         for sid, session in self._data["sessions"].items():
             messages = session.get("messages", [])
-            if not messages:
+            if not messages or not self._visible_to(session, owner):
                 continue
             search_text = _bounded_search_text(messages)
             summaries.append(
@@ -137,20 +217,17 @@ class ConversationStore:
             raise RuntimeError("Session store failed to load")
         return self._data["sessions"].get(session_id)
 
-    def _evict_oldest_sessions(self) -> None:
-        """Remove oldest sessions when count exceeds the cap."""
+    def _evict_oldest_sessions(self, owner: str | None) -> None:
+        """Remove ``owner``'s oldest sessions when their count exceeds the cap."""
         if self._data is None:
             return
         sessions = self._data["sessions"]
-        if len(sessions) <= _SESSION_MAX_COUNT:
+        owned = [sid for sid, session in sessions.items() if self._owner_of(session) == owner]
+        if len(owned) <= _SESSION_MAX_COUNT:
             return
-        sorted_ids = sorted(
-            sessions,
-            key=lambda sid: sessions[sid].get("updated_at", ""),
-        )
-        to_remove = len(sessions) - _SESSION_MAX_COUNT
-        for sid in sorted_ids[:to_remove]:
-            del sessions[sid]
+        owned.sort(key=lambda sid: sessions[sid].get("updated_at", ""))
+        for sid in owned[: len(owned) - _SESSION_MAX_COUNT]:
+            self._remove(sid)
 
     def _prune_empty_sessions(self) -> None:
         """Remove sessions left without messages past the grace period."""
@@ -163,10 +240,10 @@ class ConversationStore:
             for sid, session in sessions.items()
             if not session.get("messages") and _created_before(session, cutoff)
         ]:
-            del sessions[sid]
+            self._remove(sid)
 
-    async def create_session(self, guide: SessionGuide | None = None) -> SessionData:
-        """Create a new empty session and persist it."""
+    async def create_session(self, guide: SessionGuide | None = None, *, owner: str) -> SessionData:
+        """Create a new empty session owned by ``owner`` and persist it."""
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
@@ -177,12 +254,13 @@ class ConversationStore:
             "created_at": now,
             "updated_at": now,
             "messages": [],
+            "owner": owner,
         }
         if guide:
             session["guide"] = guide
         self._prune_empty_sessions()
         self._data["sessions"][session["id"]] = session
-        self._evict_oldest_sessions()
+        self._evict_oldest_sessions(owner)
         await self._store.async_save(self._data)
         return session
 
@@ -217,8 +295,14 @@ class ConversationStore:
         frigate_result: FrigateResult | None = None,
         describe_card: DescribeCard | None = None,
         faces_card: FacesCard | None = None,
+        owner: str | None = None,
     ) -> ChatMessage:
-        """Append a message to a session, auto-create if missing, and persist."""
+        """Append a message to a session, auto-create if missing, and persist.
+
+        ``owner`` is recorded only on a session this call creates. Without
+        it, a session this store removed gets back the owner it had, and any
+        other falls to Home Assistant's owner account.
+        """
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
@@ -232,7 +316,10 @@ class ConversationStore:
                 "updated_at": now,
                 "messages": [],
             }
-            self._evict_oldest_sessions()
+            owner = owner or self._former_owners.pop(session_id, None)
+            if owner:
+                self._data["sessions"][session_id]["owner"] = owner
+            self._evict_oldest_sessions(self._owner_of(self._data["sessions"][session_id]))
 
         session = self._data["sessions"][session_id]
         message: ChatMessage = {
@@ -593,7 +680,7 @@ class ConversationStore:
             raise RuntimeError("Session store failed to load")
         if session_id not in self._data["sessions"]:
             return False
-        del self._data["sessions"][session_id]
+        self._remove(session_id)
         await self._store.async_save(self._data)
         return True
 

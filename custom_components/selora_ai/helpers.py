@@ -72,9 +72,15 @@ CALLER_IS_ADMIN: ContextVar[bool] = ContextVar("selora_caller_is_admin", default
 # flag — that is about who Home Assistant hides the page from, not about scopes.
 CALLER_CAN_WRITE: ContextVar[bool] = ContextVar("selora_caller_can_write", default=False)
 
+# Who the MCP caller is (``SeloraAuthContext.user_id``), for the conversations
+# it owns. None outside an MCP call, and a tool that needs it refuses then.
+CALLER_ID: ContextVar[str | None] = ContextVar("selora_caller_id", default=None)
+
 
 @contextmanager
-def caller_scope(is_admin: bool, *, can_write: bool | None = None) -> Iterator[None]:
+def caller_scope(
+    is_admin: bool, *, can_write: bool | None = None, caller_id: str | None = None
+) -> Iterator[None]:
     """Mark who the tool call in flight is running as.
 
     ``can_write`` defaults to ``is_admin`` — true on the chat surface, where the
@@ -82,9 +88,11 @@ def caller_scope(is_admin: bool, *, can_write: bool | None = None) -> Iterator[N
     """
     admin_token = CALLER_IS_ADMIN.set(bool(is_admin))
     write_token = CALLER_CAN_WRITE.set(bool(is_admin if can_write is None else can_write))
+    id_token = CALLER_ID.set(caller_id)
     try:
         yield
     finally:
+        CALLER_ID.reset(id_token)
         CALLER_CAN_WRITE.reset(write_token)
         CALLER_IS_ADMIN.reset(admin_token)
 

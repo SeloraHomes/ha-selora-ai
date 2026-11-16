@@ -27,6 +27,7 @@ async def _new_session(hass: HomeAssistant, **extra: object) -> tuple[Conversati
     handler = inspect.unwrap(sessions_ws._handle_websocket_new_session)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
     msg = sessions_ws._handle_websocket_new_session._ws_schema(
         {"id": 1, "type": "selora_ai/new_session", **extra}
     )

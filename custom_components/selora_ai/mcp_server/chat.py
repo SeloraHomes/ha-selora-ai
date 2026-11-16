@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from ..const import (
     DOMAIN,
 )
+from ..conversation_store import mcp_session_owner
 from .automations import _tool_create_automation
 from .common import (
     _get_conv_store,
@@ -132,17 +133,22 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         if refine_error is not None:
             return {"error": refine_error}
 
+    owner = _session_owner()
+    if owner is None:
+        return {"error": "Conversations need an authenticated caller"}
     conv_store: ConversationStore = _get_conv_store(hass)
 
     # Get or create session
     session: dict[str, Any]
     if session_id:
-        session_or_none: dict[str, Any] | None = await conv_store.get_session(session_id)
+        session_or_none: dict[str, Any] | None = None
+        if not await conv_store.belongs_to_other(session_id, owner):
+            session_or_none = await conv_store.get_session(session_id)
         if session_or_none is None:
-            return {"error": f"Session {session_id} not found"}
+            return {"error": f"Session {_sanitize(session_id)} not found"}
         session = session_or_none
     else:
-        session = await conv_store.create_session()
+        session = await conv_store.create_session(owner=owner)
         session_id = session["id"]
 
     # Reconcile scene store so session context reflects external edits
@@ -354,10 +360,25 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
 # ── Tool: selora_list_sessions ────────────────────────────────────────────────
 
 
+def _session_owner() -> str | None:
+    """The owner of the MCP caller's conversations, or None outside an MCP call.
+
+    Kept apart from the panel's: an MCP client holding a user's token never
+    sees that user's panel conversations.
+    """
+    from ..helpers import CALLER_ID  # noqa: PLC0415
+
+    caller_id = CALLER_ID.get()
+    return mcp_session_owner(caller_id) if caller_id else None
+
+
 async def _tool_list_sessions(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Return recent conversation sessions (title + id, no messages)."""
+    """Return the caller's recent conversation sessions (title + id, no messages)."""
+    owner = _session_owner()
+    if owner is None:
+        return []
     conv_store: ConversationStore = _get_conv_store(hass)
-    sessions: list[dict[str, Any]] = await conv_store.list_sessions()
+    sessions: list[dict[str, Any]] = await conv_store.list_sessions(owner)
     return [
         {
             "session_id": s["id"],

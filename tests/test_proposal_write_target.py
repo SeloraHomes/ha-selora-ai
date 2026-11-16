@@ -267,7 +267,7 @@ async def test_accepting_a_proposal_indexes_its_id(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.conversation_store import ConversationStore
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(session["id"], "user", "make me an automation")
     await store.append_message(session["id"], "assistant", "here you go")
     assert await store.set_automation_status(
@@ -288,7 +288,7 @@ async def test_a_pending_proposal_remembers_what_it_would_replace(hass: HomeAssi
     from custom_components.selora_ai.conversation_store import ConversationStore
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(
         session["id"],
         "assistant",
@@ -339,7 +339,7 @@ async def test_a_plain_proposal_stores_no_target(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.conversation_store import ConversationStore
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(
         session["id"],
         "assistant",
@@ -360,7 +360,7 @@ async def test_only_a_save_is_indexed(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.conversation_store import ConversationStore
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(session["id"], "assistant", "proposal")
     await store.set_automation_status(session["id"], 0, "declined", automation_id="selora_ai_aaa")
     await store.set_automation_status(session["id"], 0, "refining", automation_id="selora_ai_bbb")
@@ -373,7 +373,7 @@ async def test_re_saving_moves_the_id_to_the_end(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.conversation_store import ConversationStore
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     for _ in range(3):
         await store.append_message(session["id"], "assistant", "proposal")
     for index, automation_id in enumerate(["selora_ai_aaa", "selora_ai_bbb", "selora_ai_aaa"]):
@@ -393,7 +393,7 @@ async def test_the_index_is_bounded(hass: HomeAssistant) -> None:
     )
 
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(session["id"], "assistant", "proposal")
     for n in range(_SESSION_MAX_SAVED_AUTOMATIONS + 5):
         await store.set_automation_status(session["id"], 0, "saved", automation_id=f"selora_ai_{n}")

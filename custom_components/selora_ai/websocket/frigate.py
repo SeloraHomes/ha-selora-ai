@@ -17,7 +17,7 @@ from homeassistant.components.websocket_api import decorators
 from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
-from .. import _require_admin, _resolve_llm_entry
+from .. import _require_admin, _require_session_owner, _resolve_llm_entry
 from ..const import CONF_FRIGATE_PASSWORD, CONF_FRIGATE_URL, CONF_FRIGATE_USERNAME, DOMAIN
 from ..conversation_store import ConversationStore
 from ..frigate.client import FrigateClient, FrigateError, normalize_frigate_url
@@ -83,6 +83,8 @@ async def _handle_websocket_frigate_full_quality(
 ) -> None:
     """Turn on the full-quality stream of a card's low-resolution cameras."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
     result = await async_use_full_quality(hass, msg["plan_id"])
     if "cameras" in result and "session_id" in msg and "message_index" in msg:
@@ -224,6 +226,8 @@ async def _handle_websocket_frigate_describe_answer(
     """
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
     language = str(msg.get("language") or "").lower().split("-")[0]
     result = await async_answer(
         hass, msg["camera"], msg["describe"], msg["zones"], language or "en"
@@ -232,7 +236,9 @@ async def _handle_websocket_frigate_describe_answer(
         connection.send_error(msg["id"], "describe_failed", result["error"])
         return
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    said = await store.append_message(msg["session_id"], "user", result["said"])
+    said = await store.append_message(
+        msg["session_id"], "user", result["said"], owner=connection.user.id
+    )
     reply = await store.append_message(
         msg["session_id"],
         "assistant",
@@ -266,7 +272,7 @@ async def _handle_websocket_frigate_describe_start(
         connection.send_error(msg["id"], "describe_failed", result["error"])
         return
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session = await store.create_session()
+    session = await store.create_session(owner=connection.user.id)
     await store.append_message(session["id"], "user", msg["title"])
     await store.append_message(
         session["id"],
@@ -311,7 +317,7 @@ async def _handle_websocket_frigate_faces_start(
         connection.send_error(msg["id"], "faces_failed", result["error"])
         return
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session = await store.create_session()
+    session = await store.create_session(owner=connection.user.id)
     await store.append_message(session["id"], "user", msg["title"])
     await store.append_message(
         session["id"],
@@ -342,12 +348,16 @@ async def _handle_websocket_frigate_faces_answer(
     conversation."""
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
     result = await async_faces_answer(hass, msg["enable"], _language(msg))
     if "error" in result:
         connection.send_error(msg["id"], "faces_failed", result["error"])
         return
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    said = await store.append_message(msg["session_id"], "user", result["said"])
+    said = await store.append_message(
+        msg["session_id"], "user", result["said"], owner=connection.user.id
+    )
     reply = await store.append_message(
         msg["session_id"], "assistant", result["reply"], faces_card=result["card"]
     )

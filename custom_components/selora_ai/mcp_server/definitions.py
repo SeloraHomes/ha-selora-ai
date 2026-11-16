@@ -399,7 +399,10 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     ),
     MCPTool(
         name=TOOL_LIST_SESSIONS,
-        description="Return recent Selora chat sessions (title, id, timestamp). No messages included.",
+        description=(
+            "Return the recent Selora chat sessions this client started (title, id, "
+            "timestamp). The panel's conversations are not included, nor are messages."
+        ),
         inputSchema={"type": "object", "properties": {}},
     ),
     MCPTool(

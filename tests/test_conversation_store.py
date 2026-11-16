@@ -16,11 +16,11 @@ async def test_a_session_without_messages_is_not_listed(hass: HomeAssistant) -> 
     """Opening a fresh chat creates the session before anything is sent; one the
     user walks away from must not sit in the sidebar as "New conversation"."""
     store = ConversationStore(hass)
-    empty = await store.create_session()
-    used = await store.create_session()
+    empty = await store.create_session(owner="test-user")
+    used = await store.create_session(owner="test-user")
     await store.append_message(used["id"], "user", "turn off the kitchen lights")
 
-    listed = [s["id"] for s in await store.list_sessions()]
+    listed = [s["id"] for s in await store.list_sessions("test-user")]
 
     assert listed == [used["id"]]
     assert await store.get_session(empty["id"]) is not None
@@ -31,13 +31,13 @@ async def test_creating_a_session_prunes_stale_empty_ones(hass: HomeAssistant) -
     """Abandoned empty sessions would otherwise pile up and evict real
     conversations under the store's cap."""
     store = ConversationStore(hass)
-    stale = await store.create_session()
+    stale = await store.create_session(owner="test-user")
     stale["created_at"] = (dt_util.now() - timedelta(hours=2)).isoformat()
-    kept = await store.create_session()
+    kept = await store.create_session(owner="test-user")
     await store.append_message(kept["id"], "user", "hello")
     kept["created_at"] = stale["created_at"]
 
-    await store.create_session()
+    await store.create_session(owner="test-user")
 
     assert await store.get_session(stale["id"]) is None
     assert await store.get_session(kept["id"]) is not None
@@ -49,9 +49,9 @@ async def test_a_just_opened_empty_session_survives_another_create(
 ) -> None:
     """A chat opened moments ago in another tab is still in use."""
     store = ConversationStore(hass)
-    recent = await store.create_session()
+    recent = await store.create_session(owner="test-user")
 
-    await store.create_session()
+    await store.create_session(owner="test-user")
 
     assert await store.get_session(recent["id"]) is not None
 
@@ -62,13 +62,13 @@ async def test_a_pruned_session_is_recreated_by_its_first_message(
 ) -> None:
     """A tab holding a pruned session id can still send into it."""
     store = ConversationStore(hass)
-    stale = await store.create_session()
+    stale = await store.create_session(owner="test-user")
     stale["created_at"] = (dt_util.now() - timedelta(hours=2)).isoformat()
-    await store.create_session()
+    await store.create_session(owner="test-user")
 
     await store.append_message(stale["id"], "user", "turn on the porch light")
 
-    listed = await store.list_sessions()
+    listed = await store.list_sessions("test-user")
     assert [s["id"] for s in listed] == [stale["id"]]
     assert listed[0]["title"] == "turn on the porch light"
 
@@ -77,7 +77,7 @@ async def test_a_pruned_session_is_recreated_by_its_first_message(
 async def test_a_redrawn_card_reads_the_same_when_reopened(hass: HomeAssistant) -> None:
     """A Frigate card turned to full quality keeps its new rows."""
     store = ConversationStore(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     await store.append_message(session["id"], "user", "add my cameras to Frigate")
     card = {"kind": "add_frigate_cameras", "plan_id": "p1", "cameras": [{"low_resolution": True}]}
     await store.append_message(

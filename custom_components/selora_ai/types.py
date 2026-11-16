@@ -1109,6 +1109,9 @@ class SessionData(TypedDict):
     updated_at: str
     messages: list[ChatMessage]
     guide: NotRequired[SessionGuide]
+    # Home Assistant user id (panel) or ``mcp:<caller>`` (MCP). Absent on
+    # sessions stored before owners existed — those are the HA owner's.
+    owner: NotRequired[str]
 
 
 # ── Insights: Layer 1 (health signals) ────────────────────────────────

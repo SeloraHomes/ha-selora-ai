@@ -782,10 +782,11 @@ async def test_the_websocket_answer_keeps_both_sides_in_the_conversation(
     _api(aioclient_mock, _running(), {"driveway": {"enabled": False}}, before={})
     store = ConversationStore(hass)
     hass.data.setdefault(DOMAIN, {})["_conv_store"] = store
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     handler = inspect.unwrap(frigate_ws._handle_websocket_frigate_describe_answer)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
 
     msg = {"id": 1, "session_id": session["id"], "camera": "driveway", "describe": False}
     await handler(hass, connection, {**msg, "zones": []})
@@ -818,6 +819,7 @@ async def test_the_suggestion_opens_a_chat_written_without_the_model(
     handler = inspect.unwrap(frigate_ws._handle_websocket_frigate_describe_start)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
 
     title = "Help me choose which cameras Selora AI describes"
     await handler(hass, connection, {"id": 1, "title": title, "language": "en-US"})

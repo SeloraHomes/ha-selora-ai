@@ -21,6 +21,7 @@ from .. import (
     _find_active_scenes,
     _get_scene_store,
     _require_admin,
+    _require_session_owner,
 )
 from ..const import (
     DOMAIN,
@@ -67,6 +68,8 @@ async def _handle_websocket_set_scene_status(
     """Update the acceptance status of a scene proposal in a session."""
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
 
     valid_statuses = {"pending", "saved", "declined", "refining"}
     if msg["status"] not in valid_statuses:
@@ -103,6 +106,8 @@ async def _handle_websocket_accept_scene(
     into overwriting an unrelated Selora-managed scene.
     """
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
@@ -225,6 +230,8 @@ async def _handle_websocket_preview_scene_write(
     and not a failure.
     """
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     import yaml as pyyaml  # noqa: PLC0415
@@ -827,7 +834,7 @@ async def _handle_websocket_load_scene_to_session(
     conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
-    session = await conv_store.create_session()
+    session = await conv_store.create_session(owner=connection.user.id)
     session_id = session["id"]
 
     await conv_store.update_session_title(session_id, f"Refining: {name}")
