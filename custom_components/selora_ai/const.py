@@ -842,7 +842,7 @@ CONF_GEMINI_API_KEY = "gemini_api_key"
 CONF_GEMINI_MODEL = "gemini_model"
 
 DEFAULT_GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-4-hydrogen"
 
 # ── Selora AI Local (Selora hub via llama-server, OpenAI-compatible) ─
 # v0.4.2+ deployment: the SeloraHub runs llama-server with one base

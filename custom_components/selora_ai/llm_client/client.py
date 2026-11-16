@@ -2248,6 +2248,9 @@ class LLMClient:
                 "id": f"call_{uuid.uuid4().hex[:24]}",
                 "name": _OPENING_TOOL,
                 "arguments": opening_search,
+                # The model never made this call, so a provider that replays
+                # a per-call signature (Gemini) has none to send.
+                "synthetic": True,
             }
             _log_tool_call(call)
             offer_card = tool_executor.offer_camera_card

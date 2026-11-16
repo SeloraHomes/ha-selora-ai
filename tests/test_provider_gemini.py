@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 import pytest
@@ -300,3 +301,128 @@ class TestGeminiMessageConversion:
         assert len(messages) == 2
         assert messages[0]["_tool_calls"][0]["name"] == "get_time"
         assert messages[1]["_tool_responses"][0]["result"] == {"time": "12:00"}
+
+
+class _FakeContent:
+    def __init__(self, body: str) -> None:
+        self._body = body.encode("utf-8")
+
+    async def iter_any(self):  # noqa: ANN201 — mirrors aiohttp's signature
+        for line in self._body.splitlines(keepends=True):
+            yield line
+
+
+class _FakeResponse:
+    def __init__(self, body: str) -> None:
+        self.content = _FakeContent(body)
+
+
+def _signed_response(*calls: tuple[str, str | None]) -> dict:
+    """A Gemini 3 response: each call's part carries its own signature."""
+    parts = []
+    for name, signature in calls:
+        part: dict = {"functionCall": {"name": name, "args": {"q": name}}}
+        if signature is not None:
+            part["thoughtSignature"] = signature
+        parts.append(part)
+    return {"candidates": [{"content": {"role": "model", "parts": parts}}]}
+
+
+def _model_call_parts(payload: dict) -> list[list[dict]]:
+    return [
+        [p for p in c["parts"] if "functionCall" in p]
+        for c in payload["contents"]
+        if c["role"] == "model"
+    ]
+
+
+class TestGeminiThoughtSignatures:
+    """Gemini 3 refuses a request whose function calls come back without the
+    ``thoughtSignature`` they were sent with (HTTP 400)."""
+
+    def test_extract_tool_calls_keeps_signature(self, provider) -> None:
+        calls = provider.extract_tool_calls(_signed_response(("search_entities", "sig-1")))
+        assert calls[0]["thought_signature"] == "sig-1"
+
+    def test_unsigned_call_has_no_signature(self, provider) -> None:
+        calls = provider.extract_tool_calls(_signed_response(("search_entities", None)))
+        assert "thought_signature" not in calls[0]
+
+    def test_non_streaming_round_replays_signature(self, provider) -> None:
+        response = _signed_response(("get_automation_traces", "sig-1"))
+        messages: list[dict] = [{"role": "user", "content": "too many false positives"}]
+        for call in provider.extract_tool_calls(response):
+            provider.append_tool_result(messages, response, call, {"ok": True})
+        payload = provider.build_payload("", messages)
+        assert _model_call_parts(payload) == [
+            [
+                {
+                    "functionCall": {
+                        "name": "get_automation_traces",
+                        "args": {"q": "get_automation_traces"},
+                    },
+                    "thoughtSignature": "sig-1",
+                }
+            ]
+        ]
+
+    def test_parallel_calls_stay_in_one_model_turn(self, provider) -> None:
+        """Only the first of a parallel set is signed, so splitting the set
+        into a turn per call would send an unsigned step."""
+        response = _signed_response(("get_automation_traces", "sig-1"), ("search_entities", None))
+        messages: list[dict] = [{"role": "user", "content": "hi"}]
+        for call in provider.extract_tool_calls(response):
+            provider.append_tool_result(messages, response, call, {"ok": call["name"]})
+        payload = provider.build_payload("", messages)
+        assert [c["role"] for c in payload["contents"]] == ["user", "model", "user"]
+        model_parts = _model_call_parts(payload)[0]
+        assert [p["functionCall"]["name"] for p in model_parts] == [
+            "get_automation_traces",
+            "search_entities",
+        ]
+        assert model_parts[0]["thoughtSignature"] == "sig-1"
+        assert "thoughtSignature" not in model_parts[1]
+        responses = payload["contents"][2]["parts"]
+        assert [p["functionResponse"]["name"] for p in responses] == [
+            "get_automation_traces",
+            "search_entities",
+        ]
+
+    def test_sequential_rounds_get_a_turn_each(self, provider) -> None:
+        messages: list[dict] = [{"role": "user", "content": "hi"}]
+        for name, sig in (("get_automation_traces", "sig-1"), ("search_entities", "sig-2")):
+            response = _signed_response((name, sig))
+            for call in provider.extract_tool_calls(response):
+                provider.append_tool_result(messages, response, call, {"ok": True})
+        payload = provider.build_payload("", messages)
+        roles = [c["role"] for c in payload["contents"]]
+        assert roles == ["user", "model", "user", "model", "user"]
+        assert [parts[0]["thoughtSignature"] for parts in _model_call_parts(payload)] == [
+            "sig-1",
+            "sig-2",
+        ]
+
+    async def test_streaming_round_replays_signature(self, provider) -> None:
+        chunk = _signed_response(("get_automation_traces", "sig-1"), ("search_entities", None))
+        chunk["candidates"][0]["finishReason"] = "STOP"
+        tool_calls: list[dict] = []
+        async for _ in provider.stream_with_tools(
+            _FakeResponse(f"data: {json.dumps(chunk)}\n\n"), tool_calls, []
+        ):
+            pass
+        messages: list[dict] = [{"role": "user", "content": "hi"}]
+        provider.append_streaming_tool_results(messages, [], tool_calls, [{}, {}])
+        model_parts = _model_call_parts(provider.build_payload("", messages))[0]
+        assert model_parts[0]["thoughtSignature"] == "sig-1"
+        assert "thoughtSignature" not in model_parts[1]
+
+    def test_synthetic_call_gets_the_skip_signature(self, provider) -> None:
+        """A call we wrote ourselves (the camera opening search) has no
+        signature from the model; Google's documented value skips the check."""
+        messages: list[dict] = [{"role": "user", "content": "who was at the door?"}]
+        call = {"id": "call_x", "name": "find_camera_events", "arguments": {}, "synthetic": True}
+        provider.append_streaming_tool_results(messages, [], [call], [{}])
+        model_parts = _model_call_parts(provider.build_payload("", messages))[0]
+        # ``bytes`` on the wire: base64 of the sentinel, not the bare text.
+        encoded = model_parts[0]["thoughtSignature"]
+        assert base64.b64decode(encoded) == b"skip_thought_signature_validator"
