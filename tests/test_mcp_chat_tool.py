@@ -19,9 +19,14 @@ from homeassistant.core import HomeAssistant
 import pytest
 import yaml
 
+from custom_components.selora_ai.conversation_store import mcp_session_owner
+from custom_components.selora_ai.helpers import caller_scope
 from custom_components.selora_ai.llm_client.client import LLMClient
 from custom_components.selora_ai.mcp_server.automations import _tool_create_automation
 from custom_components.selora_ai.mcp_server.chat import _tool_chat
+
+# The MCP caller every test runs as (``SeloraAuthContext.user_id``).
+MCP_CALLER = "mcp_token:agent"
 
 SELORA_ENTRY = {
     "id": "selora_ai_aaa",
@@ -84,7 +89,8 @@ async def _chat(
             LLMClient, "architect_chat", autospec=True, return_value=result_payload
         ) as stub,
     ):
-        result = await _tool_chat(hass, arguments)
+        with caller_scope(True, caller_id=MCP_CALLER):
+            result = await _tool_chat(hass, arguments)
     return result, stub
 
 
@@ -171,7 +177,7 @@ async def test_an_unresolvable_target_leaves_no_empty_session(
         hass, llm, {"message": "change the time", "refine_automation_id": "selora_ai_gone"}
     )
     assert "not found" in result["error"]
-    assert await _get_conv_store(hass).list_sessions() == []
+    assert await _get_conv_store(hass).list_sessions(mcp_session_owner(MCP_CALLER)) == []
     assert _get_conv_store(hass)._data in (None, {"sessions": {}})
 
 
@@ -272,7 +278,7 @@ async def test_an_mcp_follow_up_resolves_by_alias(hass: HomeAssistant, llm: LLMC
 
     _write_automations(hass, [SELORA_ENTRY])
     store = _get_conv_store(hass)
-    session = await store.create_session()
+    session = await store.create_session(owner=mcp_session_owner(MCP_CALLER))
     await store.append_message(session["id"], "assistant", "saved it")
     await store.set_automation_status(session["id"], 0, "saved", automation_id="selora_ai_aaa")
 

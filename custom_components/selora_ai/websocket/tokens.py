@@ -20,6 +20,7 @@ from .. import (
     _find_pending_approval,
     _in_flight_approvals,
     _require_admin,
+    _require_session_owner,
     _resolve_approval,
 )
 from ..const import (
@@ -207,6 +208,8 @@ async def _handle_websocket_resolve_approval(
     """
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
     approval_store = hass.data.get(DOMAIN, {}).get("_approval_store")
@@ -281,6 +284,8 @@ async def _handle_websocket_client_action_result(
     nothing to replay here and nothing here that grants access.
     """
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     # Reserved BEFORE the first await, like the approval resolver: two tabs, or

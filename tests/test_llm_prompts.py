@@ -899,7 +899,7 @@ class TestChatCommandExecution:
         hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
 
         connection = MagicMock()
-        connection.user = MagicMock(is_admin=True)
+        connection.user = MagicMock(is_admin=True, id="test-user")
 
         msg = {"id": 1, "type": "selora_ai/chat", "message": "Turn on the kitchen light"}
 
@@ -939,7 +939,7 @@ class TestChatCommandExecution:
         hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
 
         connection = MagicMock()
-        connection.user = MagicMock(is_admin=True)
+        connection.user = MagicMock(is_admin=True, id="test-user")
 
         msg = {"id": 1, "type": "selora_ai/chat", "message": "Do something bogus"}
 
@@ -979,7 +979,7 @@ class TestChatCommandExecution:
         store = ConversationStore(hass)
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["_conv_store"] = store
-        session = await store.create_session()
+        session = await store.create_session(owner="test-user")
         await store.append_message(
             session["id"],
             "assistant",
@@ -1007,7 +1007,7 @@ class TestChatCommandExecution:
         hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
 
         connection = MagicMock()
-        connection.user = MagicMock(is_admin=True)
+        connection.user = MagicMock(is_admin=True, id="test-user")
         msg = {
             "id": 1,
             "type": "selora_ai/chat",
@@ -1043,7 +1043,7 @@ class TestChatCommandExecution:
         store = ConversationStore(hass)
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN]["_conv_store"] = store
-        session = await store.create_session()
+        session = await store.create_session(owner="test-user")
         await store.append_message(
             session["id"],
             "assistant",
@@ -1074,7 +1074,7 @@ class TestChatCommandExecution:
         hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
 
         connection = MagicMock()
-        connection.user = MagicMock(is_admin=True)
+        connection.user = MagicMock(is_admin=True, id="test-user")
         msg = {
             "id": 1,
             "type": "selora_ai/chat",

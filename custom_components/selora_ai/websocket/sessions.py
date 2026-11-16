@@ -18,6 +18,7 @@ import voluptuous as vol
 from .. import (
     _find_llm,
     _require_admin,
+    _require_session_owner,
     _resolve_llm_entry,
     _resolve_llm_provider,
 )
@@ -49,7 +50,7 @@ async def _handle_websocket_get_sessions(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    sessions = await store.list_sessions()
+    sessions = await store.list_sessions(connection.user.id)
     connection.send_result(msg["id"], sessions)
 
 
@@ -67,6 +68,8 @@ async def _handle_websocket_get_session(
 ) -> None:
     """Return the full message history for a session."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
@@ -101,7 +104,7 @@ async def _handle_websocket_new_session(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session = await store.create_session(msg.get("guide"))
+    session = await store.create_session(msg.get("guide"), owner=connection.user.id)
     connection.send_result(msg["id"], {"session_id": session["id"]})
 
 
@@ -120,6 +123,8 @@ async def _handle_websocket_rename_session(
 ) -> None:
     """Rename a conversation session."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
@@ -144,6 +149,8 @@ async def _handle_websocket_delete_session(
 ) -> None:
     """Delete a conversation session."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
@@ -206,6 +213,8 @@ async def _handle_websocket_predict_next_prompt(
     including when the feature is off: the panel treats every reason alike.
     """
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     entry = _resolve_llm_entry(hass)

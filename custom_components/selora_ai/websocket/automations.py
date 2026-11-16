@@ -24,6 +24,7 @@ from .. import (
     _find_llm,
     _get_automation_store,
     _require_admin,
+    _require_session_owner,
 )
 from ..const import (
     AUTOMATION_ID_PREFIX,
@@ -53,6 +54,8 @@ async def _handle_websocket_set_automation_status(
 ) -> None:
     """Update the acceptance status of an automation proposal in a session."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     valid_statuses = {"pending", "accepted", "declined", "saved", "refining"}
@@ -90,6 +93,8 @@ async def _handle_websocket_create_automation(
 ) -> None:
     """Create a new automation from the side panel."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     automation_data = msg["automation"]
@@ -155,6 +160,8 @@ async def _handle_websocket_apply_automation_yaml(
 ) -> None:
     """Parse raw YAML text and create or update an automation."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     from ..automation_utils import (
@@ -345,6 +352,8 @@ async def _handle_websocket_update_automation_yaml(
 ) -> None:
     """Parse raw YAML text and update an existing automation in automations.yaml."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     from ..automation_utils import _parse_automation_yaml, async_update_automation
@@ -707,6 +716,20 @@ async def _handle_websocket_get_automations(
         connection.send_error(msg["id"], "unknown_error", str(exc))
 
 
+async def _own_session_id(
+    conv_store: ConversationStore, session_id: str | None, owner: str
+) -> str | None:
+    """``session_id`` if the caller may open it, else None.
+
+    An automation's history names the conversation that wrote each version,
+    which may be another user's: its preview and link are left out, like any
+    version that came from no conversation.
+    """
+    if not session_id or await conv_store.belongs_to_other(session_id, owner):
+        return None
+    return session_id
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -733,7 +756,8 @@ async def _handle_websocket_get_automation_versions(
         result = []
         for v in versions:
             entry = dict(v)
-            sid = v.get("session_id")
+            sid = await _own_session_id(conv_store, v.get("session_id"), connection.user.id)
+            entry["session_id"] = sid
             entry["session_preview"] = await conv_store.get_session_preview(sid) if sid else None
             result.append(entry)
 
@@ -947,7 +971,8 @@ async def _handle_websocket_get_automation_lineage(
         result = []
         for entry in lineage:
             enriched = dict(entry)
-            sid = entry.get("session_id")
+            sid = await _own_session_id(conv_store, entry.get("session_id"), connection.user.id)
+            enriched["session_id"] = sid
             if sid:
                 session = await conv_store.get_session(sid)
                 enriched["session_preview"] = await conv_store.get_session_preview(sid)
@@ -979,6 +1004,8 @@ async def _handle_websocket_get_session_automations(
 ) -> None:
     """Return all automations (with metadata) touched by a given session."""
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     try:
@@ -1017,6 +1044,8 @@ async def _handle_websocket_load_automation_to_session(
     chat handler.
     """
     if not _require_admin(connection, msg):
+        return
+    if not await _require_session_owner(hass, connection, msg):
         return
 
     from pathlib import Path
@@ -1072,10 +1101,10 @@ async def _handle_websocket_load_automation_to_session(
     if session_id:
         session = await conv_store.get_session(session_id)
         if not session:
-            session = await conv_store.create_session()
+            session = await conv_store.create_session(owner=connection.user.id)
             session_id = session["id"]
     else:
-        session = await conv_store.create_session()
+        session = await conv_store.create_session(owner=connection.user.id)
         session_id = session["id"]
 
     alias = automation_data.get("alias", automation_id)

@@ -19,7 +19,7 @@ class TestResolveOrCreateSession:
     async def test_creates_new_when_no_session_id(self) -> None:
         store = AsyncMock()
         store.create_session.return_value = {"id": "new-1", "messages": []}
-        session, session_id, created = await _resolve_or_create_session(store, "")
+        session, session_id, created = await _resolve_or_create_session(store, "", "test-user")
         assert created is True
         assert session_id == "new-1"
         store.create_session.assert_awaited_once()
@@ -29,7 +29,7 @@ class TestResolveOrCreateSession:
     async def test_resolves_existing_session(self) -> None:
         store = AsyncMock()
         store.get_session.return_value = {"id": "existing-7", "messages": [{"role": "user"}]}
-        session, session_id, created = await _resolve_or_create_session(store, "existing-7")
+        session, session_id, created = await _resolve_or_create_session(store, "existing-7", "test-user")
         assert created is False
         assert session_id == "existing-7"
         store.get_session.assert_awaited_once_with("existing-7")
@@ -41,6 +41,6 @@ class TestResolveOrCreateSession:
         store = AsyncMock()
         store.get_session.return_value = None
         store.create_session.return_value = {"id": "new-2", "messages": []}
-        _session, session_id, created = await _resolve_or_create_session(store, "stale-id")
+        _session, session_id, created = await _resolve_or_create_session(store, "stale-id", "test-user")
         assert created is True
         assert session_id == "new-2"

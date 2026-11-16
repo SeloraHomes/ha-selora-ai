@@ -412,7 +412,7 @@ async def test_a_rename_during_refinement_is_applied_without_a_card(
     the old one, and a proposal built from it would put it back on accept."""
     hass.services.async_register("automation", "reload", lambda call: None)
     harness = await ChatHarness.create(hass, automations=[SELORA_ENTRY])
-    session = await harness.store.create_session()
+    session = await harness.store.create_session(owner="test-user")
     harness.session_id = session["id"]
     await harness.store.append_message(
         session["id"],

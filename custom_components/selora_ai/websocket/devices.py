@@ -174,7 +174,7 @@ async def _handle_websocket_integration_setup_open(
     language = str(msg.get("language") or "").lower().split("-")[0] or None
     reply = _build_client_action_response({}, [card], hass=hass, language=language)
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session = await store.create_session()
+    session = await store.create_session(owner=connection.user.id)
     await store.append_message(
         session["id"],
         "assistant",

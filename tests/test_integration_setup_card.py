@@ -72,6 +72,7 @@ def cloud(hass: HomeAssistant) -> Iterator[None]:
 def _connection(*, admin: bool = True) -> MagicMock:
     connection = MagicMock()
     connection.user.is_admin = admin
+    connection.user.id = "test-user"
     return connection
 
 

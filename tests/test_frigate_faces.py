@@ -272,6 +272,7 @@ async def test_the_guide_opens_with_what_it_does_and_asks_without_the_model(
     handler = inspect.unwrap(frigate_ws._handle_websocket_frigate_faces_start)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
 
     title = "Recognize the people you know on your cameras"
     await handler(hass, connection, {"id": 1, "title": title, "language": "en-US"})
@@ -310,10 +311,11 @@ async def test_a_yes_turns_it_on_restarts_and_shows_the_people_card(
     _api(aioclient_mock, _running())
     store = ConversationStore(hass)
     hass.data.setdefault(DOMAIN, {})["_conv_store"] = store
-    session = await store.create_session()
+    session = await store.create_session(owner="test-user")
     handler = inspect.unwrap(frigate_ws._handle_websocket_frigate_faces_answer)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
 
     await handler(hass, connection, {"id": 1, "session_id": session["id"], "enable": True})
 
@@ -418,6 +420,7 @@ async def test_a_photo_goes_straight_to_frigate_under_the_name_typed(
     handler = inspect.unwrap(frigate_ws._handle_websocket_frigate_faces_add_photo)
     connection = MagicMock()
     connection.user.is_admin = True
+    connection.user.id = "test-user"
     photo = base64.b64encode(b"\xff\xd8jpeg").decode()
 
     msg = {"id": 1, "name": "  Alice   Martin ", "content_type": "image/jpeg", "image": photo}

@@ -636,6 +636,29 @@ def _require_admin(
     return False
 
 
+async def _require_session_owner(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> bool:
+    """Refuse a command naming a conversation that belongs to another user.
+
+    Every panel admin shares the same store, so a ``session_id`` in a message is
+    checked against the caller before anything reads or writes it. Reported as
+    not found, never forbidden: another user's conversation is not there for
+    this one. ``tests/test_session_owners.py`` fails if a handler taking a
+    ``session_id`` does not call this.
+    """
+    session_id = msg.get("session_id")
+    if not session_id:
+        return True
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    if not await store.belongs_to_other(session_id, connection.user.id):
+        return True
+    connection.send_error(msg["id"], "not_found", "Session not found")
+    return False
+
+
 def _sanitize_history_text(value: Any, max_length: int = 200) -> str:
     """Normalize and truncate untrusted conversation context before sending it back to the LLM."""
     from .helpers import sanitize_untrusted_text
@@ -1187,6 +1210,7 @@ def _resolve_llm_provider(entry_data: dict[str, Any]) -> str:
 async def _resolve_or_create_session(
     store: ConversationStore,
     session_id: str,
+    owner: str,
 ) -> tuple[Any, str, bool]:
     """Resolve an existing session or create a new one.
 
@@ -1201,7 +1225,7 @@ async def _resolve_or_create_session(
         session = await store.get_session(session_id)
         if session:
             return session, session_id, False
-    session = await store.create_session()
+    session = await store.create_session(owner=owner)
     return session, session["id"], True
 
 
@@ -2761,6 +2785,8 @@ async def _handle_websocket_chat(
     """
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
 
     llm = _find_llm(hass)
     if llm is None:
@@ -2769,7 +2795,7 @@ async def _handle_websocket_chat(
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
     session, session_id, session_created = await _resolve_or_create_session(
-        store, msg.get("session_id") or ""
+        store, msg.get("session_id") or "", connection.user.id
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
@@ -3527,6 +3553,8 @@ async def _handle_websocket_chat_stream(
     """
     if not _require_admin(connection, msg):
         return
+    if not await _require_session_owner(hass, connection, msg):
+        return
 
     # Set up subscription with cancellation support — when the frontend
     # calls _stopStreaming() the unsubscribe cancels the running task so
@@ -3552,7 +3580,7 @@ async def _handle_websocket_chat_stream(
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
     session, session_id, session_created = await _resolve_or_create_session(
-        store, msg.get("session_id") or ""
+        store, msg.get("session_id") or "", connection.user.id
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]

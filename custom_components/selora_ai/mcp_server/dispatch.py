@@ -647,6 +647,7 @@ async def _dispatch(
         with caller_scope(
             auth_ctx.is_admin,
             can_write=any(_can_access_tool(auth_ctx, name) for name in _dashboard_write_tools()),
+            caller_id=auth_ctx.user_id,
         ):
             if handler is None:
                 result = {"error": f"Unknown tool: {name}"}
