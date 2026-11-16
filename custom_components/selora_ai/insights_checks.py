@@ -885,27 +885,33 @@ def _check_broken_automations(ctx: _CheckContext) -> list[Finding]:
 
 
 def _check_updates_available(ctx: _CheckContext) -> list[Finding]:
-    """Devices/add-ons/HA components with a pending update (``update`` entity on)."""
-    pending = [
-        st
-        for st in ctx.hass.states.async_all("update")
-        if st.state == "on" and st.entity_id not in ctx.excluded
-    ]
-    if not pending:
-        return []
-    names = [st.attributes.get("friendly_name") or st.entity_id for st in pending]
-    noun = "update is" if len(pending) == 1 else "updates are"
-    return [
-        {
-            "check_id": "updates_available",
-            "severity": "info",
-            "category": "improvement",
-            "title": f"{len(pending)} {noun} available",
-            "detail": f"Updates are available for {_join(names)}.",
-            "entities": [st.entity_id for st in pending][:_MAX_LISTED],
-            "action": "Review and install updates",
-        }
-    ]
+    """Devices/add-ons/HA components with a pending update (``update`` entity on).
+
+    One finding per update entity, so the section count is the number of
+    pending updates and Ignore mutes just that one. The score cost stays
+    bounded: info findings share the diminishing-returns roll-up, which can
+    never subtract more than ``_PENALTY["info"] / (1 - _PENALTY_DECAY)``.
+    """
+    findings: list[Finding] = []
+    for st in ctx.hass.states.async_all("update"):
+        if st.state != "on" or st.entity_id in ctx.excluded:
+            continue
+        name = st.attributes.get("friendly_name") or st.entity_id
+        installed = st.attributes.get("installed_version")
+        latest = st.attributes.get("latest_version")
+        versions = f" ({installed} → {latest})" if installed and latest else ""
+        findings.append(
+            {
+                "check_id": "updates_available",
+                "severity": "info",
+                "category": "improvement",
+                "title": f"Update available: {name}",
+                "detail": f"A newer version of {name} is available{versions}.",
+                "entities": [st.entity_id],
+                "action": "Review and install the update",
+            }
+        )
+    return findings
 
 
 # ── Helpers ───────────────────────────────────────────────────────────

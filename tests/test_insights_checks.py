@@ -208,12 +208,57 @@ async def test_duplicate_automations_by_name(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_updates_available(hass: HomeAssistant) -> None:
-    """An ``update`` entity that is 'on' → an updates-available finding."""
-    hass.states.async_set("update.router", "on", {"friendly_name": "Router Firmware"})
+    """Each pending ``update`` entity is its own finding; up-to-date and
+    Selora-excluded ones are left out."""
+    hass.states.async_set(
+        "update.router",
+        "on",
+        {"friendly_name": "Router Firmware", "installed_version": "1.0", "latest_version": "1.1"},
+    )
+    hass.states.async_set("update.nas", "on", {"friendly_name": "NAS"})
+    hass.states.async_set("update.muted", "on", {"friendly_name": "Muted"})
     hass.states.async_set("update.hub", "off", {"friendly_name": "Hub"})  # up to date
-    findings = await _findings_by_check(hass)
-    assert "updates_available" in findings
-    assert findings["updates_available"]["entities"] == ["update.router"]
+    with patch(
+        "custom_components.selora_ai.insights_checks.resolve_ignored_entity_ids",
+        return_value=frozenset({"update.muted"}),
+    ):
+        findings = flatten_findings(await async_run_checks(hass))
+    updates = sorted(
+        (f for f in findings if f["check_id"] == "updates_available"),
+        key=lambda f: f["entities"][0],
+    )
+    assert [f["entities"] for f in updates] == [["update.nas"], ["update.router"]]
+    assert [f["title"] for f in updates] == [
+        "Update available: NAS",
+        "Update available: Router Firmware",
+    ]
+    assert "1.0 → 1.1" in updates[1]["detail"]
+    assert all(f["severity"] == "info" and f["category"] == "improvement" for f in updates)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("pending", [1, 5, 20])
+async def test_updates_section_counts_each_pending_update(
+    hass: HomeAssistant, pending: int
+) -> None:
+    """The breakdown's "Pending updates" section counts every pending update
+    (Connect shows it on the section pill), and the info roll-up keeps the
+    cost under 2.5 points however many there are."""
+    for i in range(pending):
+        hass.states.async_set(f"update.item_{i}", "on", {"friendly_name": f"Item {i}"})
+    hass.states.async_set("update.muted", "on")
+    with patch(
+        "custom_components.selora_ai.insights_checks.resolve_ignored_entity_ids",
+        return_value=frozenset({"update.muted"}),
+    ):
+        findings = flatten_findings(await async_run_checks(hass))
+    bd = score_breakdown_from_findings(findings, total_devices=10)
+    section = next(s for s in bd["sections"] if s["check_id"] == "updates_available")
+    assert section["count"] == pending
+    expected = sum(0.6**n for n in range(pending))  # 1.0 / 2.3 / 2.5
+    assert section["points"] == pytest.approx(expected, abs=0.05)
+    assert section["points"] <= 2.5
+    assert bd["score"] == round(100 - expected)
 
 
 @pytest.mark.asyncio
