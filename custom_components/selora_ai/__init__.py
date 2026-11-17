@@ -184,7 +184,7 @@ _LOGGER = logging.getLogger(__name__)
 # as a sleeping task — see the comment at the call site.
 _INITIAL_DISCOVERY_DELAY_SECONDS = 30
 
-PLATFORMS: list[str] = ["conversation", "sensor", "update"]
+PLATFORMS: list[str] = ["binary_sensor", "conversation", "sensor", "update"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 

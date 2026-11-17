@@ -20,6 +20,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
 
 from .const import SIGNAL_INSIGHTS_UPDATED
+from .health_events import HealthEventTracker
 from .helpers import device_entries
 
 if TYPE_CHECKING:
@@ -70,6 +71,7 @@ class AuditRunner:
         # done-callback after unload and persist over the replacement entry.
         self._stopping: bool = False
         self._lock = asyncio.Lock()
+        self._events = HealthEventTracker(hass, health_store)
 
     async def async_start(self, interval_hours: int = _DEFAULT_INTERVAL_HOURS) -> None:
         # Arm the boot-settle window. If HA is already running when we set up (a
@@ -215,6 +217,11 @@ class AuditRunner:
             # retired since its signal was raised) can't be scored as a slice of a
             # fleet it has left. The breakdown also carries the per-finding point
             # attribution so the panel can explain "why this score".
+            # Devices that haven't reconnected after a boot aren't issues to
+            # announce: no events while settling, and none from a scan taken
+            # before the settle deadline (the first scan runs inside it).
+            if not self.is_settling():
+                await self._events.async_process(results, not_before=self._settle_deadline)
             active_ids = self._active_device_ids(findings)
             breakdown = score_breakdown_from_findings(findings, len(active_ids), active_ids)
             score = breakdown["score"]

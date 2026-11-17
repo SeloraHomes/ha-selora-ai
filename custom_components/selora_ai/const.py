@@ -1547,6 +1547,17 @@ HEALTH_SEVERITY_INFO = "info"
 HEALTH_SEVERITY_WARNING = "warning"
 HEALTH_SEVERITY_CRITICAL = "critical"
 
+# Health issue events (health_events.py): the Health view's device problems,
+# announced on the bus for notification automations. Payload: HealthIssue.
+EVENT_HEALTH_ISSUE_RAISED = "selora_ai_health_issue_raised"
+EVENT_HEALTH_ISSUE_CLEARED = "selora_ai_health_issue_cleared"
+# An issue is raised once a later audit still finds it at least this long after
+# it first appeared, and cleared once it has been gone that long. Below the
+# default scan interval, so the next scan confirms; one scan alone never does.
+HEALTH_EVENT_CONFIRM_SECS = 600
+HEALTH_ISSUES_UNIQUE_ID = "selora_ai_hub_health_issues"
+HEALTH_PROBLEM_UNIQUE_ID = "selora_ai_hub_health_problem"
+
 # ── Insights: Layer 2 advisor ────────────────────────────────────────
 INSIGHT_KIND_ISSUE = "issue"
 INSIGHT_KIND_FIX = "fix"

@@ -1141,6 +1141,41 @@ class HealthSignal(TypedDict):
     status: str  # active|resolved|acknowledged
 
 
+class HealthIssue(TypedDict, total=False):
+    """One Health-view problem as announced in a health issue event."""
+
+    issue_id: str  # "<check>:<device_id | entity_id | link>", stable per problem
+    check: str  # offline_devices | low_batteries | integration_errors | ...
+    severity: str
+    title: str
+    detail: str
+    device_id: str | None
+    entities: list[str]
+    link: str
+    since: str  # ISO-8601, when an audit first found it
+    active_issues: int  # confirmed issues once this event applied
+
+
+class HealthIssueRecord(TypedDict):
+    """Tracker bookkeeping for one issue, persisted in the health store."""
+
+    # pending: seen, not yet confirmed. announced: raised event fired.
+    # baseline: present when its check first succeeded; never announced.
+    state: str
+    since: str
+    missing_since: str | None
+    issue: HealthIssue
+
+
+class HealthEventState(TypedDict):
+    """The issue tracker's persisted state (``health_events``)."""
+
+    # check_id -> last_scan it last processed; a check is in it once its
+    # standing issues were baselined.
+    scans: dict[str, str]
+    issues: dict[str, HealthIssueRecord]
+
+
 class HealthStoreData(TypedDict):
     """Persisted shape of ``health_store``."""
 
