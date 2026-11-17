@@ -14,6 +14,7 @@ Data layout::
         "meta": {
             "export_sequence": int,   # monotonic, restart-proof
             "last_scan": str,         # ISO-8601
+            "health_events": HealthEventState,
         },
     }
 """
@@ -36,7 +37,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from .types import HealthSignal, HealthStoreData
+    from .types import HealthEventState, HealthSignal, HealthStoreData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -382,6 +383,22 @@ class HealthStore:
         ):
             return
         await self._save()
+
+    # ── Health issue events (health_events.py) ──────────────────────────
+
+    async def get_health_events(self) -> HealthEventState | None:
+        """The issue tracker's state, or None before it has ever run."""
+        data = await self._get_loaded_data()
+        state = data["meta"].get("health_events")
+        return deepcopy(state) if isinstance(state, dict) else None
+
+    async def set_health_events(self, state: HealthEventState, *, save: bool = True) -> None:
+        """Replace the tracker's state; ``save=False`` leaves the disk write to
+        the next save, for a change that is safe to lose in a crash."""
+        data = await self._get_loaded_data()
+        data["meta"]["health_events"] = deepcopy(state)
+        if save:
+            await self._save()
 
     async def get_insight_overrides(self) -> dict[str, str]:
         data = await self._get_loaded_data()

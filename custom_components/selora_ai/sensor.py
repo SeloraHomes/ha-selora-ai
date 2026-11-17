@@ -15,7 +15,7 @@ from collections import deque
 from collections.abc import Callable
 from datetime import datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.sensor import (
     RestoreSensor,
@@ -30,13 +30,14 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity import Entity, EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     AUTOMATION_ID_PREFIX,
     DOMAIN,
+    HEALTH_ISSUES_UNIQUE_ID,
     HOME_HEALTH_UNIQUE_ID,
     KNOWN_INTEGRATIONS,
     SIGNAL_ACTIVITY_LOG,
@@ -44,7 +45,11 @@ from .const import (
     SIGNAL_INSIGHTS_UPDATED,
     SIGNAL_LLM_USAGE,
 )
+from .health_events import NOTIFY_CHECKS, async_confirmed_issues
 from .helpers import device_entries
+
+if TYPE_CHECKING:
+    from .types import HealthIssue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -119,6 +124,7 @@ async def async_setup_entry(
         LLMCallsSensor(hass, entry),
         LLMCostSensor(hass, entry),
         HomeHealthSensor(hass, entry),
+        HealthIssuesSensor(hass),
     ]
     async_add_entities(sensors, update_before_add=True)
     _LOGGER.info("Selora AI Hub: %d sensors registered", len(sensors))
@@ -736,3 +742,76 @@ class HomeHealthSensor(SensorEntity):
             self._unsub_timer()
         if self._unsub_signal:
             self._unsub_signal()
+
+
+# ── Health issues (the Health view's device problems, debounced) ────
+
+# Listed issues on the sensor, so a home with a dead hub can't bloat its state.
+_MAX_LISTED_ISSUES = 25
+
+
+class HealthIssuesEntity(Entity):
+    """Mirrors the confirmed health issues (``health_events``).
+
+    Unavailable while Insights is off or before its first audit. The issues only
+    change when an audit runs, and every audit dispatches SIGNAL_INSIGHTS_UPDATED,
+    so there is no poll.
+    """
+
+    _attr_has_entity_name = True
+    _attr_available = False
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+        self._issues: list[HealthIssue] = []
+        self._attr_device_info = _hub_device_info()
+
+    async def _async_refresh(self) -> None:
+        issues = await async_confirmed_issues(self.hass)
+        self._attr_available = issues is not None
+        self._issues = issues or []
+
+    async def async_added_to_hass(self) -> None:
+        await self._async_refresh()
+
+        async def _on_insights_updated() -> None:
+            await self._async_refresh()
+            self.async_write_ha_state()
+
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, SIGNAL_INSIGHTS_UPDATED, _on_insights_updated)
+        )
+
+
+class HealthIssuesSensor(HealthIssuesEntity, SensorEntity):
+    """How many device problems the Health view reports, and which."""
+
+    _attr_unique_id = HEALTH_ISSUES_UNIQUE_ID
+    _attr_name = "Health issues"
+    _attr_icon = "mdi:alert-circle-outline"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _unrecorded_attributes = frozenset({"issues"})
+
+    @property
+    def native_value(self) -> int:
+        return len(self._issues)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        counts = dict.fromkeys(sorted(NOTIFY_CHECKS), 0)
+        for issue in self._issues:
+            check = issue.get("check", "")
+            counts[check] = counts.get(check, 0) + 1
+        return {
+            **counts,
+            "issues": [
+                {
+                    "issue_id": issue.get("issue_id"),
+                    "check": issue.get("check"),
+                    "severity": issue.get("severity"),
+                    "title": issue.get("title"),
+                    "since": issue.get("since"),
+                }
+                for issue in self._issues[:_MAX_LISTED_ISSUES]
+            ],
+        }

@@ -236,6 +236,8 @@ because the obvious implementation shipped and broke something quietly.
 - `telemetry.md` — anonymous telemetry, adding a counter.
 - `battery-forecast.md` — battery depletion forecasts in the insights export,
   excluding rechargeables, and the recorder APIs behind them.
+- `health-events.md` — Health view problems as raised/cleared events and
+  aggregate entities, debounced for notifications.
 - `next-prompt.md` — the predicted next message in the panel composer.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
 - `recipe-updates.md` — updating an installed recipe to a newer catalog version.
