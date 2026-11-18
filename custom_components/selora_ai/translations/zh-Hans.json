@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "检测对象",
     "frigate_result_restarting": "Selora Vision 正在重启；摄像头大约一分钟后恢复。",
     "frigate_result_update_saved": "已保存到 Selora Vision；Selora Vision 重启后生效。",
+    "frigate_result_heavy_stream": "它的子码流为 {size}，分析它会占用集线器的大量算力。请在摄像头设置中将其降至 720p。",
     "camera_events_open_in_frigate": "在 Selora Vision 中打开",
     "camera_events_zones": "区域",
     "automations_page_title": "自动化",

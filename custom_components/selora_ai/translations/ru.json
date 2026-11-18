@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "Ищет",
     "frigate_result_restarting": "Selora Vision перезапускается; камера вернётся примерно через минуту.",
     "frigate_result_update_saved": "Сохранено в Selora Vision; вступит в силу после перезапуска Selora Vision.",
+    "frigate_result_heavy_stream": "Его дополнительный поток — {size}, и его анализ отнимает у хаба много ресурсов. Уменьшите его до 720p в настройках камеры.",
     "camera_events_open_in_frigate": "Открыть в Selora Vision",
     "camera_events_zones": "Зоны",
     "automations_page_title": "Автоматизации",

@@ -10,6 +10,7 @@
 import { html } from "lit";
 
 import { renderCreatedCheck } from "../shared/created-check.js";
+import { interpolate } from "../shared/i18n.js";
 import { renderIdeaChips } from "./camera-ideas.js";
 
 // After this long the wait is not a normal restart any more.
@@ -217,6 +218,24 @@ function renderLooksFor(host, camera) {
   </div>`;
 }
 
+// A substream as large as a main stream costs the hub its decode at every
+// frame; only the camera's own settings can lower it.
+function renderHeavyStream(host, camera) {
+  if (!camera.heavy_stream) return "";
+  return html`<div class="frigate-result-wait">
+    <ha-icon icon="mdi:alert-outline"></ha-icon>
+    <span
+      >${interpolate(
+        host._t(
+          "frigate_result_heavy_stream",
+          "Its substream is {size}, which takes much of the hub's power to analyse. Lower it to 720p in the camera's settings.",
+        ),
+        { size: camera.heavy_stream },
+      )}</span
+    >
+  </div>`;
+}
+
 const SAVED_TEXT = {
   saved: [
     "frigate_result_saved",
@@ -251,7 +270,7 @@ function renderCamera(host, msg, result, camera) {
             : html`<span>${camera.name}</span>`
         }
       </div>
-      ${renderLooksFor(host, camera)}
+      ${renderLooksFor(host, camera)} ${renderHeavyStream(host, camera)}
       ${
         saved
           ? html`<div class="frigate-result-wait">

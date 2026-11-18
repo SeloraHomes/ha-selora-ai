@@ -1,9 +1,11 @@
-"""Just enough RTSP to ask a camera whether it serves a stream at a path.
+"""Just enough RTSP to ask a camera whether it serves a stream at a path, and
+how large its picture is.
 
 One DESCRIBE, answered again with the login when the camera asks for one
-(Digest, or Basic). The answer's status is all that is read: 200 is a
-stream, 401 a refused login, anything else no stream there. The password
-never appears in a log line: requests are not logged.
+(Digest, or Basic). Its status says whether the stream is there: 200 is a
+stream, 401 a refused login, anything else no stream there. A 200's SDP says
+the picture's size (``sdp.video_size``). The password never appears in a log
+line: requests are not logged.
 """
 
 from __future__ import annotations
@@ -14,6 +16,9 @@ import hashlib
 import os
 import re
 from typing import Final
+from urllib.parse import unquote, urlsplit
+
+from .sdp import video_size
 
 RTSP_PORT: Final = 554
 _CONNECT_TIMEOUT: Final = 3.0
@@ -87,10 +92,12 @@ async def _exchange(
     uri: str,
     cseq: int,
     authorization: str | None,
-) -> tuple[int, list[str]]:
-    """One DESCRIBE on the open connection: the status and any challenges.
+) -> tuple[int, list[str], bytes]:
+    """One DESCRIBE on the open connection: the status, any challenges and the
+    body (a 200's SDP).
 
-    The answer's body is read too, so the connection is ready for the next.
+    The body is read whatever the status, so the connection is ready for the
+    next.
     """
     request = f"DESCRIBE {uri} RTSP/1.0\r\nCSeq: {cseq}\r\nAccept: application/sdp\r\n"
     if authorization:
@@ -108,8 +115,9 @@ async def _exchange(
                 ),
                 "0",
             )
+            body = b""
             if length.isdigit() and 0 < int(length) <= _MAX_HEAD:
-                await reader.readexactly(int(length))
+                body = await reader.readexactly(int(length))
     except (TimeoutError, OSError, asyncio.IncompleteReadError, asyncio.LimitOverrunError) as exc:
         raise RtspError("the camera did not answer RTSP") from exc
     parts = lines[0].split(" ", 2)
@@ -120,11 +128,46 @@ async def _exchange(
         for line in lines[1:]
         if line.lower().startswith("www-authenticate:")
     ]
-    return int(parts[1]), challenges
+    return int(parts[1]), challenges, body
 
 
 async def async_describe(host: str, port: int, path: str, username: str, password: str) -> int:
     """The status the camera answers for this stream, logged in when it asks.
+
+    Raises as ``_async_describe`` does.
+    """
+    status, _ = await _async_describe(host, port, path, username, password)
+    return status
+
+
+async def async_stream_size(url: str) -> tuple[int, int] | None:
+    """The picture size of the stream at ``url`` (its login in it), or None
+    when the camera does not answer it or its SDP does not say.
+
+    Only plain RTSP: an ``rtsps`` stream (UniFi Protect) is not asked.
+    """
+    parts = urlsplit(url)
+    if parts.scheme.lower() != "rtsp" or not parts.hostname:
+        return None
+    path = parts.path.lstrip("/") + (f"?{parts.query}" if parts.query else "")
+    try:
+        status, sdp = await _async_describe(
+            parts.hostname,
+            parts.port or RTSP_PORT,
+            path,
+            unquote(parts.username or ""),
+            unquote(parts.password or ""),
+        )
+    except RtspError:
+        return None
+    return video_size(sdp.decode("latin-1")) if status == 200 else None
+
+
+async def _async_describe(
+    host: str, port: int, path: str, username: str, password: str
+) -> tuple[int, bytes]:
+    """The status the camera answers for this stream, and the body (a 200's
+    SDP), logged in when it asks.
 
     The login answers the challenge on the connection that issued it, as
     FFmpeg does: a camera may refuse a nonce brought from another one.
@@ -136,15 +179,15 @@ async def async_describe(host: str, port: int, path: str, username: str, passwor
     uri = f"rtsp://{host}:{port}/{path}"
     reader, writer = await _connect(host, port)
     try:
-        status, challenges = await _exchange(reader, writer, uri, 1, None)
+        status, challenges, body = await _exchange(reader, writer, uri, 1, None)
         if status != 401:
-            return status
+            return status, body
         authorization = _authorization(challenges, uri, username, password) if username else None
         if authorization is None:
             raise RtspAuthError("the camera asks for a login")
-        status, _ = await _exchange(reader, writer, uri, 2, authorization)
+        status, _, body = await _exchange(reader, writer, uri, 2, authorization)
     finally:
         writer.close()
     if status == 401:
         raise RtspAuthError("the camera refused the username or password")
-    return status
+    return status, body

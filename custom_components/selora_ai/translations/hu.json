@@ -1202,6 +1202,7 @@
     "frigate_result_looks_for": "Ezt keresi:",
     "frigate_result_restarting": "A Selora Vision újraindul; a kamera körülbelül egy perc múlva visszatér.",
     "frigate_result_update_saved": "Mentve a Selora Visionban; a Selora Vision újraindulásakor lép életbe.",
+    "frigate_result_heavy_stream": "Az alfolyama {size}, és ennek elemzése a hub teljesítményének nagy részét elviszi. Állítsd 720p-re a kamera beállításaiban.",
     "camera_events_open_in_frigate": "Megnyitás a Selora Visionban",
     "camera_events_zones": "Zónák",
     "automations_page_title": "Automatizálások",

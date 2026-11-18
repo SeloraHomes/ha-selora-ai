@@ -7,6 +7,11 @@ detection on. A camera with a single stream uses it for both, with detection
 scaled down, unless that stream is a substream: it is detected on as it is, and
 the card says it records in low resolution.
 
+Detection never runs above 720p. When the detect stream's size is known (its
+SDP, or the camera's ONVIF profile) Frigate is given it, scaled down to fit
+1280×720 with its shape kept; left to probe, Frigate takes the stream's full
+size, and a 4K "substream" was analysed at 4K.
+
 Stream URLs carry the camera's credentials. They are resolved here, written to
 Frigate, and nowhere else: what leaves this module for a tool result, a card or
 a log is ``shown()`` — scheme, host and path only.
@@ -14,7 +19,7 @@ a log is ``shown()`` — scheme, host and path only.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import ipaddress
 import re
 from typing import TYPE_CHECKING, Any, Final
@@ -58,6 +63,16 @@ _NOT_A_STREAM: Final = frozenset({"snapshot", "snapshots"})
 # connected to once however many roles read it.
 _RESTREAM: Final = "rtsp://127.0.0.1:8554/{}"
 _SINGLE_STREAM_DETECT: Final = {"width": 1280, "height": 720}
+# The largest frame Frigate detects on (landscape; turned for a portrait one).
+_DETECT_BOX: Final = (1280, 720)
+# A stream shorter than this is too coarse to detect on when a larger
+# substream exists (Uniview's third stream is CIF, 352×288).
+MIN_DETECT_SIDE: Final = 360
+# A detect stream larger than this is decoded in full at every frame, whatever
+# size detection then runs at: the camera's substream should be lowered.
+HEAVY_DETECT_PIXELS: Final = 1920 * 1080
+
+type Size = tuple[int, int]
 
 DEFAULT_OBJECTS: Final = ("person",)
 OBJECT_LABEL: Final = re.compile(r"^[a-z_]{2,30}$")
@@ -75,6 +90,7 @@ FOLDED_LABELS: Final = (
 class Stream:
     entity_id: str
     url: str  # carries credentials: written to Frigate, never shown
+    size: Size | None = None  # width, height; None until measured
 
 
 @dataclass(frozen=True)
@@ -94,6 +110,18 @@ class Candidate:
     low_res: bool = False
     main_off: str | None = None
     main_off_id: str | None = None
+
+    @property
+    def detect(self) -> Stream:
+        """The stream Frigate detects on."""
+        return self.sub or self.main
+
+    @property
+    def heavy(self) -> bool:
+        """Its substream is large enough that decoding it costs the hub as much
+        as a main stream: the camera's settings should lower it."""
+        size = self.sub.size if self.sub else None
+        return size is not None and size[0] * size[1] > HEAVY_DETECT_PIXELS
 
     @property
     def entity_ids(self) -> list[str]:
@@ -237,7 +265,9 @@ _BRAND_STREAMS: Final = {
         "cam/realmonitor?channel=1&subtype=0",
         "cam/realmonitor?channel=1&subtype=1",
     ),
-    "uniview": ("unicast/c1/s0/live", "unicast/c1/s1/live"),
+    # Not unicast/c1/s<n>/live: Univiews serve the main stream at every s<n>,
+    # so its "substream" was the 4K main stream again.
+    "uniview": ("media/video1", "media/video2"),
 }
 # The brands whose stream paths are known, tried in turn for a camera that
 # does not say who made it.
@@ -557,6 +587,83 @@ def _streamless_cameras(hass: HomeAssistant, ignored: set[str]) -> list[Skipped]
     return skipped
 
 
+def _area(size: Size | None) -> int:
+    return size[0] * size[1] if size else 0
+
+
+def _fits_box(size: Size) -> bool:
+    """Small enough to detect on at its own size."""
+    width, height = size
+    box_w, box_h = _DETECT_BOX if width >= height else _DETECT_BOX[::-1]
+    return width <= box_w and height <= box_h
+
+
+def detect_size(size: Size) -> dict[str, int]:
+    """Frigate's detect width and height for a stream of this size: the
+    stream's own, scaled down to fit 720p with its shape kept, never up."""
+    width, height = size
+    box_w, box_h = _DETECT_BOX if width >= height else _DETECT_BOX[::-1]
+    scale = min(1.0, box_w / width, box_h / height)
+    # Even sides: FFmpeg's YUV 4:2:0 frames need them.
+    return {
+        "width": max(2, int(width * scale) // 2 * 2),
+        "height": max(2, int(height * scale) // 2 * 2),
+    }
+
+
+def choose_streams(sizes: list[Size | None]) -> tuple[int, int | None]:
+    """Which of a camera's streams to record and which to detect on, by index.
+
+    The largest is recorded. Detection takes the stream closest to 720p: the
+    largest other one that fits 1280×720 and is at least ``MIN_DETECT_SIDE``
+    on its short side, else the smallest one larger than that, else the
+    largest smaller one. A 640×360 third stream is cheaper than a 720p
+    substream, but too coarse for faces and distant people; a CIF one is used
+    only when it is all there is. A stream as large as the recorded one is no
+    substream.
+
+    Cameras list their main stream first, so a first stream whose size is
+    unknown is recorded, and detection is chosen among the measured others:
+    taking the largest measured one instead would record a substream. Without
+    sizes, the first is recorded and the last detected on.
+    """
+    order = sorted(range(len(sizes)), key=lambda i: _area(sizes[i]), reverse=True)
+    main = order[0] if sizes[0] else 0
+    if not sizes[order[0]]:
+        return 0, (len(sizes) - 1 if len(sizes) > 1 else None)
+    ceiling = _area(sizes[main]) or _area(sizes[order[0]]) + 1
+    smaller = [i for i in order if i != main and 0 < _area(sizes[i]) < ceiling]
+    tall = [i for i in smaller if min(sizes[i] or (0, 0)) >= MIN_DETECT_SIDE]
+    fits = [i for i in tall if _fits_box(sizes[i] or (0, 0))]
+    if fits:
+        return main, fits[0]
+    if tall:
+        return main, tall[-1]
+    if smaller:
+        return main, smaller[0]
+    unknown = [i for i in order if i != main and not sizes[i]]
+    return main, (unknown[-1] if unknown else None)
+
+
+def with_sizes(candidate: Candidate, main: Size | None, sub: Size | None) -> Candidate:
+    """The camera with its streams' measured sizes (None keeps what it had).
+
+    A substream as large as the main stream detects at full cost and adds a
+    second connection, so it is dropped and the main stream, scaled down, is
+    detected on; one larger than the main stream is the main stream.
+    """
+    main_stream = replace(candidate.main, size=main or candidate.main.size)
+    if candidate.sub is None:
+        return replace(candidate, main=main_stream)
+    sub_stream = replace(candidate.sub, size=sub or candidate.sub.size)
+    main_area, sub_area = _area(main_stream.size), _area(sub_stream.size)
+    if main_area and sub_area > main_area:
+        main_stream, sub_stream = sub_stream, main_stream
+    elif main_area and sub_area == main_area:
+        return replace(candidate, main=main_stream, sub=None)
+    return replace(candidate, main=main_stream, sub=sub_stream)
+
+
 def clean_objects(value: Any) -> list[str]:
     """The object labels to track: lowercase words, the default when none."""
     items = value if isinstance(value, list) else []
@@ -597,12 +704,7 @@ def build_config(
             # slug the camera is keyed by ("E1 Zoom", not "e1_zoom").
             "friendly_name": c.name,
             "ffmpeg": {"inputs": inputs},
-            # A substream is detected on at its own size: scaling it up to
-            # 720p costs the detector and sharpens nothing.
-            "detect": {
-                "enabled": True,
-                **({} if c.sub or c.low_res else _SINGLE_STREAM_DETECT),
-            },
+            "detect": {"enabled": True, **_detect_dimensions(c)},
             "objects": {"track": objects},
             "record": {"enabled": record},
         }
@@ -611,3 +713,15 @@ def build_config(
             camera["record"].update({"alerts": retain, "detections": retain})
         cameras[c.camera] = camera
     return {"go2rtc": {"streams": streams}, "cameras": cameras}
+
+
+def _detect_dimensions(c: Candidate) -> dict[str, int]:
+    """The detect width and height to write, or none to let Frigate probe.
+
+    A measured stream gets its own size, capped at 720p. Unmeasured, a
+    substream is left to Frigate (scaling one up to 720p costs the detector
+    and sharpens nothing), and a main stream is scaled to 720p.
+    """
+    if c.detect.size:
+        return detect_size(c.detect.size)
+    return {} if c.sub or c.low_res else dict(_SINGLE_STREAM_DETECT)

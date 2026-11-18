@@ -40,6 +40,7 @@ from .cameras import (
     async_camera_candidates,
     brand_streams,
     build_config,
+    choose_streams,
     clean_objects,
     existing_hosts,
     existing_names,
@@ -50,6 +51,7 @@ from .cameras import (
     unsupported_error,
     unsupported_labels,
     with_credentials,
+    with_sizes,
 )
 from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError, frigate_entry
 from .discovery import (
@@ -64,7 +66,14 @@ from .discovery import (
 )
 from .moving import async_moved_camera
 from .onvif import ONVIF_PORTS, OnvifAuthError, OnvifCamera, OnvifError, Profile
-from .rtsp import RTSP_PORT, RtspAuthError, RtspError, RtspUnreachable, async_describe
+from .rtsp import (
+    RTSP_PORT,
+    RtspAuthError,
+    RtspError,
+    RtspUnreachable,
+    async_describe,
+    async_stream_size,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -99,6 +108,12 @@ _FULL_QUALITY_POLL: Final = 3
 _FULL_QUALITY_WAIT: Final = 90
 
 _PLANS: Final = "_frigate_plans"
+_HEAVY_HINT: Final = (
+    "These cameras' substreams are too large to analyse cheaply: Selora Vision "
+    "detects on them scaled down to 720p, but the hub still decodes every "
+    "frame at full size. Tell the user to lower each one to 720p in the "
+    "camera's own settings; nothing in Selora Vision needs changing after."
+)
 _PLAN_TTL: Final = 1800
 
 _ADDED_BY_LANG: Final[dict[str, str]] = {
@@ -133,6 +148,24 @@ _SAVED_BY_LANG: Final[dict[str, str]] = {
 }
 
 
+# Said after the added line, once per camera whose substream is too large to
+# analyse cheaply ({name}, {size}: "3840×2160").
+_HEAVY_BY_LANG: Final[dict[str, str]] = {
+    "en": "{name}'s substream is {size}, which takes much of the hub's power to analyse; lower it to 720p in the camera's settings.",
+    "fr": "Le flux secondaire de {name} est en {size}, ce qui demande beaucoup de puissance au hub pour l'analyser ; réglez-le en 720p dans les paramètres de la caméra.",
+    "de": "Der Substream von {name} ist {size} groß, und seine Analyse kostet den Hub viel Leistung; stelle ihn in den Einstellungen der Kamera auf 720p.",
+    "es": "El flujo secundario de {name} es de {size}, y analizarlo consume mucha potencia del hub; bájalo a 720p en los ajustes de la cámara.",
+    "it": "Il flusso secondario di {name} è {size} e analizzarlo richiede molta potenza all'hub; abbassalo a 720p nelle impostazioni della telecamera.",
+    "nl": "De substream van {name} is {size}, en die analyseren kost de hub veel rekenkracht; zet hem op 720p in de instellingen van de camera.",
+    "hu": "{name} alfolyama {size}, és ennek elemzése a hub teljesítményének nagy részét elviszi; állítsd 720p-re a kamera beállításaiban.",
+    "zh": "{name} 的子码流为 {size}，分析它会占用集线器的大量算力；请在摄像头设置中将其降至 720p。",
+    "pt": "O fluxo secundário de {name} é {size}, e analisá-lo exige muito do hub; baixe-o para 720p nas definições da câmara.",
+    "ja": "{name} のサブストリームは {size} のため、解析にハブの処理能力を多く使います。カメラの設定で 720p に下げてください。",
+    "ko": "{name}의 보조 스트림이 {size}이라 분석에 허브의 처리 능력이 많이 듭니다. 카메라 설정에서 720p로 낮추세요.",
+    "ru": "Дополнительный поток {name} — {size}, и его анализ отнимает у хаба много ресурсов; уменьшите его до 720p в настройках камеры.",
+}
+
+
 @dataclass(frozen=True)
 class _Network:
     """A network camera on a plan, with its name in Frigate."""
@@ -151,6 +184,9 @@ class _Plan:
     added: list[str] | None = None
     # (name, Frigate name) of each camera written, for the result card.
     added_cameras: list[tuple[str, str]] = field(default_factory=list)
+    # Frigate name -> size ("3840×2160") of each camera whose substream is
+    # too large to analyse cheaply.
+    heavy: dict[str, str] = field(default_factory=dict)
     restart_failed: bool = False
 
 
@@ -575,11 +611,52 @@ async def _resolve_network(
             )
         main_uri, sub_uri = guessed
     else:
-        main_uri = profiles[0].uri
-        sub_uri = profiles[-1].uri if len(profiles) > 1 else None
+        return Candidate(
+            None,
+            found.name,
+            camera.camera,
+            None,
+            *await _profile_streams(profiles, username, password),
+        ), None
     main = Stream("", for_go2rtc(with_credentials(main_uri, username, password)))
     sub = Stream("", for_go2rtc(with_credentials(sub_uri, username, password))) if sub_uri else None
     return Candidate(None, found.name, camera.camera, None, main, sub), None
+
+
+async def _profile_streams(
+    profiles: list[Profile], username: str, password: str
+) -> tuple[Stream, Stream | None]:
+    """The stream to record and the one to detect on, from the camera's ONVIF
+    profiles; a profile that does not say its size is measured."""
+    urls = [for_go2rtc(with_credentials(p.uri, username, password)) for p in profiles]
+
+    async def size(profile: Profile, url: str) -> tuple[int, int] | None:
+        if profile.width > 0 and profile.height > 0:
+            return profile.width, profile.height
+        return await async_stream_size(url)
+
+    sizes = await asyncio.gather(*(size(p, u) for p, u in zip(profiles, urls, strict=True)))
+    main, sub = choose_streams(list(sizes))
+    return (
+        Stream("", urls[main], sizes[main]),
+        Stream("", urls[sub], sizes[sub]) if sub is not None else None,
+    )
+
+
+async def _async_measured(candidate: Candidate) -> Candidate:
+    """The camera with its streams' sizes as the camera says them now.
+
+    A stream's own SDP wins over what ONVIF said, which may be a profile's
+    configured size rather than the one it sends; a stream that does not say
+    keeps what was known.
+    """
+    main = await async_stream_size(candidate.main.url)
+    sub = await async_stream_size(candidate.sub.url) if candidate.sub else None
+    return with_sizes(candidate, main, sub)
+
+
+def _size_text(size: tuple[int, int]) -> str:
+    return f"{size[0]}×{size[1]}"
 
 
 async def async_add_cameras_confirmed(
@@ -626,7 +703,9 @@ async def async_add_cameras_confirmed(
     if camera_errors:
         return {"error": "Some cameras could not be read.", "camera_errors": camera_errors}
 
-    everything = gathered.candidates + resolved
+    everything = list(
+        await asyncio.gather(*(_async_measured(c) for c in gathered.candidates + resolved))
+    )
     try:
         await client.set_config(build_config(everything, objects, record, days))
     except FrigateError as exc:
@@ -634,6 +713,11 @@ async def async_add_cameras_confirmed(
     # Saved: from here the cameras are Frigate's, whether or not it restarts.
     plan.added = [c.name for c in everything]
     plan.added_cameras = [(c.name, c.camera) for c in everything]
+    plan.heavy = {
+        c.camera: _size_text(c.sub.size) for c in everything if c.heavy and c.sub and c.sub.size
+    }
+    heavy = {c.name: plan.heavy[c.camera] for c in everything if c.camera in plan.heavy}
+    noted = {"heavy_substreams": heavy, "heavy_hint": _HEAVY_HINT} if heavy else {}
     hass.data.setdefault(DOMAIN, {}).pop(SUGGESTION_CACHE, None)
     try:
         await client.restart()
@@ -643,11 +727,11 @@ async def async_add_cameras_confirmed(
         # and start with its next restart, which is not a failure to add them.
         _LOGGER.warning("Frigate saved the cameras but did not restart: %s", exc)
         plan.restart_failed = True
-        return {"status": "saved", "cameras": plan.added, "restart_failed": True}
+        return {"status": "saved", "cameras": plan.added, "restart_failed": True, **noted}
     hass.async_create_background_task(
         async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"
     )
-    return {"status": "added", "cameras": plan.added}
+    return {"status": "added", "cameras": plan.added, **noted}
 
 
 async def async_use_full_quality(hass: HomeAssistant, plan_id: str) -> dict[str, Any]:
@@ -708,7 +792,12 @@ def added_line(hass: HomeAssistant, plan_id: str, language: str | None) -> str |
     base = str(language or "en").lower().split("-")[0]
     table = _SAVED_BY_LANG if plan.restart_failed else _ADDED_BY_LANG
     template = table.get(base, table["en"])
-    return template.format(names=", ".join(sanitize_untrusted_text(n, 60) for n in plan.added))
+    line = template.format(names=", ".join(sanitize_untrusted_text(n, 60) for n in plan.added))
+    heavy = _HEAVY_BY_LANG.get(base, _HEAVY_BY_LANG["en"])
+    for name, slug in plan.added_cameras:
+        if size := plan.heavy.get(slug):
+            line += " " + heavy.format(name=sanitize_untrusted_text(name, 60), size=size)
+    return line
 
 
 def result_card_camera(name: str, frigate_name: str) -> FrigateResultCamera:
@@ -743,7 +832,13 @@ def result_for(hass: HomeAssistant, plan_id: str) -> FrigateResult | None:
     objects, record, days = _options(plan.arguments)
     return {
         "action": "saved" if plan.restart_failed else "added",
-        "cameras": [result_card_camera(name, slug) for name, slug in plan.added_cameras],
+        "cameras": [
+            {
+                **result_card_camera(name, slug),
+                **({"heavy_stream": plan.heavy[slug]} if slug in plan.heavy else {}),
+            }
+            for name, slug in plan.added_cameras
+        ],
         "objects": objects,
         "record": record,
         "record_days": days,
