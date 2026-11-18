@@ -50,11 +50,21 @@ from .const import (
 )
 from .device_removal import device_is_removable
 from .entity_filter import resolve_ignored_entity_ids
+from .frigate.analysis import (
+    DETECT_ABOVE_720P,
+    DETECT_STREAM_HEAVY,
+    DETECT_STREAM_UNREADABLE,
+    HIGH_CPU,
+    NO_VIDEO,
+    SKIPPING_FRAMES,
+    CameraReports,
+)
 from .health_store import get_health_store
 from .helpers import integration_error_detail
 
 if TYPE_CHECKING:
     from .types import (
+        CameraReport,
         CheckResult,
         Finding,
         ScoreBreakdown,
@@ -83,6 +93,7 @@ class _CheckContext:
     id_to_entity: dict[str, str]  # automation config id -> live entity_id
     excluded: frozenset[str]  # entities muted via the Selora-exclude label
     signals: list[dict[str, Any]]  # active Layer-1 health signals
+    cameras: CameraReports  # how Frigate analyses each camera
 
 
 @dataclass(frozen=True)
@@ -126,6 +137,12 @@ CHECKS: list[Check] = [
         lambda c: _check_broken_automations(c),
     ),
     Check(
+        "camera_analysis",
+        "Camera analysis",
+        KIND_DETERMINISTIC,
+        lambda c: _check_camera_analysis(c),
+    ),
+    Check(
         "updates_available",
         "Pending updates",
         KIND_DETERMINISTIC,
@@ -138,9 +155,14 @@ CHECKS: list[Check] = [
 _CHECK_TITLES: dict[str, str] = {c.id: c.title for c in CHECKS}
 
 
-async def async_run_checks(hass: HomeAssistant) -> list[CheckResult]:
+async def async_run_checks(
+    hass: HomeAssistant, cameras: CameraReports | None = None
+) -> list[CheckResult]:
     """Run every registered check and return one CheckResult each (in registry
     order), so callers can show the full assessment — not just the findings.
+
+    ``cameras`` is read by the caller, which also exports it; without it the
+    camera check has nothing to assess.
 
     Deterministic checks are pure rules over HA state / registries /
     ``automations.yaml`` — no LLM — so results are stable given the same home.
@@ -176,7 +198,9 @@ async def async_run_checks(hass: HomeAssistant) -> list[CheckResult]:
     store = get_health_store(hass)
     signals = await store.get_active_signals() if store is not None else []
 
-    ctx = _CheckContext(hass, automations, id_to_entity, excluded, signals)
+    ctx = _CheckContext(
+        hass, automations, id_to_entity, excluded, signals, cameras or CameraReports(None)
+    )
 
     results: list[CheckResult] = []
     for check in CHECKS:
@@ -693,6 +717,100 @@ def _check_batteries(ctx: _CheckContext) -> list[Finding]:
                 "device_id": g["device_id"],
             }
         )
+    return findings
+
+
+class CameraCheckError(Exception):
+    """Frigate could not be read, so the cameras were not assessed."""
+
+
+def _size(width: int | None, height: int | None) -> str:
+    return f"{width}×{height}"
+
+
+def _camera_sentences(report: CameraReport) -> dict[str, tuple[str, str]]:
+    """Each issue's card title and its sentence of the detail."""
+    name = report["name"]
+    detect = report["detect"]
+    source = next((s for s in report["streams"] if "detect" in s["roles"]), None)
+    stats = report["stats"]
+    analysed = _size(detect["width"], detect["height"])
+    decoded = _size(source["width"], source["height"]) if source else ""
+    return {
+        DETECT_STREAM_UNREADABLE: (
+            f"{name}'s analysis stream does not answer",
+            "Selora Vision gets no picture from the stream it analyses for this "
+            "camera. Check the camera is on the network and its stream is enabled.",
+        ),
+        NO_VIDEO: (
+            f"{name} sends no video",
+            "Selora Vision has received no frames from this camera for over 10 minutes.",
+        ),
+        SKIPPING_FRAMES: (
+            f"{name} is falling behind",
+            "Selora Vision is dropping "
+            + (
+                f"{skipped:g} frames a second"
+                if (skipped := stats.get("skipped_fps")) is not None
+                else "frames"
+            )
+            + " because the hub cannot keep up, so detections arrive late or are missed.",
+        ),
+        DETECT_ABOVE_720P: (
+            f"{name} is analysed at {analysed}",
+            f"Selora Vision analyses this camera at {analysed}, which takes much of "
+            "the hub's power. 720p is enough to detect people and faces.",
+        ),
+        DETECT_STREAM_HEAVY: (
+            f"{name} is analysed from a {decoded} stream",
+            f"The stream analysed for this camera is {decoded}, and the hub decodes "
+            "every frame of it in full. "
+            + (
+                # One stream for both: Frigate reads no substream to lower.
+                "Selora Vision reads only the camera's main stream: analyse its "
+                "substream instead, at 720p."
+                if source and "record" in source["roles"]
+                else "Lower the camera's substream to 720p in its own settings."
+            ),
+        ),
+        HIGH_CPU: (
+            f"{name} keeps the hub busy",
+            "Analysing this camera has used "
+            + (
+                f"{cpu:.0f}% of a processor core"
+                if (cpu := stats.get("detect_cpu")) is not None
+                else "much of a processor core"
+            )
+            + " for over 10 minutes, usually from constant motion in "
+            "view (trees, a street). A motion mask over those areas brings it down.",
+        ),
+    }
+
+
+def _check_camera_analysis(ctx: _CheckContext) -> list[Finding]:
+    """Frigate cameras analysed in a way that costs the hub, or not at all."""
+    if ctx.cameras.error is not None:
+        raise CameraCheckError(ctx.cameras.error)
+    findings: list[Finding] = []
+    for report in ctx.cameras.reports or []:
+        if not report["issues"] or (
+            report["entity_id"] is not None and report["entity_id"] in ctx.excluded
+        ):
+            continue
+        sentences = _camera_sentences(report)
+        title = sentences[report["issues"][0]][0]
+        finding: Finding = {
+            "check_id": "camera_analysis",
+            "severity": "warning",
+            "category": "fix",
+            "title": title,
+            "detail": " ".join(sentences[issue][1] for issue in report["issues"]),
+            "entities": [report["entity_id"]] if report["entity_id"] else [],
+            "action": "Check the camera's Selora Vision settings",
+        }
+        if report["device_id"]:
+            finding["device_id"] = report["device_id"]
+        findings.append(finding)
     return findings
 
 

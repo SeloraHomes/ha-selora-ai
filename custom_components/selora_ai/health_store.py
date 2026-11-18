@@ -66,8 +66,18 @@ _AUDIT_TIMESTAMP_CHECKPOINT = timedelta(hours=1)
 
 
 def _audit_material(audit: dict[str, Any]) -> dict[str, Any]:
-    """The part of an audit record that represents real state, for change detection."""
-    return {k: v for k, v in audit.items() if k not in _AUDIT_VOLATILE_KEYS}
+    """The part of an audit record that represents real state, for change detection.
+
+    A camera's live rates (fps, CPU) move every scan; its issues say whether
+    they matter, so they alone are not worth a write.
+    """
+    material = {k: v for k, v in audit.items() if k not in _AUDIT_VOLATILE_KEYS}
+    if isinstance(cameras := material.get("cameras"), list):
+        material["cameras"] = [
+            {k: v for k, v in c.items() if k != "stats"} if isinstance(c, dict) else c
+            for c in cameras
+        ]
+    return material
 
 
 def _parse_iso(value: object) -> datetime | None:

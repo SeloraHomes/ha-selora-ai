@@ -88,6 +88,7 @@ nothing). See the envelope schema for the exact shape. Top level:
 | `insights` | deterministic advisor items (issue/fix/improvement) |
 | `health` | deterministic 0-100 health score + `band` + the per-check roll-up explaining it |
 | `battery_forecast` | when each replaceable battery is expected to run out (optional, see below) |
+| `cameras` | how Frigate analyses each camera, with alertable `issues` (optional, see below) |
 | `roster` | full device-plane inventory — integrations, devices, entities, automations, scripts, scenes, each with state/availability |
 | `inventory` | aggregate counts |
 | `collection` | `{ status, partial_reason, roster_truncated? }` |
@@ -163,6 +164,65 @@ can swap several in one visit before any dies.
   from the registries, not the roster, so a truncated roster still forecasts
   every eligible battery.
 
+### The cameras
+
+`cameras` says how Frigate (Selora Vision) analyses each camera, and what about
+it costs the hub or loses detections. It exists so Selora can alert on a camera
+set up badly: one analysed at 4K barely moves `health.score` (a warning costs 5
+points) while it starves every other camera on the hub.
+
+```json
+"cameras": [{
+  "frigate_name": "onvif_camera",
+  "name": "Front Door",
+  "device_id": "<roster.devices[].id>",
+  "entity_id": "camera.front_door",
+  "enabled": true,
+  "detect": { "width": 3840, "height": 2160, "fps": 5 },
+  "streams": [
+    { "roles": ["record"], "width": 3840, "height": 2160, "codec": "h265", "readable": true },
+    { "roles": ["detect"], "width": 3840, "height": 2160, "codec": "h265", "readable": true }
+  ],
+  "streams_measured_at": "2026-11-18T06:00:00+00:00",
+  "stats": { "camera_fps": 5.0, "process_fps": 5.0, "skipped_fps": 0.0,
+             "detection_fps": 20.2, "detect_cpu": 146.8, "decode_cpu": 1.6 },
+  "issues": ["detect_above_720p", "detect_stream_heavy", "high_cpu"]
+}]
+```
+
+**Alert on `issues`.** Each code is stable, and each is also a finding of the
+`camera_analysis` check on the Health page (`health.sections`):
+
+| Issue | Means | Fix |
+|---|---|---|
+| `detect_stream_unreadable` | Frigate's ffprobe got no answer from the stream it analyses, twice in a row | the camera is off the network, or that stream is disabled in the camera |
+| `no_video` | no frames from the camera for 10 minutes | as above |
+| `skipping_frames` | Frigate dropping over 0.5 frames a second for 10 minutes: the hub can't keep up | the camera's other issues, or another camera's |
+| `detect_above_720p` | Frigate analyses frames larger than 1280×720 (`detect` says the size) | set `detect` to the detect stream's size scaled to 720p |
+| `detect_stream_heavy` | the stream decoded for detection is above 1080p (`streams[]` with `detect` says the size), so every frame is decoded in full | if that stream also has `record`, Frigate reads only the main stream: add the camera's substream as the `detect` input; otherwise lower the substream to 720p in the camera's own settings |
+| `high_cpu` | the camera's detection process over 100% of a core for 10 minutes, usually constant motion | a motion mask over trees, a street |
+
+- **`issues` is reported whatever the owner did on the Health page.** Ignoring
+  the finding there hides the card from the owner, not the camera from Selora.
+- **A camera turned off in Frigate** (`enabled: false`) has no issues.
+- **The live issues need 10 minutes** (`no_video`, `skipping_frames`,
+  `high_cpu`): Frigate's rates move every second, and an issue is raised only
+  once it has held across Health audits that long. `stats` itself is the
+  instant the audit read it.
+- **`streams` are Frigate's own measurement** of each input, in its config
+  order, made with the logins Frigate holds. A camera is measured once a day,
+  an hour after a failure, and as soon as its inputs change; until its first
+  measurement each stream's `width`, `height`, `codec` and `readable` are
+  `null` (`streams_measured_at: null`). `readable: false` means the probe got
+  no answer; `detect_stream_unreadable` waits for a second one.
+- **`device_id` and `entity_id`** are `null` when the Frigate integration has
+  no entity for the camera (Frigate reached from Selora's settings, or a camera
+  it has not loaded yet).
+- **Absent `cameras`** means no Frigate, or Frigate could not be read at the
+  last audit (`health.sections` then has no `camera_analysis` row, and the
+  Health page shows the check as errored). It refreshes with the health score,
+  on the health-scan cadence.
+
 **Privacy note:** unlike the anonymous PostHog telemetry (counts only), this
 export carries **real identities and state** (entity_ids, names, states). That's
 intentional — it's the user's own home going to their own account, keyed by
@@ -188,6 +248,9 @@ Additive within v2 (nullable/optional, no version bump):
   producers → treat the score as unknown.
 - `battery_forecast` — battery depletion forecasts (see above). Absent on older
   producers and when the forecast can't be computed.
+- `cameras` — how Frigate analyses each camera, with alertable `issues` (see
+  above). Absent on older producers, without Frigate, and when Frigate could
+  not be read.
 - `signals[].device_id` — device the target belongs to when `target_kind`
   is `entity`; `null` for device/integration targets or unassigned entities.
 - `roster.entities[].device_id` — device the entity belongs to, or `null`.

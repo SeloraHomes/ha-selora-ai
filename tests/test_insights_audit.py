@@ -40,7 +40,7 @@ def _blocking_checks(started: asyncio.Event, release: asyncio.Event, state: dict
     """A stand-in for async_run_checks that blocks until released, so an
     in-flight audit run can be caught mid-flight."""
 
-    async def _run(_hass) -> list:
+    async def _run(_hass, _cameras=None) -> list:
         started.set()
         await release.wait()
         state["completed"] = True
@@ -180,7 +180,7 @@ async def test_scan_audit_trailing_rerun_after_inflight(hass, health_store, monk
     started = asyncio.Event()
     release_first = asyncio.Event()
 
-    async def counting_checks(_hass) -> list:
+    async def counting_checks(_hass, _cameras=None) -> list:
         calls["n"] += 1
         first_call = calls["n"] == 1
         started.set()

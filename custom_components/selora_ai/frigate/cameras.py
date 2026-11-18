@@ -591,7 +591,7 @@ def _area(size: Size | None) -> int:
     return size[0] * size[1] if size else 0
 
 
-def _fits_box(size: Size) -> bool:
+def fits_detect_box(size: Size) -> bool:
     """Small enough to detect on at its own size."""
     width, height = size
     box_w, box_h = _DETECT_BOX if width >= height else _DETECT_BOX[::-1]
@@ -634,7 +634,7 @@ def choose_streams(sizes: list[Size | None]) -> tuple[int, int | None]:
     ceiling = _area(sizes[main]) or _area(sizes[order[0]]) + 1
     smaller = [i for i in order if i != main and 0 < _area(sizes[i]) < ceiling]
     tall = [i for i in smaller if min(sizes[i] or (0, 0)) >= MIN_DETECT_SIDE]
-    fits = [i for i in tall if _fits_box(sizes[i] or (0, 0))]
+    fits = [i for i in tall if fits_detect_box(sizes[i] or (0, 0))]
     if fits:
         return main, fits[0]
     if tall:

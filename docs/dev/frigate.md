@@ -223,6 +223,38 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
 - Every camera is restreamed by go2rtc (`rtsp://127.0.0.1:8554/<name>`), so the
   camera sees one connection whatever reads it.
 
+## How each camera is analysed
+
+`frigate/analysis.py` reports, once per Health audit, how Frigate analyses each
+camera and what about it costs the hub (`issues`). The Health page's "Camera
+analysis" check shows it, and the insights export ships it for Selora's alerts
+(`cameras`, in `docs/insights-export-contract.md`, which lists the issues).
+
+- **It reads only what Frigate says.** The detect size is Frigate's resolved
+  config, which holds the size Frigate probed when none was written. Stream
+  sizes come from Frigate's ffprobe of each input (`/api/ffprobe?paths=camera:
+  <name>`), made with the logins Frigate holds: Frigate redacts them from its
+  API, and a camera read directly rather than through go2rtc has no
+  credential-free address to measure here.
+- **A probe connects to the camera**, and one that did not answer took 18 s.
+  So an audit starts it in the background, one camera at a time, for each
+  camera due: once a day, an hour after a failure, or when its inputs changed.
+  The audit reads the last answer and never waits on a camera, so a result
+  shows at the next audit; a timer of its own would show it no sooner.
+  Frigate probes the inputs one after another, so the wait allows 30 s per
+  input: a timeout is Frigate failing, which never counts against the camera.
+  Unloading cancels it.
+- **Live rates are confirmed before they are issues.** Frigate's fps and CPU
+  move every second; `no_video`, `skipping_frames` and `high_cpu` need to hold
+  for `HEALTH_EVENT_CONFIRM_SECS` with no audit in between missing them. A
+  rate Frigate does not give (statistics down, a camera or field missing)
+  proves nothing: a confirmed issue stays, a pending one starts over.
+- **Frigate unreachable is an errored check**, never a clear one, and the
+  export then has no `cameras`. A camera turned off in Frigate has no issues.
+- **Not announced** (`NOTIFY_CHECKS`): a camera set up badly is Selora's to fix,
+  not a push to the owner. The export reports it even when the owner ignored
+  the Health finding.
+
 ## Cameras already in Frigate
 
 - **They answer with their switches.** Searching for a camera finds Frigate's

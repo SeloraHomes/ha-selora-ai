@@ -1363,6 +1363,54 @@ class InsightsExportManifest(TypedDict):
     collection: dict[str, Any]  # status, partial_reason
 
 
+class CameraDetect(TypedDict):
+    """The size and rate Frigate analyses a camera at."""
+
+    width: int | None
+    height: int | None
+    fps: int | float | None
+
+
+class CameraStream(TypedDict):
+    """One of a camera's Frigate inputs, as Frigate's ffprobe measured it."""
+
+    roles: list[str]  # record | detect | audio
+    width: int | None  # None when it was not measured or did not answer
+    height: int | None
+    codec: str | None  # "h264" | "h265" | ... ; None when unknown
+    readable: bool | None  # False: Frigate's ffprobe got no answer; None: not probed yet
+
+
+class CameraStats(TypedDict, total=False):
+    """A camera's live rates and CPU, from Frigate's statistics."""
+
+    camera_fps: float
+    process_fps: float
+    skipped_fps: float
+    detection_fps: float
+    detect_cpu: float  # % of one core: the camera's detection process
+    decode_cpu: float  # % of one core: its FFmpeg
+
+
+class CameraReport(TypedDict):
+    """How Frigate analyses one camera, and what is wrong with it.
+
+    ``issues`` is the alertable part: stable codes, each also a Health finding.
+    Reported whether or not the owner ignored the finding on the Health page.
+    """
+
+    frigate_name: str
+    name: str
+    device_id: str | None  # roster.devices[].id of the Frigate camera, when HA has it
+    entity_id: str | None  # its camera.* entity
+    enabled: bool
+    detect: CameraDetect
+    streams: list[CameraStream]
+    streams_measured_at: str | None  # ISO-8601 of the last ffprobe, None before one
+    stats: CameraStats
+    issues: list[str]
+
+
 class InsightsEnvelope(TypedDict):
     """The full payload inside the gzipped artifact — both layers + context."""
 
@@ -1376,6 +1424,7 @@ class InsightsEnvelope(TypedDict):
     roster: HomeRoster
     collection: dict[str, Any]
     battery_forecast: NotRequired[BatteryForecast]
+    cameras: NotRequired[list[CameraReport]]
 
 
 class BatteryDepletionRange(TypedDict):
