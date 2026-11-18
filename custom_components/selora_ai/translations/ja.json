@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "検出対象",
     "frigate_result_restarting": "Selora Vision を再起動しています。カメラは約 1 分で戻ります。",
     "frigate_result_update_saved": "Selora Vision に保存しました。Selora Vision の再起動後に反映されます。",
+    "frigate_result_heavy_stream": "サブストリームが {size} のため、解析にハブの処理能力を多く使います。カメラの設定で 720p に下げてください。",
     "camera_events_open_in_frigate": "Selora Vision で開く",
     "camera_events_zones": "ゾーン",
     "automations_page_title": "オートメーション",

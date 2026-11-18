@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "Looks for",
     "frigate_result_restarting": "Selora Vision is restarting; the camera is back in about a minute.",
     "frigate_result_update_saved": "Saved in Selora Vision; it takes effect when Selora Vision restarts.",
+    "frigate_result_heavy_stream": "Its substream is {size}, which takes much of the hub's power to analyse. Lower it to 720p in the camera's settings.",
     "camera_events_open_in_frigate": "Open in Selora Vision",
     "camera_events_zones": "Zones",
     "automations_page_title": "Automations",

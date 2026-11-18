@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "Busca",
     "frigate_result_restarting": "Selora Vision se está reiniciando; la cámara vuelve en un minuto aproximadamente.",
     "frigate_result_update_saved": "Guardado en Selora Vision; se aplica cuando Selora Vision se reinicie.",
+    "frigate_result_heavy_stream": "Su flujo secundario es de {size}, y analizarlo consume mucha potencia del hub. Bájalo a 720p en los ajustes de la cámara.",
     "camera_events_open_in_frigate": "Abrir en Selora Vision",
     "camera_events_zones": "Zonas",
     "automations_page_title": "Automatizaciones",

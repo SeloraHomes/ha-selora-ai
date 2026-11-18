@@ -14,6 +14,7 @@ from custom_components.selora_ai.frigate.rtsp import (
     RtspError,
     RtspUnreachable,
     async_describe,
+    async_stream_size,
 )
 
 _REALM, _NONCE = "IPC", "abc123"
@@ -21,6 +22,14 @@ _REALM, _NONCE = "IPC", "abc123"
 
 def _md5(text: str) -> str:
     return hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
+
+
+# What a Uniview answers for its 2880×1620 H.265 main stream.
+_SDP = (
+    "v=0\r\ns=Media Server\r\nt=0 0\r\nm=video 0 RTP/AVP 96\r\n"
+    "a=rtpmap:96 H265/90000\r\na=fmtp:96 "
+    "sprop-sps=QgEBAWAAAAMAkAAAAwAAAwCWoAFoIAZZ95ZWaSTK8BaAgAAAAwCAAAADAIQ=\r\n"
+)
 
 
 async def _camera(path: str, password: str) -> tuple[asyncio.Server, int, list[str]]:
@@ -47,7 +56,7 @@ async def _camera(path: str, password: str) -> tuple[asyncio.Server, int, list[s
                         f"Content-Length: {len(body)}"
                     )
                 elif uri.endswith("/" + path):
-                    body, status = "", "200 OK"
+                    body, status = _SDP, f"200 OK\r\nContent-Length: {len(_SDP)}"
                 else:
                     body, status = "", "404 Not Found"
                 writer.write(f"RTSP/1.0 {status}\r\nCSeq: 1\r\n\r\n{body}".encode())
@@ -101,3 +110,21 @@ async def test_a_closed_port_is_not_rtsp_but_reachable() -> None:
         await async_describe("127.0.0.1", port, "x", "admin", "p")
 
     assert not isinstance(raised.value, RtspUnreachable)
+
+
+async def test_a_stream_says_its_size_in_its_sdp() -> None:
+    server, port, requests = await _camera("unicast/c1/s0/live", "p@ss/word")
+    async with server:
+        size = await async_stream_size(
+            f"rtsp://admin:p%40ss%2Fword@127.0.0.1:{port}/unicast/c1/s0/live"
+        )
+        missing = await async_stream_size(f"rtsp://admin:p%40ss%2Fword@127.0.0.1:{port}/other")
+        wrong = await async_stream_size(f"rtsp://admin:no@127.0.0.1:{port}/unicast/c1/s0/live")
+
+    assert size == (2880, 1620)
+    assert (missing, wrong) == (None, None)
+    assert "p@ss" not in "".join(requests)
+
+
+async def test_an_rtsps_stream_is_not_measured() -> None:
+    assert await async_stream_size("rtsps://192.168.1.1:7441/abc?enableSrtp") is None

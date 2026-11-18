@@ -140,8 +140,10 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
 - **Network cameras.** `frigate/onvif.py` asks the camera over ONVIF: its clock
   first (`GetSystemDateAndTime`, unauthenticated) so the WS-Security timestamp
   matches it, then the media service, the profiles with their resolutions, and
-  each profile's RTSP URI. The largest profile is recorded, the smallest is
-  detected on. A camera named by address is asked directly with a WS-Discovery
+  each profile's RTSP URI. The largest profile is recorded; detection takes
+  the one closest to 720p (`choose_streams`): the largest within 1280×720 and
+  at least 360 on its short side. A Uniview's third stream (640×360,
+  720×576, or CIF) is cheaper, but too coarse for faces and distant people. A camera named by address is asked directly with a WS-Discovery
   probe (`async_ask_hosts`): the multicast scan never leaves the hub's network,
   but a probe sent to one address reaches another network the hub routes to,
   and the answer gives the ONVIF port (Uniview serves it on its web port, which
@@ -154,7 +156,9 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   DESCRIBE with the card's login): the brand's when known (Reolink, Hikvision,
   Dahua/Amcrest, Uniview — Reolink and Uniview are recognised by model names
   too, since their scopes often omit the maker), otherwise each brand's until
-  the camera answers 200. Its answer also tells the errors apart: nothing
+  the camera answers 200. Uniview's are `media/video1`/`video2`: its
+  `unicast/c1/s<n>/live` answers 200 for every `n` with the main stream, so a
+  "substream" read there was the 4K main stream again. Its answer also tells the errors apart: nothing
   answering at the address is "the hub cannot reach it" (another network),
   not "turn ONVIF on", which sent a user to a setting that was already on.
 - **Naming a camera asks for that camera alone.** With `hosts` or `stream_urls`
@@ -179,6 +183,25 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   enabled, and only then does it have a state and a stream. The plan keeps its
   id and approves the new streams, and the redrawn rows replace the card's in
   the saved conversation, so a reload shows what Approve now adds.
+- **Detection never runs above 720p, and the size is always measured.** Left
+  without `detect.width`/`height`, Frigate probes the stream and detects at
+  its full size: two Univiews whose "substream" was set to 3840×2160 were
+  analysed at 4K, 12 MB of shared memory a frame, and starved every other
+  camera on the hub. At confirm, each stream is asked once more over RTSP
+  (`rtsp.async_stream_size`) and its size read from the SPS in its SDP
+  (`frigate/sdp.py`, H.264 and H.265), in this process, so the login never
+  goes to another program or into Frigate's access log. That size beats
+  ONVIF's, which can be a profile's configured size rather than what it
+  sends. The detect stream's size is written scaled down to fit 1280×720,
+  shape kept, never up. A substream as large as the main stream is dropped
+  (it costs a second connection and saves nothing); an unmeasured one is left
+  to Frigate, as before. `rtsps` (UniFi) is not measured.
+- **A substream larger than 1080p is named to the user.** Detection is
+  scaled, but the hub still decodes every frame at full size, which only the
+  camera's own settings can fix. The result card says so under the camera
+  (`heavy_stream`), the added line does too, and the confirm answers
+  `heavy_substreams` with a hint for the model. Nothing in Frigate needs
+  changing after the camera is lowered: the detect size written stays right.
 - **"Already in Frigate" compares host, port and path**, since Frigate redacts
   credentials in `GET /api/config` and go2rtc wraps sources
   (`ffmpeg:…#video=copy`).

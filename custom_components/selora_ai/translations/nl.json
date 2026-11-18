@@ -1202,6 +1202,7 @@
     "frigate_result_looks_for": "Zoekt naar",
     "frigate_result_restarting": "Selora Vision start opnieuw; de camera is over ongeveer een minuut terug.",
     "frigate_result_update_saved": "Opgeslagen in Selora Vision; gaat in wanneer Selora Vision opnieuw start.",
+    "frigate_result_heavy_stream": "De substream is {size}, en die analyseren kost de hub veel rekenkracht. Zet hem op 720p in de instellingen van de camera.",
     "camera_events_open_in_frigate": "Openen in Selora Vision",
     "camera_events_zones": "Zones",
     "automations_page_title": "Automatiseringen",

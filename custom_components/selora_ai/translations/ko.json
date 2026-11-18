@@ -1182,6 +1182,7 @@
     "frigate_result_looks_for": "감지 대상",
     "frigate_result_restarting": "Selora Vision를 다시 시작하는 중입니다. 카메라는 약 1분 후에 돌아옵니다.",
     "frigate_result_update_saved": "Selora Vision에 저장되었습니다. Selora Vision를 다시 시작하면 적용됩니다.",
+    "frigate_result_heavy_stream": "보조 스트림이 {size}이라 분석에 허브의 처리 능력이 많이 듭니다. 카메라 설정에서 720p로 낮추세요.",
     "camera_events_open_in_frigate": "Selora Vision에서 열기",
     "camera_events_zones": "구역",
     "automations_page_title": "자동화",

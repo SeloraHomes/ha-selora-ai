@@ -19,7 +19,9 @@ from custom_components.selora_ai.frigate.cameras import (
     FIXES,
     async_camera_candidates,
     build_config,
+    choose_streams,
     clean_objects,
+    detect_size,
 )
 from custom_components.selora_ai.frigate.client import FrigateClient, FrigateError
 from custom_components.selora_ai.frigate.discovery import NetworkCamera
@@ -373,6 +375,56 @@ async def test_a_single_stream_detects_scaled_down(hass: HomeAssistant, home: _H
     assert yard["record"] == {"enabled": False}
 
 
+@pytest.mark.parametrize(
+    ("size", "detect"),
+    [
+        ((3840, 2160), (1280, 720)),
+        ((2880, 1620), (1280, 720)),
+        ((2560, 1920), (960, 720)),  # 4:3 keeps its shape
+        ((1080, 1920), (720, 1280)),  # portrait turns the box
+        ((640, 360), (640, 360)),  # never scaled up
+    ],
+)
+def test_detection_never_runs_above_720p(size: tuple[int, int], detect: tuple[int, int]) -> None:
+    assert detect_size(size) == {"width": detect[0], "height": detect[1]}
+
+
+@pytest.mark.parametrize(
+    ("sizes", "chosen"),
+    [
+        # Uniview with its third stream on: the 720p one, not CIF.
+        ([(3840, 2160), (1280, 720), (352, 288)], (0, 1)),
+        # Nor a 640×360 or 720×576 third stream: 720p is what faces need.
+        ([(3840, 2160), (1280, 720), (640, 360)], (0, 1)),
+        ([(2880, 1620), (1280, 720), (720, 576)], (0, 1)),
+        # The only stream within 720p, even when it is smaller.
+        ([(2560, 1440), (720, 576), (352, 288)], (0, 1)),
+        # A 1080p substream loses to a 720p third stream.
+        ([(3840, 2160), (1920, 1080), (1280, 720)], (0, 2)),
+        # Nothing within 720p: the smallest above it.
+        ([(3840, 2160), (2560, 1440), (1920, 1080)], (0, 2)),
+        # Out of order, as some cameras list them.
+        ([(640, 360), (2560, 1440)], (1, 0)),
+        # CIF only when nothing larger is there.
+        ([(3840, 2160), (352, 288)], (0, 1)),
+        # A "substream" as large as the main one is no substream.
+        ([(3840, 2160), (3840, 2160)], (0, None)),
+        # The first stream unmeasured: it is the main one, never a measured sub.
+        ([None, (1280, 720), (352, 288)], (0, 1)),
+        ([None, (2560, 1440), (1280, 720)], (0, 2)),
+        # An unmeasured later stream does not unseat a measured first one.
+        ([(3840, 2160), None, (1280, 720)], (0, 2)),
+        # Sizes unknown: first recorded, last detected on.
+        ([None, None, None], (0, 2)),
+        ([(1920, 1080)], (0, None)),
+    ],
+)
+def test_streams_are_chosen_by_size(
+    sizes: list[tuple[int, int] | None], chosen: tuple[int, int | None]
+) -> None:
+    assert choose_streams(sizes) == chosen
+
+
 async def test_a_lone_substream_is_low_res_and_not_scaled_up(
     hass: HomeAssistant, home: _Home
 ) -> None:
@@ -428,6 +480,21 @@ def rtsp() -> Any:
     """No test opens an RTSP connection; each camera serves nothing by default."""
     with patch.object(frigate_setup, "async_describe", AsyncMock(return_value=404)) as describe:
         yield describe
+
+
+@pytest.fixture(autouse=True)
+def stream_size() -> Any:
+    """No test measures a stream over RTSP; each says no size by default.
+    ``side_effect`` maps a URL's path to the size its SDP says."""
+    with patch.object(frigate_setup, "async_stream_size", AsyncMock(return_value=None)) as size:
+        yield size
+
+
+def _sizes(by_path: dict[str, tuple[int, int]]) -> Any:
+    async def size(url: str) -> tuple[int, int] | None:
+        return next((s for p, s in by_path.items() if url.endswith(p)), None)
+
+    return size
 
 
 async def _card(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -687,6 +754,112 @@ async def test_a_reolink_without_onvif_uses_its_known_streams(
 
     streams = _sent_config(aioclient_mock)["go2rtc"]["streams"]
     assert streams["garage_cam"] == ["rtsp://admin:p@192.168.1.60:554/h264Preview_01_main"]
+
+
+_UNIVIEW = NetworkCamera("192.168.1.61", 80, "Front Door", "uniview", "onvif")
+
+
+def _uniview_profiles(sub: tuple[int, int] = (1280, 720)) -> list[Profile]:
+    """Main, sub and third stream, as a Uniview with all three on serves them."""
+    base = "rtsp://192.168.1.61:554/media"
+    return [
+        Profile("p0", "profile_1", 3840, 2160, f"{base}/video1"),
+        Profile("p1", "profile_2", *sub, f"{base}/video2"),
+        Profile("p2", "profile_3", 352, 288, f"{base}/video3"),
+    ]
+
+
+async def _add_uniview(
+    hass: HomeAssistant, aioclient_mock: Any, no_probe: AsyncMock, profiles: list[Profile]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    no_probe.return_value = [_UNIVIEW]
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {})
+    with patch.object(
+        frigate_setup.OnvifCamera, "async_profiles", AsyncMock(return_value=profiles)
+    ):
+        result = await _confirm(
+            hass, action, {"192.168.1.61": {"username": "admin", "password": "p"}}
+        )
+    return action, result
+
+
+async def test_a_uniview_detects_on_its_720p_substream_not_the_cif_one(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, no_probe: AsyncMock
+) -> None:
+    _, result = await _add_uniview(hass, aioclient_mock, no_probe, _uniview_profiles())
+
+    assert "heavy_substreams" not in result
+    config = _sent_config(aioclient_mock)
+    assert config["go2rtc"]["streams"]["front_door_sub"] == [
+        "rtsp://admin:p@192.168.1.61:554/media/video2"
+    ]
+    assert config["cameras"]["front_door"]["detect"] == {
+        "enabled": True,
+        "width": 1280,
+        "height": 720,
+    }
+
+
+async def test_a_4k_substream_is_detected_on_scaled_down_and_named(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    no_probe: AsyncMock,
+    stream_size: AsyncMock,
+) -> None:
+    # ONVIF says the profile is 720p; the stream itself sends 4K.
+    stream_size.side_effect = _sizes({"video1": (3840, 2160), "video2": (2880, 1620)})
+
+    action, result = await _add_uniview(hass, aioclient_mock, no_probe, _uniview_profiles())
+
+    detect = _sent_config(aioclient_mock)["cameras"]["front_door"]["detect"]
+    assert detect == {"enabled": True, "width": 1280, "height": 720}
+    assert result["heavy_substreams"] == {"Front Door": "2880×1620"}
+    assert "720p" in result["heavy_hint"]
+    (camera,) = frigate_setup.result_for(hass, action["plan_id"])["cameras"]
+    assert camera["heavy_stream"] == "2880×1620"
+    line = frigate_setup.added_line(hass, action["plan_id"], "fr")
+    assert "Le flux secondaire de Front Door est en 2880×1620" in line
+
+
+async def test_a_substream_as_large_as_the_main_one_is_not_read(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    no_probe: AsyncMock,
+    stream_size: AsyncMock,
+) -> None:
+    stream_size.side_effect = _sizes({"video1": (3840, 2160), "video2": (3840, 2160)})
+
+    _, result = await _add_uniview(
+        hass, aioclient_mock, no_probe, _uniview_profiles(sub=(3840, 2160))[:2]
+    )
+
+    config = _sent_config(aioclient_mock)
+    assert set(config["go2rtc"]["streams"]) == {"front_door"}
+    front_door = config["cameras"]["front_door"]
+    assert [i["roles"] for i in front_door["ffmpeg"]["inputs"]] == [["record", "detect"]]
+    assert front_door["detect"] == {"enabled": True, "width": 1280, "height": 720}
+    assert "heavy_substreams" not in result
+
+
+async def test_a_measured_ha_substream_gets_its_own_size(
+    hass: HomeAssistant,
+    home: _Home,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    stream_size: AsyncMock,
+) -> None:
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    home.camera("Porch", "sub", "rtsp://192.168.1.20/sub")
+    stream_size.side_effect = _sizes({"/main": (2560, 1920), "/sub": (640, 480)})
+    _frigate_api(aioclient_mock)
+
+    await _confirm(hass, await _card(hass, {}))
+
+    detect = _sent_config(aioclient_mock)["cameras"]["porch"]["detect"]
+    assert detect == {"enabled": True, "width": 640, "height": 480}
 
 
 async def test_an_address_named_in_chat_becomes_a_network_camera(
@@ -1585,7 +1758,7 @@ async def test_without_onvif_each_brands_stream_is_asked_for(
     """A camera that says nothing about itself: the paths cameras are known to
     serve are asked for in turn, and the one it serves is written."""
     _frigate_api(aioclient_mock)
-    rtsp.side_effect = lambda host, port, path, *_: 200 if path.startswith("unicast/") else 404
+    rtsp.side_effect = lambda host, port, path, *_: 200 if path.startswith("media/video") else 404
     action = await _card(hass, {"hosts": ["192.168.1.54"]})
 
     with patch.object(
@@ -1598,8 +1771,8 @@ async def test_without_onvif_each_brands_stream_is_asked_for(
     assert result["status"] == "added"
     streams = _sent_config(aioclient_mock)["go2rtc"]["streams"]
     assert list(streams.values()) == [
-        ["rtsp://admin:p@192.168.1.54:554/unicast/c1/s0/live"],
-        ["rtsp://admin:p@192.168.1.54:554/unicast/c1/s1/live"],
+        ["rtsp://admin:p@192.168.1.54:554/media/video1"],
+        ["rtsp://admin:p@192.168.1.54:554/media/video2"],
     ]
     assert rtsp.await_args_list[0].args[:3] == ("192.168.1.54", 554, "h264Preview_01_main")
 

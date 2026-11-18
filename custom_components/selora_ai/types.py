@@ -341,6 +341,9 @@ class FrigateResultCamera(TypedDict):
     recordings_entity: str
     # What this camera looks for now, when a change set it.
     objects: NotRequired[list[str]]
+    # Its substream's size ("3840×2160") when that is too large to analyse
+    # cheaply; the card says to lower it in the camera's settings.
+    heavy_stream: NotRequired[str]
 
 
 class FrigateResult(TypedDict):
