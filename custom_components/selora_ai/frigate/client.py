@@ -23,6 +23,9 @@ if TYPE_CHECKING:
 FRIGATE_DOMAIN: Final = "frigate"
 _TIMEOUT: Final = aiohttp.ClientTimeout(total=15)
 # A clip streams for as long as it plays: no total, only a stall limit.
+# ffprobe waits on the camera itself, one input after another: a stream
+# that does not answer took 18 s.
+_PROBE_SECS_PER_INPUT: Final = 30
 _STREAM_TIMEOUT: Final = aiohttp.ClientTimeout(total=None, sock_connect=15, sock_read=60)
 _TOKEN_COOKIE: Final = "frigate_token"
 # The hub host's address on the Home Assistant VM's internal network, which
@@ -130,6 +133,11 @@ class FrigateClient:
         self._password = password
         self._token: str | None = None
 
+    @property
+    def url(self) -> str:
+        """The server's base address."""
+        return self._url
+
     @classmethod
     def from_hass(cls, hass: HomeAssistant) -> FrigateClient | None:
         """A client for the server ``frigate_connection`` names, or None without one."""
@@ -153,7 +161,13 @@ class FrigateClient:
             raise FrigateError(f"Frigate could not be reached: {exc}") from exc
 
     async def _request(
-        self, method: str, path: str, payload: Any = None, *, form: aiohttp.FormData | None = None
+        self,
+        method: str,
+        path: str,
+        payload: Any = None,
+        *,
+        form: aiohttp.FormData | None = None,
+        timeout: aiohttp.ClientTimeout = _TIMEOUT,
     ) -> Any:
         if self._username and self._token is None:
             await self._login()
@@ -165,7 +179,7 @@ class FrigateClient:
                 json=payload,
                 data=form,
                 headers=headers,
-                timeout=_TIMEOUT,
+                timeout=timeout,
             ) as resp:
                 text = await resp.text()
                 # /api/version answers in plain text, everything else in JSON.
@@ -231,6 +245,22 @@ class FrigateClient:
         if not isinstance(events, list):
             raise FrigateError("Frigate returned no events.")
         return events
+
+    async def ffprobe(self, camera: str, inputs: int = 1) -> list[Any]:
+        """Frigate's ffprobe of each of a camera's ``inputs``, in config order.
+
+        Frigate probes with the logins it holds, so none reach this side. Each
+        probe opens a connection to the camera and can take many seconds, so
+        every input that does not answer adds to the wait.
+        """
+        probes = await self._request(
+            "GET",
+            f"/api/ffprobe?{urlencode({'paths': f'camera:{camera}'})}",
+            timeout=aiohttp.ClientTimeout(total=_PROBE_SECS_PER_INPUT * max(inputs, 2)),
+        )
+        if not isinstance(probes, list):
+            raise FrigateError("Frigate returned no probe.")
+        return probes
 
     async def get_stats(self) -> dict[str, Any]:
         """Frigate's live statistics: per-camera and detector rates, storage."""

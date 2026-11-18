@@ -274,6 +274,23 @@ async def test_set_last_audit_skips_write_when_only_timestamp_moved(health_store
 
 
 @pytest.mark.asyncio
+async def test_set_last_audit_skips_write_when_only_camera_rates_moved(health_store):
+    hs, store_inst = health_store
+
+    def audit(at: str, cpu: float, issues: list[str]) -> dict:
+        camera = {"frigate_name": "yard", "stats": {"detect_cpu": cpu}, "issues": issues}
+        return {"status": "ok", "score": 91, "generated_at": at, "cameras": [camera]}
+
+    await hs.set_last_audit(audit("2026-07-24T10:00:00+00:00", 40.0, []))
+    await hs.set_last_audit(audit("2026-07-24T10:15:00+00:00", 52.5, []))
+    assert len(store_inst.saved_data) == 1
+    assert (await hs.get_last_audit())["cameras"][0]["stats"]["detect_cpu"] == 52.5
+
+    await hs.set_last_audit(audit("2026-07-24T10:30:00+00:00", 146.8, ["high_cpu"]))
+    assert len(store_inst.saved_data) == 2
+
+
+@pytest.mark.asyncio
 async def test_set_last_audit_persists_when_content_changes(health_store):
     hs, store_inst = health_store
 

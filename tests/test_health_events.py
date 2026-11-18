@@ -328,7 +328,7 @@ async def test_audit_runner_feeds_the_tracker_once_settled(
 ) -> None:
     calls: list = []
 
-    async def _checks(_hass) -> list:
+    async def _checks(_hass, _cameras=None) -> list:
         return _results(_offline())
 
     monkeypatch.setattr("custom_components.selora_ai.insights_checks.async_run_checks", _checks)

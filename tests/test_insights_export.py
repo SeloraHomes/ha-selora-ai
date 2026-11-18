@@ -535,6 +535,39 @@ async def test_a_truncated_roster_keeps_the_whole_battery_forecast(hass: HomeAss
     assert envelope["battery_forecast"] == _FORECAST
 
 
+_CAMERA_REPORT = {
+    "frigate_name": "front_door",
+    "name": "Front Door",
+    "device_id": "dev-front-door",
+    "entity_id": "camera.front_door",
+    "enabled": True,
+    "detect": {"width": 3840, "height": 2160, "fps": 5},
+    "streams": [
+        {"roles": ["record"], "width": 3840, "height": 2160, "codec": "h265", "readable": True},
+        {"roles": ["detect"], "width": 3840, "height": 2160, "codec": "h265", "readable": True},
+    ],
+    "streams_measured_at": "2026-11-18T06:00:00+00:00",
+    "stats": {"camera_fps": 5.0, "skipped_fps": 0.0, "detect_cpu": 146.8},
+    "issues": ["detect_above_720p", "detect_stream_heavy"],
+}
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_the_cameras_of_the_last_audit(hass: HomeAssistant) -> None:
+    captured = await _publish_capturing(hass, _FakeStore({**_AUDIT, "cameras": [_CAMERA_REPORT]}))
+
+    assert captured["envelope"]["cameras"] == [_CAMERA_REPORT]
+
+
+@pytest.mark.asyncio
+async def test_a_home_without_frigate_exports_no_cameras(hass: HomeAssistant) -> None:
+    """Absent, not empty: an empty list would say Frigate has no cameras."""
+    for audit in (_AUDIT, {**_AUDIT, "cameras": None}, None):
+        captured = await _publish_capturing(hass, _FakeStore(audit))
+
+        assert "cameras" not in captured["envelope"]
+
+
 @pytest.mark.asyncio
 async def test_publish_exports_the_redacted_system_log(hass: HomeAssistant) -> None:
     from homeassistant.components.system_log import DATA_SYSTEM_LOG  # noqa: PLC0415

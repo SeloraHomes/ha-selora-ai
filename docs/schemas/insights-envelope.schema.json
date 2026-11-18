@@ -32,6 +32,11 @@
     },
     "health": { "$ref": "#/$defs/health" },
     "battery_forecast": { "$ref": "#/$defs/batteryForecast" },
+    "cameras": {
+      "type": "array",
+      "description": "Optional (additive within v2). How Frigate analyses each camera, with alertable issues. Absent without Frigate, or when Frigate could not be read at the last audit.",
+      "items": { "$ref": "#/$defs/cameraReport" }
+    },
     "inventory": {
       "type": "object",
       "description": "Aggregate counts.",
@@ -50,6 +55,82 @@
   },
 
   "$defs": {
+    "cameraReport": {
+      "type": "object",
+      "required": [
+        "frigate_name",
+        "name",
+        "device_id",
+        "entity_id",
+        "enabled",
+        "detect",
+        "streams",
+        "streams_measured_at",
+        "stats",
+        "issues"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "frigate_name": { "type": "string", "description": "The camera's key in Frigate's config." },
+        "name": { "type": "string", "description": "Frigate's friendly name, else the key title-cased." },
+        "device_id": { "type": ["string", "null"], "description": "roster.devices[].id of the Frigate camera; null when the Frigate integration has no entity for it." },
+        "entity_id": { "type": ["string", "null"], "description": "The Frigate integration's camera.* entity." },
+        "enabled": { "type": "boolean", "description": "False: turned off in Frigate; it then has no issues." },
+        "detect": {
+          "type": "object",
+          "description": "The size and rate Frigate analyses frames at.",
+          "required": ["width", "height", "fps"],
+          "properties": {
+            "width": { "type": ["integer", "null"] },
+            "height": { "type": ["integer", "null"] },
+            "fps": { "type": ["number", "null"] }
+          }
+        },
+        "streams": {
+          "type": "array",
+          "description": "The camera's Frigate inputs in config order, as Frigate's ffprobe measured them.",
+          "items": {
+            "type": "object",
+            "required": ["roles", "width", "height", "codec", "readable"],
+            "properties": {
+              "roles": { "type": "array", "items": { "type": "string", "enum": ["record", "detect", "audio"] } },
+              "width": { "type": ["integer", "null"], "description": "null until measured, or when the probe got no answer." },
+              "height": { "type": ["integer", "null"] },
+              "codec": { "type": ["string", "null"], "description": "h264, h265, or the codec's first word." },
+              "readable": { "type": ["boolean", "null"], "description": "false: the last probe got no answer; null: not probed yet." }
+            }
+          }
+        },
+        "streams_measured_at": { "type": ["string", "null"], "format": "date-time", "description": "UTC time of the last probe; null before the first. Probed daily, an hour after a failure, and when the inputs change." },
+        "stats": {
+          "type": "object",
+          "description": "Frigate's live rates when the audit read them. Keys are absent when Frigate did not report them.",
+          "properties": {
+            "camera_fps": { "type": "number" },
+            "process_fps": { "type": "number" },
+            "skipped_fps": { "type": "number" },
+            "detection_fps": { "type": "number" },
+            "detect_cpu": { "type": "number", "description": "% of one core used by the camera's detection process." },
+            "decode_cpu": { "type": "number", "description": "% of one core used by its FFmpeg." }
+          }
+        },
+        "issues": {
+          "type": "array",
+          "description": "Alertable, most telling first. Reported whether or not the owner ignored the Health finding.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "detect_stream_unreadable",
+              "no_video",
+              "skipping_frames",
+              "detect_above_720p",
+              "detect_stream_heavy",
+              "high_cpu"
+            ]
+          }
+        }
+      }
+    },
     "batteryForecast": {
       "type": "object",
       "description": "Optional (additive within v2). When each replaceable battery is expected to reach 0%. Rechargeable devices (phones, vacuums, vehicles, home batteries) never appear. Absent when the forecast could not be computed (no recorder); an empty items array means no battery could be forecast. Recomputed at most every 6 hours.",

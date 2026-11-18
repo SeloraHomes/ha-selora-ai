@@ -168,6 +168,9 @@ class AuditRunner:
             with suppress(asyncio.CancelledError):
                 await task
         self._tasks.clear()
+        from .frigate.analysis import async_stop_probes  # noqa: PLC0415
+
+        await async_stop_probes(self._hass)
 
     async def async_run_tracked(self, *, force: bool = False) -> dict[str, Any]:
         """Run an audit as a TRACKED task and await its result — used by the
@@ -199,6 +202,7 @@ class AuditRunner:
         the home is healthy).
         """
         async with self._lock:
+            from .frigate.analysis import async_camera_reports  # noqa: PLC0415
             from .insights_checks import (  # noqa: PLC0415
                 async_run_checks,
                 band_for,
@@ -206,7 +210,9 @@ class AuditRunner:
                 score_breakdown_from_findings,
             )
 
-            results = await async_run_checks(self._hass)
+            # Read once: the camera check assesses it, and the export ships it.
+            cameras = await async_camera_reports(self._hass)
+            results = await async_run_checks(self._hass, cameras)
             findings = flatten_findings(results)
             # Fleet for fraction-weighted device-health penalties: the per-device
             # outage checks subtract a penalty proportional to the share of these
@@ -233,6 +239,7 @@ class AuditRunner:
                     score=score,
                     band=band_for(score),
                     score_breakdown=breakdown,
+                    cameras=cameras.reports,
                 )
             )
 
@@ -396,6 +403,7 @@ def _record(
     quick_actions: list[Any] | None = None,
     fingerprint: str = "",
     error: str | None = None,
+    cameras: list[Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "status": status,  # ok | no_llm | error
@@ -411,5 +419,8 @@ def _record(
         "quick_actions": quick_actions or [],
         "fingerprint": fingerprint,
         "error": error,
+        # How Frigate analyses each camera (frigate/analysis.py), for the
+        # export; None without Frigate, or when it could not be read.
+        "cameras": cameras,
         "generated_at": datetime.now(UTC).isoformat(),
     }

@@ -245,6 +245,7 @@ class InsightsExporter:
         # forecast is unknown, since an empty one reads as "nothing to replace".
         # Built from the registries, so a truncated roster loses none of it.
         battery_forecast = await self._battery_forecaster.async_get()
+        cameras = await self._gather_cameras()
         inventory = self._gather_inventory()
         # Resolve custom-component domains + human integration names here
         # (async) and thread them into the synchronous roster builder: it flags
@@ -327,6 +328,7 @@ class InsightsExporter:
             "insights": insights,
             "health": health,
             **({"battery_forecast": battery_forecast} if battery_forecast is not None else {}),
+            **({"cameras": cameras} if cameras is not None else {}),
             "inventory": inventory,
             "roster": roster,
             **({"system_log": system_log} if system_log is not None else {}),
@@ -475,6 +477,17 @@ class InsightsExporter:
             _LOGGER.debug("Could not read the last audit; exporting an unknown health score")
             audit = None
         return _health_block(audit)
+
+    async def _gather_cameras(self) -> list[Any] | None:
+        """How Frigate analyses each camera, from the last audit, which builds
+        it with the camera check; None without Frigate or an audit."""
+        try:
+            audit = await self._health_store.get_last_audit()
+        except Exception:  # noqa: BLE001 — the cameras are best-effort, never fail the export
+            _LOGGER.debug("Could not read the last audit; exporting no cameras")
+            return None
+        cameras = audit.get("cameras") if isinstance(audit, dict) else None
+        return cameras if isinstance(cameras, list) else None
 
     def _gather_inventory(self) -> dict[str, int]:
         ent_reg = er.async_get(self._hass)
