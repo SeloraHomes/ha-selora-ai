@@ -462,6 +462,8 @@ async def test_the_chat_home_offers_one_discovered_device_at_a_time(
             "entities": [{"entity_id": "", "name": "lamps"}],
             "collection": {"source": "discovery", "name": "lamps", "ref": ""},
             "waiting": 1,
+            # A device waiting to be set up comes first.
+            "score": 0.95,
         }
     ]
 

@@ -16,6 +16,9 @@
 // the top three. A row is put away for good (dismiss) or for a week (snooze,
 // the server's ``_SNOOZE_FOR``), and the next one moves up into its place.
 //
+// A recipe row is the exception: it opens the recipe's wizard, where the user
+// picks the devices and settings before anything is installed.
+//
 // A suggestion that changes an automation opens it the way "Refine in chat"
 // does: a fresh chat only edits what it was given, so without the automation
 // loaded the model can make the group but never propose the edited rule.
@@ -88,6 +91,12 @@ function toggle(host, suggestion) {
 }
 
 async function act(host, suggestion, d) {
+  if (suggestion.type === "recipe") {
+    // A recipe installs through its wizard, which asks for every device and
+    // setting itself: no chat, no model.
+    host._openRecipeFromPill(suggestion.recipe.slug);
+    return;
+  }
   // What the user says in the chat it opens, when the title is not a request.
   const said = d.ask || d.title;
   const message = said + buildDetailsMarker(d.prompt);
@@ -288,7 +297,8 @@ function describe(host, s) {
     grouping ||
     s.type === "add_to_frigate" ||
     s.type === "describe_cameras" ||
-    s.type === "create_scene";
+    s.type === "create_scene" ||
+    s.type === "recipe";
   const values = {
     entity: names(s.entities),
     entity_id: ids(s.entities),
@@ -487,6 +497,20 @@ function describe(host, s) {
             ),
           ],
         };
+  }
+  if (s.type === "recipe") {
+    const why = [
+      tl("home_suggestion_recipe_why", "Made for devices you have: {members}."),
+    ];
+    // The catalog's own words, as published: recipes are written in English.
+    if (s.recipe?.description) why.push(s.recipe.description);
+    return {
+      icon: "mdi:book-open-variant",
+      title: t("home_suggestion_recipe", "Try the {collection} recipe"),
+      prompt: "",
+      why,
+      act: t("home_suggestion_recipe_act", "Open the recipe"),
+    };
   }
   if (s.type !== "add_to_collection") return null;
   const why = [
