@@ -405,6 +405,14 @@ class HomeSuggestionAutomation(TypedDict):
     yaml: str
 
 
+class HomeSuggestionRecipe(TypedDict):
+    """The catalog recipe a recipe row suggests installing."""
+
+    slug: str
+    title: str
+    description: str
+
+
 class HomeSuggestion(TypedDict):
     """A change Selora proposes from how the home is organised.
 
@@ -415,8 +423,9 @@ class HomeSuggestion(TypedDict):
     (cameras nobody was asked about describing yet), "recognize_faces" (face
     recognition off, or on with nobody to recognize), "set_up_discovered"
     (a device Home Assistant discovered, not set up yet), "automation_idea"
-    (a pattern engine suggestion) or "create_scene" (devices the user keeps
-    setting together); the last two are usage_suggestions.py.
+    (a pattern engine suggestion), "create_scene" (devices the user keeps
+    setting together), both usage_suggestions.py, or "recipe" (a catalog
+    recipe the home has the devices for, recipe_suggestions.py).
     """
 
     suggestion_id: str
@@ -436,6 +445,10 @@ class HomeSuggestion(TypedDict):
     # set_up_discovered only: the other discovered devices, shown one at a
     # time after this one.
     waiting: NotRequired[int]
+    # recipe only: the recipe to install.
+    recipe: NotRequired[HomeSuggestionRecipe]
+    # How likely the user is to act on it, 0 to 1; the list is sorted by it.
+    score: NotRequired[float]
     # automation_idea only: the automation to propose, and what was observed.
     automation: NotRequired[HomeSuggestionAutomation]
     evidence: NotRequired[str]

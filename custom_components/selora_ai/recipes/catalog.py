@@ -115,6 +115,20 @@ async def async_get_catalog(
         return payload
 
 
+def cached_catalog() -> tuple[dict[str, Any] | None, bool]:
+    """The last catalog fetched from the default URL, however old, and
+    whether it is still fresh. ``(None, False)`` before the first fetch,
+    or when the cache holds a dev override's catalog instead.
+
+    For readers that must not wait on the network: they take what is
+    here and refresh in the background when it is stale.
+    """
+    url = _catalog_url()
+    if _cache_payload is None or _cache_url != url:
+        return None, False
+    return _cache_payload, _is_fresh(url)
+
+
 def invalidate_cache() -> None:
     """Reset the in-memory cache. Called from tests + after an
     install completes so the next list view reflects the latest

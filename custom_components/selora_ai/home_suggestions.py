@@ -25,6 +25,11 @@ together, so the intent is inferred from coverage instead of stored:
 * **automation_idea**, **create_scene** — what the home's usage suggests
   (``usage_suggestions``): the pattern engine's automations, and scenes for
   devices the user keeps setting together.
+* **recipe** — a catalog recipe written for a device this home has
+  (``recipe_suggestions``).
+
+Every row has a ``score``, how likely the user is to act on it, and the list
+is sorted by it: the chat home shows the first three.
 
 The Frigate set-up steps (describe, faces, add cameras) show one at a time,
 in that order: the first one not dismissed. So do discovered devices, each
@@ -75,6 +80,7 @@ from .group_manager import (
     group_entity_id,
     group_entries,
 )
+from .recipe_suggestions import async_recipe_suggestions
 from .usage_suggestions import async_put_away_pattern_suggestion, async_usage_suggestions
 
 if TYPE_CHECKING:
@@ -97,6 +103,25 @@ _MIN_GROUPABLE_TRIGGERS: Final = 3
 # camera (its own room's light), so each camera keeps its own row.
 _SHARED_IDEAS: Final = frozenset({"person_away", "animal", "vehicle"})
 _IDEA_PREFIX: Final = "idea:"
+
+# How likely the user is to act on each kind of row, 0 to 1. The chat home
+# shows the highest first; a recipe row carries a score of its own, from how
+# specific to this home the devices it needs are (``recipe_suggestions``). A
+# device waiting to be set up comes before anything organised around it, and
+# a new device missing from its collection before ideas the user never asked
+# about.
+_TYPE_SCORES: Final[dict[str, float]] = {
+    "set_up_discovered": 0.95,
+    "add_to_collection": 0.9,
+    "group_entities": 0.7,
+    "describe_cameras": 0.7,
+    "recognize_faces": 0.7,
+    "add_to_frigate": 0.7,
+    "create_scene": 0.65,
+    "automation_idea": 0.65,
+    "camera_idea": 0.6,
+}
+_DEFAULT_SCORE: Final = 0.5
 _IDEA_SEPARATOR: Final = ","
 
 # Domains whose entities are configuration, not devices of a kind.
@@ -597,7 +622,13 @@ async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     found = [s for s in found if s["suggestion_id"] not in dismissed]
     found += await async_usage_suggestions(hass, automations, dismissed)
     ideas = [i for i in await async_camera_ideas(hass) if i["idea_id"] not in dismissed]
-    return found + _camera_idea_rows(ideas)
+    found += _camera_idea_rows(ideas)
+    for suggestion in found:
+        suggestion["score"] = _TYPE_SCORES.get(suggestion["type"], _DEFAULT_SCORE)
+    found += await async_recipe_suggestions(hass, dismissed)
+    # Stable: rows of one score keep the order they were found in.
+    found.sort(key=lambda s: -s.get("score", _DEFAULT_SCORE))
+    return found
 
 
 def _camera_idea_rows(ideas: list[CameraIdea]) -> list[HomeSuggestion]:

@@ -99,6 +99,45 @@ describe("renderHomeSuggestions", () => {
     expect(renderHomeSuggestions(host(undefined), starters)).toBe("");
   });
 
+  it("opens a recipe's wizard, not a chat", async () => {
+    const h = {
+      ...host([
+        {
+          suggestion_id: "recipe:kids-brushing-check",
+          type: "recipe",
+          entities: [
+            { entity_id: "sensor.kids_brush_duration", name: "Kids brush" },
+          ],
+          collection: {
+            source: "recipe",
+            name: "Kids' Brushing Check",
+            ref: "kids-brushing-check",
+          },
+          recipe: {
+            slug: "kids-brushing-check",
+            title: "Kids' Brushing Check",
+            description: "Notices a missed brushing session.",
+          },
+          score: 0.8,
+        },
+      ]),
+      _openRecipeFromPill: vi.fn(),
+    };
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Try the Kids' Brushing Check recipe",
+    );
+
+    handlers(renderHomeSuggestions(h))[0]();
+    const opened = renderHomeSuggestions(h);
+    expect(flatten(opened)).toContain("Made for devices you have: Kids brush.");
+    expect(flatten(opened)).toContain("Notices a missed brushing session.");
+    expect(flatten(opened)).toContain("Open the recipe");
+
+    await handlers(opened).at(-1)();
+    expect(h._openRecipeFromPill).toHaveBeenCalledWith("kids-brushing-check");
+    expect(h._askInNewChat).not.toHaveBeenCalled();
+  });
+
   it("words an addition to a group", () => {
     const out = flatten(renderHomeSuggestions(host([leak])));
     expect(out).toContain("Add Leak kitchen to Water Leak Sensors");
