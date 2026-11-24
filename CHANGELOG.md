@@ -1,3 +1,23 @@
+## [1.4.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.3.0...v1.4.0) (2026-11-24)
+
+### Features
+
+* announce health issues for notifications ([954b189](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/954b18937c34a162ff8121297f99da7d56b29bba))
+* choose which cameras detect a new object ([796a0c7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/796a0c7b1342f93e715d6bf5a8de0ec5f094d859))
+* let agents ask for temporary file access ([878a2b7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/878a2b72aee54958c48342113a27684f3e6939f8))
+* report cameras analysed badly in health ([66381d8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/66381d8c94144a36cd96053b2d5e7db8b8d4d571))
+* suggest recipes that fit your devices ([3938048](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3938048f1af5ed2f924e23e73c26655cbd82e8ab))
+
+### Bug Fixes
+
+* analyse new frigate cameras at 720p at most ([886433e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/886433e97cdef23ef8793f5d6de747d365048f64))
+* close the 1.4.0 review findings ([f9e12cd](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f9e12cdf3bda87695ce04d44a393aa329d2e96af))
+* count each pending update in home health ([9ba5057](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9ba50571d46b7519a24073c8f7e6a2b493a245e4))
+* don't score standby TVs as offline devices ([2622c80](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2622c80b652c237b5ca28e7cb99b0edd4bf3dfb3))
+* keep each user's conversations private ([605782a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/605782a2a10bce9de3c020991d74a93781549624))
+* keep Gemini tool calls working on Gemini 3 and 4 ([8815c48](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8815c485415ea48604fba4105bbe71b6f418633c))
+* link Selora from homeassistant.local ([c4ddf5c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c4ddf5cf4a18a591aed5819efaafb54f0daec777))
+
 ## [1.3.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.2.0...v1.3.0) (2026-11-12)
 
 ### Features
