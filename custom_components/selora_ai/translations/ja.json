@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "オフラインのデバイス、電池残量の低下、統合のエラー、オートメーションの問題を決定論的にチェックし、ヘルスページに表示します。",
     "settings_health_monitoring_label": "ヘルス監視",
     "settings_scan_interval_seconds_label": "スキャン間隔（秒）",
-    "insights_open_settings": "設定で開く"
+    "insights_open_settings": "設定で開く",
+    "approval_pick_one": "適用するには、カメラを1台以上選択してください。"
   },
   "options": {
     "step": {

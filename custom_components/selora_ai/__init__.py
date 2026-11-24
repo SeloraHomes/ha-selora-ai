@@ -5377,6 +5377,19 @@ def _frigate_changed_result(
     return {"action": "update_saved" if restart_failed else "updated", "cameras": cameras}
 
 
+def _picked_actions(
+    approval: dict[str, Any], actions: list[dict[str, Any]], targets: list[str]
+) -> list[dict[str, Any]] | None:
+    """The card's actions the user left ticked, or None when the pick is not
+    one the card offered: a card that is not ``pickable``, nothing ticked, or
+    a target that is not one of its rows."""
+    wanted = set(targets)
+    offered = {str(a.get("target_id", "")) for a in actions}
+    if not approval.get("pickable") or not wanted or not wanted <= offered:
+        return None
+    return [a for a in actions if str(a.get("target_id", "")) in wanted]
+
+
 async def _resolve_destructive_approval(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -5412,6 +5425,15 @@ async def _resolve_destructive_approval(
             {"status": "denied", "executed": [], "result_message": persisted},
         )
         return
+
+    if (targets := msg.get("targets")) is not None:
+        picked = _picked_actions(approval, actions, targets)
+        if picked is None:
+            connection.send_error(
+                msg["id"], "invalid_targets", "Pick at least one of the card's own rows."
+            )
+            return
+        actions = picked
 
     frigate: list[dict[str, Any]] = []
     applied, errors = await _apply_destructive_actions(hass, actions, frigate)

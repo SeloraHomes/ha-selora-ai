@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Детерминированные проверки офлайн-устройств, разряженных батарей, ошибок интеграций и проблем автоматизаций — основа страницы «Состояние».",
     "settings_health_monitoring_label": "Мониторинг состояния",
     "settings_scan_interval_seconds_label": "Интервал сканирования (с)",
-    "insights_open_settings": "Открыть в настройках"
+    "insights_open_settings": "Открыть в настройках",
+    "approval_pick_one": "Отметьте хотя бы одну камеру, чтобы применить."
   },
   "options": {
     "step": {

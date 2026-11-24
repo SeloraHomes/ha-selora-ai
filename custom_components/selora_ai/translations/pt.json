@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Verificações determinísticas de dispositivos offline, baterias fracas, erros de integração e problemas de automatizações, que alimentam a página Estado.",
     "settings_health_monitoring_label": "Monitorização do estado",
     "settings_scan_interval_seconds_label": "Intervalo de análise (s)",
-    "insights_open_settings": "Abrir nas Definições"
+    "insights_open_settings": "Abrir nas Definições",
+    "approval_pick_one": "Marque pelo menos uma câmera para aplicar."
   },
   "options": {
     "step": {

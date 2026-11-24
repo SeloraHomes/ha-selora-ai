@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Deterministic checks for offline devices, low batteries, integration errors and automation issues — powers the Health page.",
     "settings_health_monitoring_label": "Health monitoring",
     "settings_scan_interval_seconds_label": "Scan interval (s)",
-    "insights_open_settings": "Open in Settings"
+    "insights_open_settings": "Open in Settings",
+    "approval_pick_one": "Tick at least one camera to apply."
   },
   "options": {
     "step": {

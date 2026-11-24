@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Deterministische Prüfungen auf Offline-Geräte, schwache Batterien, Integrationsfehler und Automationsprobleme – Grundlage der Seite Zustand.",
     "settings_health_monitoring_label": "Zustandsüberwachung",
     "settings_scan_interval_seconds_label": "Scanintervall (s)",
-    "insights_open_settings": "In den Einstellungen öffnen"
+    "insights_open_settings": "In den Einstellungen öffnen",
+    "approval_pick_one": "Wählen Sie mindestens eine Kamera aus, um zu übernehmen."
   },
   "options": {
     "step": {

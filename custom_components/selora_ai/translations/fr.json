@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Vérifications déterministes des appareils hors ligne, batteries faibles, erreurs d'intégration et problèmes d'automatisation, qui alimentent la page Santé.",
     "settings_health_monitoring_label": "Surveillance de l'état",
     "settings_scan_interval_seconds_label": "Intervalle d'analyse (s)",
-    "insights_open_settings": "Ouvrir dans les Paramètres"
+    "insights_open_settings": "Ouvrir dans les Paramètres",
+    "approval_pick_one": "Cochez au moins une caméra pour appliquer."
   },
   "options": {
     "step": {

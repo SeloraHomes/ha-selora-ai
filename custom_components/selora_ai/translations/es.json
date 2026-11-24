@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Comprobaciones deterministas de dispositivos sin conexión, baterías bajas, errores de integración y problemas de automatizaciones; alimentan la página Estado.",
     "settings_health_monitoring_label": "Supervisión del estado",
     "settings_scan_interval_seconds_label": "Intervalo de análisis (s)",
-    "insights_open_settings": "Abrir en Ajustes"
+    "insights_open_settings": "Abrir en Ajustes",
+    "approval_pick_one": "Marca al menos una cámara para aplicar."
   },
   "options": {
     "step": {

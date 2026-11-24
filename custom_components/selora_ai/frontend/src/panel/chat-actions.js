@@ -10,6 +10,7 @@ import { requestNextPrompt } from "./next-prompt.js";
 import { answerCamera } from "./describe-actions.js";
 import { answerFaces } from "./faces-actions.js";
 import { forgetIntegrationSetup } from "./integration-setup.js";
+import { pickedTargets } from "./render-approval-card.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -97,6 +98,21 @@ export function _toggleApprovalScope(msg) {
 
 export async function _resolveApproval(originatingMsg, scope, proposalId) {
   if (!this._activeSessionId) return;
+  // A card that lets the user pick applies only the rows left ticked.
+  const pickable =
+    scope === "apply" && !!originatingMsg?.command_approval?.pickable;
+  const targets = pickable ? pickedTargets(originatingMsg) : null;
+  if (pickable && !targets.length) {
+    if (originatingMsg) {
+      originatingMsg._qa_used = false;
+      this._messages = [...this._messages];
+    }
+    this._showToast?.(
+      this._t("approval_pick_one", "Tick at least one camera to apply."),
+      "error",
+    );
+    return;
+  }
   // Re-entry guard: a rapid double-click on the same card must not
   // produce two WS calls. The server has its own in-flight guard, but
   // we still want to suppress the UI feedback loop locally so the user
@@ -130,6 +146,7 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
       // user never touched it. The server ignores entity_scope for
       // the ``once``/``deny`` scopes.
       entity_scope: originatingMsg?._entityScope || "this",
+      ...(targets ? { targets } : {}),
       // Pass the panel's active language so the persisted "Done"
       // message matches the locale the user has been seeing in chat.
       ...(this.hass?.language ? { language: this.hass.language } : {}),

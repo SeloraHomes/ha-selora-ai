@@ -1254,6 +1254,7 @@
     "settings_health_monitoring_desc": "Deterministische controles op offline apparaten, lege batterijen, integratiefouten en automatiseringsproblemen – de basis van de pagina Gezondheid.",
     "settings_health_monitoring_label": "Gezondheidsbewaking",
     "settings_scan_interval_seconds_label": "Scaninterval (s)",
-    "insights_open_settings": "Openen in Instellingen"
+    "insights_open_settings": "Openen in Instellingen",
+    "approval_pick_one": "Vink minstens één camera aan om toe te passen."
   }
 }

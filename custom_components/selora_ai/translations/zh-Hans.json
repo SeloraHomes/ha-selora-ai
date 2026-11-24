@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "对离线设备、低电量、集成错误和自动化问题进行确定性检查，为“健康”页面提供数据。",
     "settings_health_monitoring_label": "健康监控",
     "settings_scan_interval_seconds_label": "扫描间隔（秒）",
-    "insights_open_settings": "在设置中打开"
+    "insights_open_settings": "在设置中打开",
+    "approval_pick_one": "请至少勾选一个摄像头再应用。"
   },
   "options": {
     "step": {
