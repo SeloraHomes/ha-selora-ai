@@ -6,6 +6,10 @@
 // generation), points the panel at another recipes catalog or Selora Cloud,
 // and, with `selora.debug(true)`, logs each chat turn's raw response, tool
 // calls and reply time.
+import {
+  FILE_ACCESS_SAMPLES,
+  fileAccessSample,
+} from "./file-access-preview.js";
 import { loadHomeSuggestions } from "./home-suggestions.js";
 
 const DEBUG_KEY = "selora-ai-debug";
@@ -41,6 +45,10 @@ const COMMANDS = [
   [
     "selora.catalogUrl(url)",
     'fetch recipes from another catalog, e.g. "http://localhost:1313/api/recipes.json"; "" resets it (this browser only)',
+  ],
+  [
+    'selora.fileAccess("request" | "grant" | "ended")',
+    "show a sample temporary-access indicator and dialog, no agent needed; selora.fileAccess() puts back the real state",
   ],
   [
     "selora.connectUrl(url)",
@@ -148,6 +156,23 @@ const api = {
     _storageSet(CATALOG_URL_KEY, String(url).trim());
     host?._loadRecipesCatalog?.(true);
     return catalogUrlOverride() || "(default)";
+  },
+  async fileAccess(kind) {
+    const panel = _requireHost();
+    if (kind === undefined) {
+      panel._fileAccessDialog = null;
+      await panel._loadFileAccess();
+      return "Back to the real temporary-access state.";
+    }
+    if (!FILE_ACCESS_SAMPLES.includes(kind)) {
+      throw new Error(`Pick one of: ${FILE_ACCESS_SAMPLES.join(", ")}.`);
+    }
+    const sample = fileAccessSample(kind);
+    panel._fileAccess = sample.state;
+    panel._fileAccessMinutes = null;
+    panel._fileAccessDialog = sample.dialog;
+    panel._syncFileAccessTick();
+    return `Showing the "${kind}" sample. Its buttons reach the backend with an unknown id and fail; selora.fileAccess() ends it.`;
   },
   async connectUrl(url) {
     const panel = _requireHost();

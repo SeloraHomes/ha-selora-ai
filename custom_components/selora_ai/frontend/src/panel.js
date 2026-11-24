@@ -47,6 +47,10 @@ import { renderSettings } from "./panel/render-settings.js";
 import { catalogUrlOverride, installDevConsole } from "./panel/dev-tools.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
+import {
+  renderFileAccessIndicator,
+  renderFileAccessDialog,
+} from "./panel/render-file-access.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import { renderInsights } from "./panel/render-insights.js";
 import {
@@ -62,6 +66,7 @@ import {
 } from "./panel/render-version-history.js";
 import * as sessionActions from "./panel/session-actions.js";
 import * as versionActions from "./panel/version-actions.js";
+import * as fileAccessActions from "./panel/file-access-actions.js";
 import * as recipeUpdateActions from "./panel/recipe-update-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as insightsActions from "./panel/insights-actions.js";
@@ -405,6 +410,11 @@ class SeloraAIPanel extends LitElement {
       _config: { type: Object },
       _versionStatus: { type: Object },
       _staleCodeDismissed: { type: Boolean },
+      // Temporary browser-code access (panel/file-access-actions.js)
+      _fileAccess: { type: Object },
+      _fileAccessDialog: { type: Object },
+      _fileAccessBusy: { type: Boolean },
+      _fileAccessMinutes: { type: Number },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
       _savingHouseholdProfile: { type: Boolean },
@@ -815,6 +825,13 @@ class SeloraAIPanel extends LitElement {
     this._quotaClearTimer = null;
     // Pending post-settle audit re-check (see insights-actions._loadAudit).
     this._settleRetryTimer = null;
+    // Temporary browser-code access requests and grants.
+    this._fileAccess = null;
+    this._fileAccessDialog = null;
+    this._fileAccessBusy = false;
+    this._fileAccessMinutes = null;
+    this._fileAccessUnsub = null;
+    this._fileAccessSubPending = false;
   }
 
   // Close both row-level (burger) menus — automations and scenes — and drop
@@ -855,6 +872,7 @@ class SeloraAIPanel extends LitElement {
     this._loadVersionStatus();
     this._loadMcpTokens();
     this._loadApprovalGrants();
+    this._loadFileAccess();
     // Any open row menu is transient: navigating away or coming back should
     // never leave one open (it would show at a stale fixed position).
     this._closeRowMenus();
@@ -973,6 +991,7 @@ class SeloraAIPanel extends LitElement {
     // a no-op when `hass` isn't ready or a subscription is already in
     // flight, so it's safe to call from both lifecycle hooks.
     this._ensureQuotaSubscription();
+    this._ensureFileAccessSubscription();
     // If a quota alert was active when the panel detached, recompute
     // the remaining cool-down and re-arm the auto-dismiss timer (or
     // dismiss now if the window has already elapsed).
@@ -1007,6 +1026,9 @@ class SeloraAIPanel extends LitElement {
     }
     this._quotaSubPending = false;
     this._ensureQuotaSubscription();
+    this._dropFileAccessSubscription();
+    this._ensureFileAccessSubscription();
+    this._loadFileAccess();
     this._loadSessions();
     this._loadAutomations();
     this._loadScenes();
@@ -1148,6 +1170,7 @@ class SeloraAIPanel extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._dropFileAccessSubscription();
     releasePanelContainer(this._panelContainer);
     this._panelContainer = null;
     if (this._unsubscribeRecipeEntityRegistry) {
@@ -2188,6 +2211,17 @@ class SeloraAIPanel extends LitElement {
       this._pendingChatHome = false;
       this._openChatHome();
     }
+    if (this.hass && this._pendingFileAccess) {
+      const requestId = this._pendingFileAccess;
+      this._pendingFileAccess = null;
+      this._openFileAccess(requestId);
+    }
+    // connectedCallback runs before hass on a first load; fetch once it lands.
+    if (this.hass && this._fileAccess === null && !this._fileAccessRequested) {
+      this._fileAccessRequested = true;
+      this._loadFileAccess();
+    }
+    if (this.hass) this._ensureFileAccessSubscription();
     if (this.hass && this._pendingSetupFlow) {
       const flowId = this._pendingSetupFlow;
       this._pendingSetupFlow = null;
@@ -4888,6 +4922,7 @@ class SeloraAIPanel extends LitElement {
             </div>
           </div>
           <span class="header-spacer"></span>
+          ${renderFileAccessIndicator(this)}
           ${
             this._activeTab !== "chat" || this._messages.length > 0
               ? html`<button
@@ -5432,7 +5467,7 @@ class SeloraAIPanel extends LitElement {
         </div>
       </div>
 
-      ${this._renderFeedbackModal()}
+      ${this._renderFeedbackModal()} ${renderFileAccessDialog(this)}
       ${
         this._deleteConfirmSessionId === "__bulk__"
           ? html`
@@ -5503,6 +5538,7 @@ class SeloraAIPanel extends LitElement {
 // Attach extracted business logic to prototype
 Object.assign(SeloraAIPanel.prototype, sessionActions);
 Object.assign(SeloraAIPanel.prototype, versionActions);
+Object.assign(SeloraAIPanel.prototype, fileAccessActions);
 Object.assign(SeloraAIPanel.prototype, recipeUpdateActions);
 Object.assign(SeloraAIPanel.prototype, suggestionActions);
 Object.assign(SeloraAIPanel.prototype, insightsActions);

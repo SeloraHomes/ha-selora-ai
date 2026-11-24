@@ -135,6 +135,7 @@ from .names import (
     TOOL_REMOVE_FRIGATE_CAMERA,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
+    TOOL_REQUEST_FILE_ACCESS,
     TOOL_RESTART_HOME_ASSISTANT,
     TOOL_RESTORE_DELETED,
     TOOL_SEARCH_APP_STORE,
@@ -1638,8 +1639,10 @@ _TOOL_DEFINITIONS.extend(
                 "Create a text file under www/, themes/, custom_templates/ or dashboards/ "
                 "— card files, theme assets, Jinja macros, YAML dashboards. Replacing an "
                 "existing file needs overwrite=true, and the old version is backed up. "
-                "A file a browser runs (www/ .js, .html, .svg, .css …) is refused: "
-                "cards come from HACS. from_backup "
+                "A file a browser runs (www/ .js, .html, .svg, .css …) is refused unless "
+                "the user granted this client access to its folder "
+                "(selora_request_file_access); each such write returns review findings "
+                "the user also sees. from_backup "
                 "instead of content writes one of the file's backups back (list them "
                 "with selora_read_file backups=true), which also undoes a delete. Edit "
                 "configuration.yaml and packages with selora_set_config_yaml. Requires "
@@ -1658,6 +1661,41 @@ _TOOL_DEFINITIONS.extend(
                     "overwrite": {
                         "type": "boolean",
                         "description": "Replace the file if it exists. Off by default.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_REQUEST_FILE_ACCESS,
+            description=(
+                "Ask the user for temporary access to write files a browser runs (.js, "
+                ".css, .html …) into ONE www/ subfolder, e.g. a custom card and its "
+                "vendored libraries. Selora never writes browser code on your say-so: "
+                "this sends the user a notification, and only they can approve it, "
+                "from their Home Assistant login — nothing you send approves it. "
+                "Returns status 'pending' (tell the user, then retry the write after "
+                "they approve) or 'granted' with its expiry. Access covers this client "
+                "only, lasts at most 60 minutes, and every file written is checked and "
+                "shown to the user. Ask once; repeating a pending request changes nothing. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["folder", "reason"],
+                "properties": {
+                    "folder": {
+                        "type": "string",
+                        "description": "The www/ subfolder, e.g. 'www/selora' — never www itself.",
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": (
+                            "One sentence for the user: what you will install and why."
+                        ),
+                    },
+                    "minutes": {
+                        "type": "integer",
+                        "description": "How long you need, 15 to 60. Default 60.",
                     },
                 },
             },

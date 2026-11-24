@@ -89,6 +89,13 @@ class TestSeloraJWTValidator:
         assert ctx.email == "test@selorahomes.com"
         assert ctx.is_admin is True
         assert ctx.auth_type == "selora_jwt"
+        assert ctx.name is None
+
+    @pytest.mark.parametrize(("claim", "expected"), [("Philippe", "Philippe"), (42, None)])
+    def test_display_name_claim(self, claim: object, expected: str | None) -> None:
+        """Only a string name is taken; anything else is no name, not an error."""
+        ctx = _make_validator().validate(_make_jwt({"name": claim}))
+        assert ctx.name == expected
 
     def test_expired_token(self) -> None:
         token = _make_jwt({"exp": int(time.time()) - 3600})

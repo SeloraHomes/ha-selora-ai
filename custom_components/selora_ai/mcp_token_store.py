@@ -181,6 +181,11 @@ class MCPTokenStore:
             result.append(entry)
         return result
 
+    def token_name(self, token_id: str) -> str | None:
+        """The name the user gave a token, or None for an unknown one."""
+        meta = (self._data or {}).get("tokens", {}).get(token_id)
+        return str(meta.get("name") or "") or None if meta else None
+
     async def async_revoke_token(self, token_id: str) -> bool:
         """Revoke a token by ID.  Returns ``True`` if the token existed."""
         if self._data is None:

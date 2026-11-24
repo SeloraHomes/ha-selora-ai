@@ -6572,6 +6572,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await approval_store.async_load()
     hass.data[DOMAIN]["_approval_store"] = approval_store
 
+    # Temporary browser-code access an admin grants one MCP client
+    # (`file_access.py`). Loaded before MCP serves, so a grant that survived a
+    # restart is honoured on the first write.
+    from .file_access import FileAccessManager
+
+    file_access = FileAccessManager(hass)
+    await file_access.async_load()
+    hass.data[DOMAIN]["file_access"] = file_access
+
     # Schedule periodic discovery if enabled
     options = entry.options
     discovery_enabled = options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED)
@@ -7215,6 +7224,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     pattern_store = data.get("pattern_store")
     if pattern_store:
         await pattern_store.flush()
+
+    # Cancels the grant and request timers; everything they need is already stored.
+    file_access = hass.data[DOMAIN].pop("file_access", None)
+    if file_access is not None:
+        await file_access.async_unload()
 
     # Flush pending writes and cancel MCP token store deferred-save timer
     mcp_token_store = hass.data[DOMAIN].get("mcp_token_store")

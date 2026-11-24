@@ -9,6 +9,7 @@ extraction is caught immediately.
 from __future__ import annotations
 
 from homeassistant.components import websocket_api
+from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 
 from custom_components.selora_ai.websocket import async_register_websocket_commands
@@ -30,6 +31,10 @@ EXPECTED_COMMANDS = frozenset(
         "selora_ai/delete_automation",
         "selora_ai/delete_scene",
         "selora_ai/delete_session",
+        "selora_ai/file_access/decide",
+        "selora_ai/file_access/dismiss",
+        "selora_ai/file_access/list",
+        "selora_ai/file_access/revoke",
         "selora_ai/generate_suggestions",
         "selora_ai/get_analytics",
         "selora_ai/get_automation_diff",
@@ -88,7 +93,7 @@ EXPECTED_COMMANDS = frozenset(
 )
 
 
-async def test_all_websocket_commands_register(hass) -> None:
+async def test_all_websocket_commands_register(hass: HomeAssistant) -> None:
     """Registering wires up exactly the expected selora_ai/* commands."""
     # oauth_link registration installs an HTTP view, so http must exist.
     await async_setup_component(hass, "http", {})

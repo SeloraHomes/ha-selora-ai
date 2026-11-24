@@ -14,10 +14,12 @@ one is ``blueprint/save``'s job). Modelled on ha-mcp's file tools.
   backup first. A delete backs up too. A file's backups are listed and read
   with the file's own path, and written back with ``from_backup`` — the same
   write, so the same confirmation.
-* **Code a browser runs (and CSS it applies) is never written to ``www/``.**
-  Registered as a dashboard resource, it runs in every admin's browser with
-  their session. A ``confirmed`` flag would not stop it: the agent that writes
-  the file sets the flag too. Card and theme code comes from HACS or the user.
+* **Code a browser runs (and CSS it applies) is never written to ``www/``** on
+  the agent's say-so. Registered as a dashboard resource, it runs in every
+  admin's browser with their session. A ``confirmed`` flag would not stop it:
+  the agent that writes the file sets the flag too. The exception is a grant a
+  person gave this MCP client for one ``www/`` folder (``file_access``); each
+  such write is checked (``code_findings``) and recorded for the person.
 * Configuration YAML is ``config_yaml``'s: ``configuration.yaml`` and packages
   are not reachable here, so its allowlist and checks cannot be bypassed.
 """
@@ -26,13 +28,16 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import functools
+import hashlib
 import os
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, Final
 
 from . import fs_safety
-from .helpers import sanitize_untrusted_text
+from .code_findings import analyze, summarize
+from .const import DOMAIN
+from .helpers import CALLER_CREDENTIAL, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -283,6 +288,34 @@ def _is_served_browser_code(rel: str) -> bool:
     return rel.startswith("www/") and _is_browser_code(rel)
 
 
+def _access_manager(hass: HomeAssistant) -> Any:
+    return hass.data.get(DOMAIN, {}).get("file_access")
+
+
+def _browser_code_refusal(hass: HomeAssistant, rel: str) -> str:
+    """Why a browser-code write was refused, and what this caller can do."""
+    credential = CALLER_CREDENTIAL.get()
+    manager = _access_manager(hass)
+    if credential is None or manager is None:
+        return (
+            "This file is code a browser runs when it is loaded from /local/, so "
+            "Selora does not write it. Install the card from HACS, or show the user "
+            "the code to add themselves."
+        )
+    if pending := manager.pending_for(credential, rel):
+        return (
+            f"This file is code a browser runs. Access to {pending['folder']} was asked "
+            "for and is waiting for the user: ask them to approve it from the "
+            "notification or the Selora AI panel, then retry."
+        )
+    return (
+        "This file is code a browser runs when it is loaded from /local/, so Selora "
+        "does not write it on its own. Ask the user for temporary access with "
+        "selora_request_file_access (folder: the www/ subfolder this file goes in), "
+        "or install the card from HACS."
+    )
+
+
 async def async_write(
     hass: HomeAssistant,
     file: str,
@@ -308,16 +341,21 @@ async def async_write(
         path, rel = await _async_resolve(hass, file, write=True)
     except FileToolError as exc:
         return {"error": str(exc)}
+    grant: dict[str, Any] | None = None
     if _is_served_browser_code(rel):
-        return {
-            "written": False,
-            "file": rel,
-            "error": (
-                "This file is code a browser runs when it is loaded from /local/, so "
-                "Selora does not write it. Install the card from HACS, or show the user "
-                "the code to add themselves."
-            ),
-        }
+        manager = _access_manager(hass)
+        grant = manager.grant_for(CALLER_CREDENTIAL.get(), rel) if manager else None
+        if grant is None:
+            return {"written": False, "file": rel, "error": _browser_code_refusal(hass, rel)}
+        if not manager.has_room(grant, rel):
+            return {
+                "written": False,
+                "file": rel,
+                "error": (
+                    "This access has recorded as many files as it can; ask for a new "
+                    "access to write more."
+                ),
+            }
 
     config_dir = Path(hass.config.config_dir)
 
@@ -340,7 +378,13 @@ async def async_write(
         )
         if not fs_safety.replace_if_unchanged(path, old, text, new_mode=_PUBLIC_FILE):
             raise FileToolError(f"{rel} changed while it was being written; nothing was written.")
-        return {"created": old is None, "backup": saved, "size": len(text.encode("utf-8"))}
+        return {
+            "created": old is None,
+            "backup": saved,
+            "size": len(encoded := text.encode("utf-8")),
+            "sha256": hashlib.sha256(encoded).hexdigest() if grant is not None else None,
+            "findings": analyze(text) if grant is not None else [],
+        }
 
     try:
         outcome = await hass.async_add_executor_job(_write)
@@ -358,6 +402,25 @@ async def async_write(
         result["backup"] = outcome["backup"]
     if rel.startswith("www/"):
         result["url"] = "/local/" + rel.removeprefix("www/")
+    if grant is not None:
+        findings = outcome["findings"]
+        await _access_manager(hass).async_record_write(
+            grant,
+            rel,
+            "created" if outcome["created"] else "replaced",
+            outcome["size"],
+            findings,
+            sha256=outcome["sha256"],
+        )
+        result["review"] = {
+            "summary": summarize(findings),
+            "findings": findings,
+            "note": (
+                "The user sees these findings. Remove anything flagged that the card "
+                "does not need — network calls, token reads, eval."
+            ),
+        }
+        result["access_expires_at"] = grant["expires_at"]
     return result
 
 
@@ -387,4 +450,11 @@ async def async_delete(hass: HomeAssistant, file: str) -> dict[str, Any]:
         return {"error": str(exc)}
     except UnicodeDecodeError:
         return {"error": f"{rel} is not a text file; it cannot be deleted here."}
+    manager = _access_manager(hass)
+    if (
+        _is_served_browser_code(rel)
+        and manager is not None
+        and (grant := manager.grant_for(CALLER_CREDENTIAL.get(), rel))
+    ):
+        await manager.async_record_write(grant, rel, "deleted", 0, [])
     return {"deleted": True, "file": sanitize_untrusted_text(rel, 200), "backup": saved}

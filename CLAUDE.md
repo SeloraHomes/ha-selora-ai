@@ -232,6 +232,10 @@ because the obvious implementation shipped and broke something quietly.
 - `mcp-service-calls.md` — any service over MCP, gated by risk and `confirmed`.
 - `config-yaml.md` — editing configuration/package/theme YAML over MCP.
 - `config-files.md` — reading and writing www/, themes/, templates and dashboard files over MCP.
+- `file-access.md` — temporary browser-code access a person grants one MCP client,
+  approved from a phone notification.
+- `support-activity.md` — the outbox Selora OS forwards to Connect: what an
+  installer's AI did in a support session.
 - `hacs.md` — searching, installing and removing HACS cards, themes and integrations over MCP.
 - `telemetry.md` — anonymous telemetry, adding a counter.
 - `battery-forecast.md` — battery depletion forecasts in the insights export,

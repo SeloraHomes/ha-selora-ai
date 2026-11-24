@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 import json
 import logging
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, NamedTuple
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant, State
@@ -77,9 +77,43 @@ CALLER_CAN_WRITE: ContextVar[bool] = ContextVar("selora_caller_can_write", defau
 CALLER_ID: ContextVar[str | None] = ContextVar("selora_caller_id", default=None)
 
 
+class CallerCredential(NamedTuple):
+    """The credential an MCP call came in on, for grants bound to one client.
+
+    ``key`` is stable for that credential (an MCP token's id, a Selora login's
+    or HA user's id, prefixed by kind). ``kind`` (``selora_account``,
+    ``mcp_token``, ``ha_token``) and ``name`` — the email, key name or HA user
+    name, whichever a person would recognise — are what the user is shown,
+    phrased in their language; never an internal id.
+    """
+
+    key: str
+    kind: str
+    name: str | None
+    # The app the call came from ("ChatGPT"), as the client names itself in
+    # `initialize` — self-reported, so shown beside the credential, never
+    # instead of what the grant is bound to.
+    client: str | None = None
+    # An installer's support session (Connect's ``sid``) and the email they
+    # sign in to Home Assistant with during it — what ties a request to the
+    # one HA user who may answer it. None for the home's own credentials.
+    support_session: int | None = None
+    email: str | None = None
+
+
+# None outside an MCP call — Selora's own chat never holds a credential grant.
+CALLER_CREDENTIAL: ContextVar[CallerCredential | None] = ContextVar(
+    "selora_caller_credential", default=None
+)
+
+
 @contextmanager
 def caller_scope(
-    is_admin: bool, *, can_write: bool | None = None, caller_id: str | None = None
+    is_admin: bool,
+    *,
+    can_write: bool | None = None,
+    caller_id: str | None = None,
+    credential: CallerCredential | None = None,
 ) -> Iterator[None]:
     """Mark who the tool call in flight is running as.
 
@@ -89,9 +123,11 @@ def caller_scope(
     admin_token = CALLER_IS_ADMIN.set(bool(is_admin))
     write_token = CALLER_CAN_WRITE.set(bool(is_admin if can_write is None else can_write))
     id_token = CALLER_ID.set(caller_id)
+    credential_token = CALLER_CREDENTIAL.set(credential)
     try:
         yield
     finally:
+        CALLER_CREDENTIAL.reset(credential_token)
         CALLER_ID.reset(id_token)
         CALLER_CAN_WRITE.reset(write_token)
         CALLER_IS_ADMIN.reset(admin_token)

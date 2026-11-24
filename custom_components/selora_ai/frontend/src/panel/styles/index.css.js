@@ -9,6 +9,7 @@ import { settingsStyles } from "./settings.css.js";
 import { usageStyles } from "./usage.css.js";
 import { insightsStyles } from "./insights.css.js";
 import { quickActionStyles } from "./quick-actions.css.js";
+import { fileAccessStyles } from "./file-access.css.js";
 
 export {
   layoutStyles,
@@ -22,6 +23,7 @@ export {
   usageStyles,
   insightsStyles,
   quickActionStyles,
+  fileAccessStyles,
 };
 
 export const allPanelStyles = [
@@ -36,4 +38,5 @@ export const allPanelStyles = [
   usageStyles,
   insightsStyles,
   quickActionStyles,
+  fileAccessStyles,
 ];

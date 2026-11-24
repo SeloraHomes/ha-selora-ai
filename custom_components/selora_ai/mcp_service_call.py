@@ -172,6 +172,19 @@ def _risk(hass: HomeAssistant, service: str, target_ids: list[str]) -> tuple[str
     return APPROVAL_RISK_MEDIUM, _UNLISTED_REASON
 
 
+def _hides_access_record(domain: str, verb: str, data: Any) -> bool:
+    """A dismiss that would clear a temporary-access notification.
+
+    ``file_access.py`` posts them as the record of what an agent wrote; an
+    agent clearing them would erase its own trace. (``dismiss_all`` is in
+    ``_BLOCKED_SERVICES`` already.)
+    """
+    if domain != "persistent_notification":
+        return False
+    notification_id = data.get("notification_id") if isinstance(data, dict) else None
+    return verb == "dismiss" and str(notification_id or "").startswith("selora_file_access")
+
+
 def check_service_call(
     hass: HomeAssistant,
     service: str,
@@ -213,6 +226,11 @@ def check_service_call(
     errors: list[str] = []
     if service in _BLOCKED_SERVICES:
         errors.append(f"'{service}' is never run from Selora; run it from Home Assistant directly.")
+    elif _hides_access_record(domain, verb, data):
+        errors.append(
+            "Selora's temporary-access notifications are the record of what an agent "
+            "wrote; only a person dismisses them, from the Selora AI panel."
+        )
     elif not hass.services.has_service(domain, verb):
         errors.append(f"'{service}' is not a service Home Assistant has. Call list_services.")
     if data is not None and not isinstance(data, dict):

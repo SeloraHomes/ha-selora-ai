@@ -49,6 +49,7 @@ import uuid
 
 from .const import MAX_TOOL_RESULT_CHARS
 from .dashboard_cards import with_card_reference
+from .dashboard_scripts import introduced_script_error
 from .helpers import (
     CALLER_CAN_WRITE,
     CALLER_IS_ADMIN,
@@ -945,9 +946,19 @@ async def async_get_card(
 
 
 async def _save(
-    config: Any, document: dict[str, Any], previous: dict[str, Any] | None = None
+    config: Any,
+    document: dict[str, Any],
+    previous: dict[str, Any] | None = None,
+    *,
+    also_held: tuple[dict[str, Any], ...] = (),
+    restoring: bool = False,
 ) -> str | None:
     """Persist a dashboard document, returning an error string instead of raising.
+
+    Every write refuses browser code it would introduce (``dashboard_scripts``):
+    code already in ``previous`` — or in ``also_held``, the source of a card
+    moved between dashboards — is the user's and passes. ``restoring`` puts back
+    a document as it was stored, so there is nothing new to check.
 
     ``previous`` is the document as it stood BEFORE the mutation, and passing it
     makes a failed save leave nothing behind. A save that RAISES has already
@@ -959,6 +970,8 @@ async def _save(
     back, and whether its own write lands does not matter, because the cache
     and the event are updated ahead of the await either way.
     """
+    if not restoring and (error := introduced_script_error(document, (previous, *also_held))):
+        return error
     try:
         await config.async_save(document)
     except Exception as exc:  # noqa: BLE001 — surfaced to the user, never raised at them
@@ -1039,6 +1052,10 @@ async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     if error := _card_type_error(hass, card):
         return {"error": error}
     if error := _entity_error(hass, card):
+        return {"error": error}
+    # Placed by `async_place_card`, not `_save`, so the browser-code check that
+    # every other write gets there runs here. A new card holds nothing stored.
+    if error := introduced_script_error(card, ()):
         return {"error": error}
 
     # No auto-generation preflight here. `async_place_card` probes in the one
@@ -2126,7 +2143,7 @@ async def async_move_card(
             # failed write still lands in HA's cache, so "the card was not
             # moved" would be said over a destination already showing it, and
             # "it now appears on both" over a source it had just vanished from.
-            if error := await _save(dst_config, dst_document, dst_before):
+            if error := await _save(dst_config, dst_document, dst_before, also_held=(src_before,)):
                 return {"error": f"The card was not moved: {error}"}
 
             # Confirmed on DISK before the removal, because a `_save` that
@@ -2140,7 +2157,7 @@ async def async_move_card(
             on_disk = await _disk_fingerprints(dst_config, dst_index)
             expected_here = _view_fingerprints(dst_view_obj)
             if on_disk is not None and any(on_disk[fp] < expected_here[fp] for fp in moved_fps):
-                await _save(dst_config, dst_before)
+                await _save(dst_config, dst_before, restoring=True)
                 return {
                     "error": (
                         "The card was not moved: Home Assistant accepted the write to the "
