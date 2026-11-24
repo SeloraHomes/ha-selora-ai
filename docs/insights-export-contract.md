@@ -112,6 +112,25 @@ health by polling `manifest.json` alone** — no artifact copy, no gunzip.
   `device_penalty` (per-device outages, scaling with the √ of the affected fleet
   share) and `other_penalty` (integration errors, automation hygiene, updates —
   fixed-severity with diminishing returns).
+- **The device penalty is capped per device on small homes.** It is
+  `min(72 * sqrt(f), max(12 * weight, 72 * f))`, where `weight` sums the
+  affected devices (warning 1, critical 3, info 0.3) and `f` is
+  `weight / fleet`, clamped to 1. About 12 points a device while
+  `weight * fleet < 36`; never less than the linear share, so a home that has
+  gone wholly dark still loses all 72. Offline warning devices on a 5-device
+  fleet: one → B (86), two → C (71), three → F (57). On 10: B, C, D. The √
+  curve is unchanged once `weight * fleet ≥ 36`, e.g. two devices on 18, or
+  one on 36.
+- **A media device that is off is not an outage.** An `unavailable` signal on a
+  device with a primary `media_player` (TV, speaker, streamer — any platform)
+  that is not also a voice satellite (`assist_satellite`)
+  carries `severity: "info"` and `evidence.standby: true`, from the first scan
+  and across restarts. It is not in `Devices offline`; once it has been off a
+  whole day the audit lists it under the `standby_media` check, which subtracts
+  nothing, so it never appears in `sections`. `insights` follows the same day:
+  no insight for a standby signal before it, then an info "<name> is off".
+  Hosts counting outages from `signals` should skip `evidence.standby` the
+  same way.
 - Per-*finding* contribution rows are **not** exported. They scale with the fleet
   (thousands of rows on a large home) and carry no detail the host lacks — the
   per-target view is already in `signals` and `roster`.
@@ -253,6 +272,8 @@ Additive within v2 (nullable/optional, no version bump):
   not be read.
 - `signals[].device_id` — device the target belongs to when `target_kind`
   is `entity`; `null` for device/integration targets or unassigned entities.
+- `signals[].evidence.standby` — `true` on an `unavailable` signal for a media
+  device that is off or asleep (see the health score). Absent → `false`.
 - `roster.entities[].device_id` — device the entity belongs to, or `null`.
 - `roster.integrations[].custom` — `true` for custom components (not built
   into Home Assistant).

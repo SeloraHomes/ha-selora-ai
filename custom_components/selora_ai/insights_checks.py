@@ -47,6 +47,7 @@ from .const import (
     HEALTH_KIND_SILENT,
     HEALTH_KIND_UNAVAILABLE,
     HEALTH_OFFLINE_REMOVABLE_SECS,
+    HEALTH_STANDBY_REPORT_SECS,
 )
 from .device_removal import device_is_removable
 from .entity_filter import resolve_ignored_entity_ids
@@ -109,6 +110,12 @@ class Check:
 CHECKS: list[Check] = [
     # Device health (Layer 1 signals) — the most deterministic checks.
     Check("offline_devices", "Devices offline", KIND_DETERMINISTIC, lambda c: _check_offline(c)),
+    Check(
+        "standby_media",
+        "Media devices off",
+        KIND_DETERMINISTIC,
+        lambda c: _check_standby_media(c),
+    ),
     Check("low_batteries", "Low batteries", KIND_DETERMINISTIC, lambda c: _check_batteries(c)),
     Check(
         "integration_errors",
@@ -268,6 +275,9 @@ _PENALTY_DECAY = 0.6
 _FLEET_FRACTION_CHECKS = frozenset(
     {"offline_devices", "unresponsive_sensors", "unstable_devices", "low_batteries"}
 )
+# Checks listed for information only: their findings never move the score. A
+# media device that is off or asleep is the home working as intended.
+_UNSCORED_CHECKS = frozenset({"standby_media"})
 # Relative weight of one affected device inside the fleet fraction, by severity.
 _DEVICE_SEVERITY_WEIGHT = {"critical": 3.0, "warning": 1.0, "info": 0.3}
 # Max points the fleet fraction can subtract (approached as the whole fleet goes
@@ -275,6 +285,18 @@ _DEVICE_SEVERITY_WEIGHT = {"critical": 3.0, "warning": 1.0, "info": 0.3}
 # devices already register) and flattening as the home goes dark — so 33/119
 # offline lands a home in the D band and one dead device out of 119 costs ~7.
 _MAX_DEVICE_PENALTY = 72.0
+# Points one affected device (per unit of severity weight) costs on a small home.
+# The sqrt curve is right for a large fleet but punishing for a small one: two
+# offline devices out of five cost 72*sqrt(2/5) = 45.5, an F, more than any
+# other row can take. So the fleet penalty is
+#     min(72*sqrt(f), max(12*weight, 72*f))
+# — about 12 points a device while the fleet is small (the sqrt curve takes over
+# once weight * fleet >= (72/12)^2 = 36), but never less than the device's plain
+# linear share of the 72 points, so a home that has gone wholly dark still loses
+# all 72. Offline warning devices alone, fleet of 5: one -> 86 (B), two -> 71
+# (C), three -> 57 (F); fleet of 10: 88 (B), 76 (C), 64 (D). Unchanged once
+# weight * fleet >= 36, e.g. two devices on 18, or one on 36.
+_MAX_POINTS_PER_DEVICE = 12.0
 
 
 def _decayed_penalty(severities: Iterable[str]) -> float:
@@ -373,6 +395,8 @@ def score_breakdown_from_findings(
     unkeyed: list[Finding] = []  # fleet findings with no device_id and no entity
     other: list[Finding] = []  # non-fleet findings (+ reclassified standalone)
     for f in findings:
+        if f.get("check_id") in _UNSCORED_CHECKS:
+            continue
         if f.get("check_id") not in _FLEET_FRACTION_CHECKS:
             other.append(f)
             continue
@@ -402,7 +426,10 @@ def score_breakdown_from_findings(
     # Clamp: the weight can exceed the fleet (severity multipliers), and an
     # unknown/empty registry must never divide by zero.
     fraction = min(1.0, device_weight / max(total_devices, 1))
-    device_penalty = _MAX_DEVICE_PENALTY * math.sqrt(fraction)
+    device_penalty = min(
+        _MAX_DEVICE_PENALTY * math.sqrt(fraction),
+        max(_MAX_POINTS_PER_DEVICE * device_weight, _MAX_DEVICE_PENALTY * fraction),
+    )
     contributions: list[ScoreContribution] = []
     if device_weight > 0:
         for f in fleet_findings:
@@ -647,10 +674,46 @@ def _format_offline_duration(secs: int) -> str:
     return f"{hours} hour" if hours == 1 else f"{hours} hours"
 
 
+def _is_standby_signal(sig: dict[str, Any]) -> bool:
+    """An ``unavailable`` signal the monitor marked as a media device that is off
+    or asleep (see ``health_monitor._is_standby_device``)."""
+    return bool((sig.get("evidence") or {}).get("standby"))
+
+
 def _check_offline(ctx: _CheckContext) -> list[Finding]:
     """Devices whose entities are unavailable (a genuine outage)."""
+    sigs = [
+        s
+        for s in ctx.signals
+        if s.get("kind") == HEALTH_KIND_UNAVAILABLE and not _is_standby_signal(s)
+    ]
+    return _offline_findings(ctx, sigs, standby=False)
+
+
+def _check_standby_media(ctx: _CheckContext) -> list[Finding]:
+    """Media devices (TVs, speakers) that have been off or asleep a whole day.
+
+    Not an outage, so the finding is info, unscored and never announced. It is
+    still listed, because an always-on speaker or amplifier that dropped off the
+    network looks exactly like this, and still offers deletion once the device
+    has been gone ``HEALTH_OFFLINE_REMOVABLE_SECS``.
+    """
+    sigs = [
+        s for s in ctx.signals if s.get("kind") == HEALTH_KIND_UNAVAILABLE and _is_standby_signal(s)
+    ]
+    return [
+        f
+        for f in _offline_findings(ctx, sigs, standby=True)
+        if f.get("offline_seconds", 0) >= HEALTH_STANDBY_REPORT_SECS
+    ]
+
+
+def _offline_findings(
+    ctx: _CheckContext, sigs: list[dict[str, Any]], *, standby: bool
+) -> list[Finding]:
+    """One finding per unavailable device, for :func:`_check_offline` and
+    :func:`_check_standby_media`. ``sigs`` holds only ``unavailable`` signals."""
     findings: list[Finding] = []
-    sigs = [s for s in ctx.signals if s.get("kind") == HEALTH_KIND_UNAVAILABLE]
     now_ts = dt_util.utcnow().timestamp()
     ages = {s.get("target", ""): signal_offline_seconds(s, now_ts) for s in sigs}
     for g in _collapse_signals_by_device(ctx, sigs):
@@ -662,10 +725,16 @@ def _check_offline(ctx: _CheckContext) -> list[Finding]:
         else:
             # No device to be wholly down; the entity's own outage is the outage.
             offline_secs = max((ages.get(eid, 0) for eid in g["entities"]), default=0)
-        detail = (
-            f"{g['name']}{area} is unavailable — check its power, battery, "
-            "or network/hub connection."
-        )
+        if standby:
+            detail = (
+                f"{g['name']}{area} is off or asleep. If it should stay on, "
+                "check its power and network connection."
+            )
+        else:
+            detail = (
+                f"{g['name']}{area} is unavailable — check its power, battery, "
+                "or network/hub connection."
+            )
         # Long-gone device: say how long, and offer deletion. The duration is
         # what justifies the delete button, so the card has to state it.
         removable = (
@@ -673,13 +742,15 @@ def _check_offline(ctx: _CheckContext) -> list[Finding]:
             and bool(g["device_id"])
             and device_is_removable(ctx.hass, g["device_id"])
         )
-        if offline_secs >= HEALTH_OFFLINE_REMOVABLE_SECS:
+        if standby:
+            detail += f" It's been off for {_format_offline_duration(offline_secs)}."
+        elif offline_secs >= HEALTH_OFFLINE_REMOVABLE_SECS:
             detail += f" It's been offline for {_format_offline_duration(offline_secs)}."
         finding: Finding = {
-            "check_id": "offline_devices",
-            "severity": g["severity"] or "warning",
+            "check_id": "standby_media" if standby else "offline_devices",
+            "severity": "info" if standby else (g["severity"] or "warning"),
             "category": "issue",
-            "title": f"{g['name']} is offline",
+            "title": f"{g['name']} is off" if standby else f"{g['name']} is offline",
             "detail": detail,
             "entities": _primary_entities(ctx.hass, g["entities"])[:_MAX_LISTED],
             "action": "Check the device",

@@ -1519,6 +1519,12 @@ HEALTH_UNAVAILABLE_GRACE_SECS = 300
 # only when the owning integration actually supports device removal). Long
 # enough that a holiday-length outage or a router swap can't surface the offer.
 HEALTH_OFFLINE_REMOVABLE_SECS = 7 * 24 * 3600
+# A media device (TV, speaker, streamer) reads ``unavailable`` whenever it is
+# off or asleep, so its outage is not a fault: it is listed as standby, at no
+# cost to the score, and only once it has been dark this long — a TV switched
+# off for the evening isn't worth a line, a speaker silent for a whole day may
+# have fallen off the network.
+HEALTH_STANDBY_REPORT_SECS = 24 * 3600
 # "Silent": an entity whose observed update cadence has lapsed. Flag when the
 # age since last update exceeds baseline_cadence * multiplier, never under the
 # floor. Most integrations only write a measurement when its value changes, so a

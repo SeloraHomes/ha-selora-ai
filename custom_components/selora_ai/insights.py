@@ -30,6 +30,7 @@ from .const import (
     HEALTH_KIND_INTEGRATION_ERROR,
     HEALTH_KIND_SILENT,
     HEALTH_KIND_UNAVAILABLE,
+    HEALTH_STANDBY_REPORT_SECS,
     INSIGHT_KIND_FIX,
     INSIGHT_KIND_IMPROVEMENT,
     INSIGHT_KIND_ISSUE,
@@ -57,10 +58,24 @@ def _friendly(target: str) -> str:
 # offline; the LLM tier only rephrases these, never replaces the facts.
 
 
-def _rule_unavailable(sig: HealthSignal) -> tuple[str, str, str]:
+def _rule_unavailable(sig: HealthSignal) -> tuple[str, str, str] | None:
     evidence = sig["evidence"]
-    mins = int(evidence.get("unavailable_seconds", 0) // 60)
+    secs = int(evidence.get("unavailable_seconds", 0))
+    mins = secs // 60
     name = _friendly(sig["target"])
+    if evidence.get("standby"):
+        # A media device that is off or asleep: nothing to say for its first
+        # day (the audit's ``standby_media`` check uses the same threshold),
+        # then a plain "is off", never "check its power".
+        if secs < HEALTH_STANDBY_REPORT_SECS:
+            return None
+        days = secs // 86400
+        return (
+            INSIGHT_KIND_ISSUE,
+            f"{name} is off",
+            f"{name} has been off or asleep for {days} day{'s' if days != 1 else ''}. "
+            "If it should stay on, check its power and network connection.",
+        )
     if evidence.get("intermittent"):
         return (
             INSIGHT_KIND_ISSUE,
@@ -176,7 +191,10 @@ class InsightsEngine:
         rule = _RULES.get(sig["kind"])
         if rule is None:
             return None
-        kind, title, detail = rule(sig)
+        built = rule(sig)
+        if built is None:
+            return None
+        kind, title, detail = built
         return {
             "insight_id": f"signal:{sig['signal_id']}",
             "kind": kind,
