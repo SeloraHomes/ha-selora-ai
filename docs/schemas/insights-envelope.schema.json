@@ -229,7 +229,7 @@
         },
         "device_penalty": {
           "type": "number",
-          "description": "Points subtracted by per-device outages (scales with the sqrt of the share of the fleet affected)."
+          "description": "Points subtracted by per-device outages: min(72 * sqrt(f), max(12 * weight, 72 * f)), f being the severity-weighted share of the fleet affected (fleet.fraction)."
         },
         "other_penalty": {
           "type": "number",
@@ -282,7 +282,13 @@
         "target_kind": { "type": "string", "enum": ["entity", "device", "integration"] },
         "device_id": { "type": ["string", "null"], "description": "Device the target belongs to when target_kind is 'entity'; null for device/integration targets or entities with no device." },
         "area_name": { "type": "string" },
-        "evidence": { "type": "object", "additionalProperties": true },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "standby": { "type": "boolean", "description": "kind 'unavailable' only: the target is a media device (TV, speaker, streamer) that is off or asleep. Such signals are severity 'info' and are not an outage. Absent on other signals and older producers; treat as false." }
+          }
+        },
         "first_seen": { "type": "string", "format": "date-time" },
         "last_seen": { "type": "string", "format": "date-time" },
         "count": { "type": "integer" },

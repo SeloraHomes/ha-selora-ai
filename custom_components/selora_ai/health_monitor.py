@@ -55,6 +55,7 @@ from .const import (
     HEALTH_KIND_SILENT,
     HEALTH_KIND_UNAVAILABLE,
     HEALTH_SEVERITY_CRITICAL,
+    HEALTH_SEVERITY_INFO,
     HEALTH_SEVERITY_WARNING,
     HEALTH_SILENT_MIN_SECS,
     HEALTH_SILENT_MULTIPLIER,
@@ -470,12 +471,24 @@ class HealthMonitor:
         self._keep_vanished_offline(offenders, prior_first_seen, ent_reg, now_ts)
         offenders = self._only_wholly_down_devices(offenders, ent_reg)
         offenders = await self._enrich_from_history(offenders)
+        # A media device that is off or asleep reads ``unavailable``: keep the
+        # signal (an always-on speaker that fell off the network is still worth
+        # a line, and a long-gone TV still needs its delete offer) but mark it
+        # standby at info severity, so it is neither scored nor announced as an
+        # outage. Applied after ``_keep_vanished_offline`` so a preserved Sonos
+        # gets the same verdict as a visible one.
+        severities: dict[str, str] = {}
+        for eid, evidence in offenders.items():
+            if _is_standby_device(ent_reg, eid):
+                evidence["standby"] = True
+                severities[eid] = HEALTH_SEVERITY_INFO
         await self._reconcile(
             HEALTH_KIND_UNAVAILABLE,
             "entity",
             offenders,
             HEALTH_SEVERITY_WARNING,
             area_of,
+            severities,
         )
 
     def _keep_vanished_offline(
@@ -859,8 +872,11 @@ class HealthMonitor:
         offenders: dict[str, dict[str, Any]],
         severity: str,
         area_of: Any,
+        severities: dict[str, str] | None = None,
     ) -> None:
         """Upsert offenders as active signals; resolve cleared ones.
+
+        ``severities`` overrides ``severity`` per target.
 
         Writes are deferred (save=False) — async_scan persists them in one save.
         """
@@ -874,7 +890,7 @@ class HealthMonitor:
                 kind=kind,
                 target=target,
                 target_kind=target_kind,
-                severity=severity,
+                severity=(severities or {}).get(target, severity),
                 evidence=evidence,
                 area_name=area_of(target) if target_kind == "entity" else "",
                 device_id=device_id,
@@ -930,6 +946,17 @@ def _in_scope(entity_id: str) -> bool:
 
 
 _PRESENCE_DOMAINS = frozenset({"device_tracker", "person"})
+# Devices that go ``unavailable`` as their normal off/asleep state. Keyed on the
+# domain, not on a platform list: standby-as-unavailable is how media players
+# behave across integrations (cast, dlna_dmr, samsungtv, webostv, sonos,
+# androidtv, roku, …), and a platform list would always trail the next one
+# added. A domain is also restart-proof and needs no observation history.
+_STANDBY_DOMAINS = frozenset({"media_player"})
+# Primary-entity domains of always-on devices that also expose a media_player:
+# a voice satellite (Home Assistant Voice PE, other ESPHome or Wyoming
+# satellites) is meant to stay listening, so dropping off the network is an
+# outage, not standby.
+_ALWAYS_ON_DOMAINS = frozenset({"assist_satellite"})
 
 
 def _is_transient(entity_id: str, ent_reg: er.EntityRegistry) -> bool:
@@ -942,6 +969,34 @@ def _is_transient(entity_id: str, ent_reg: er.EntityRegistry) -> bool:
         return True
     entry = ent_reg.async_get(entity_id)
     return bool(entry and entry.platform in TRANSIENT_INTEGRATIONS)
+
+
+def _is_standby_device(ent_reg: er.EntityRegistry, entity_id: str) -> bool:
+    """True when ``entity_id`` is, or belongs to, a media device (TV, speaker,
+    streamer), whose ``unavailable`` usually means off or asleep, not broken.
+
+    Judged on the device's *primary* entities (``entity_category`` unset), the
+    same ones :func:`_device_unreachable` uses to decide the device is down: a
+    device with a primary ``media_player`` is a media device, so its remote,
+    source sensors and config entities share the verdict, and a Sonos whose
+    state objects vanish in rediscovery churn (:func:`_is_preserved_offline`) is
+    still recognised from its registry entries. Registry-only, so it holds from
+    the first scan and across restarts. A device that is also a voice satellite
+    (``_ALWAYS_ON_DOMAINS``) is never standby.
+    """
+    entry = ent_reg.async_get(entity_id)
+    if entry is None or entry.device_id is None:
+        return entity_id.split(".")[0] in _STANDBY_DOMAINS
+    primary_domains = {
+        e.domain
+        for e in er.async_entries_for_device(
+            ent_reg, entry.device_id, include_disabled_entities=False
+        )
+        if e.entity_category is None
+    }
+    if primary_domains & _ALWAYS_ON_DOMAINS:
+        return False
+    return bool(primary_domains & _STANDBY_DOMAINS)
 
 
 def _is_preserved_offline(hass: HomeAssistant, ent_reg: er.EntityRegistry, entity_id: str) -> bool:

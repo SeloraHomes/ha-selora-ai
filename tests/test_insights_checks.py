@@ -555,14 +555,14 @@ def test_score_dedups_fleet_findings_by_device() -> None:
     one = [_fleet_finding("low_batteries", device_id="dev1")]
     # Same device, two findings scores identically to that device flagged once.
     assert score_from_findings(both, total_devices=10) == score_from_findings(one, total_devices=10)
-    # 1/10 affected -> 77 (the review's expected value), NOT 2/10 -> 68.
-    assert score_from_findings(both, total_devices=10) == 77
-    # Two DIFFERENT devices are genuinely 2/10 affected -> 68.
+    # 1/10 affected -> 88, NOT 2/10 -> 76.
+    assert score_from_findings(both, total_devices=10) == 88
+    # Two DIFFERENT devices are genuinely 2/10 affected -> 76.
     two = [
         _fleet_finding("low_batteries", device_id="dev1"),
         _fleet_finding("unstable_devices", device_id="dev2"),
     ]
-    assert score_from_findings(two, total_devices=10) == 68
+    assert score_from_findings(two, total_devices=10) == 76
 
 
 def test_score_dedup_keeps_worst_severity() -> None:
@@ -728,10 +728,10 @@ def test_score_mixed_active_and_stale_devices() -> None:
         _fleet_finding("offline_devices", device_id="stale"),  # not in active set
     ]
     active = score_from_findings(findings, total_devices=10, active_device_ids={"live1"})
-    # 1/10 active outage (77) minus one standalone warning on the tail — strictly
-    # below a clean 1/10, but nowhere near counting the stale device as 2/10 (68).
-    assert active < 77
-    assert active > 68
+    # 1/10 active outage (88) minus one standalone warning on the tail — strictly
+    # below a clean 1/10, but nowhere near counting the stale device as 2/10 (76).
+    assert active < 88
+    assert active > 76
 
 
 @pytest.mark.asyncio
@@ -1047,7 +1047,7 @@ async def test_active_device_ids_includes_out_of_scope_battery(
     """The battery detector is intentionally all-domain, so a device whose only
     battery-reporting entity is outside COLLECTOR_DOMAINS can still be flagged.
     Those healthy devices must be in the denominator too, else ten of them with
-    one low battery score as a 1/1 outage (28) instead of 1/10 (77). (review P1)."""
+    one low battery score as a 1/1 outage (28) instead of 1/10 (88). (review P1)."""
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
     from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -1073,11 +1073,11 @@ async def test_active_device_ids_includes_out_of_scope_battery(
     runner = AuditRunner(hass, health_store)
     # All ten healthy out-of-scope battery devices are in the fleet, findings or not.
     assert runner._active_device_ids([]) == set(ids)
-    # One low-battery finding scores as 1/10 (77), not a 1/1 wipeout (28).
+    # One low-battery finding scores as 1/10 (88), not a 1/1 wipeout (28).
     finding = _fleet_finding("low_batteries", device_id=ids[0])
     active = runner._active_device_ids([finding])
     assert active == set(ids)
-    assert score_from_findings([finding], len(active), active) == 77
+    assert score_from_findings([finding], len(active), active) == 88
 
 
 @pytest.mark.asyncio
