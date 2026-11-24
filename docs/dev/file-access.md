@@ -15,8 +15,9 @@ about files is `config-files.md`.
   the user's token could otherwise call the websocket and approve itself. The
   browser and the companion app use normal refresh tokens.
 - **Bound to the credential that asked** (`CallerCredential`, set in
-  `_dispatch`): an MCP token is its own key; a Selora login or HA token is keyed
-  by its user, the finest identity those carry. Selora's own chat has no
+  `_dispatch`): an MCP token, or an HA token by its refresh token, is its own
+  key, so a grant approved for one app is not another's; a Selora login is keyed
+  by its user, the finest identity it carries. Selora's own chat has no
   credential, so it can neither ask nor use a grant — it is the lane most exposed
   to prompt injection (device names, camera descriptions, web text).
 - **The asker is named by its app first** ("ChatGPT", "Claude" —
@@ -68,14 +69,21 @@ about files is `config-files.md`.
   are facts for the person, not a verdict — the agent gets them back in the
   write result, the person sees them in the panel and in the summary
   notification when the grant ends. A file written again keeps one entry with
-  a count.
+  a count. Past 25 findings each kind keeps its first, credentials and code
+  from text rank first, and one more finding counts the rest at their worst
+  severity: 25 harmless addresses above a token read must not hide it.
+- **No compressed copies in `www/`.** The static server sends `card.js.br`
+  for `card.js` to a browser that accepts brotli, typed as JavaScript, so a
+  `.br` or `.gz` name is refused, grant or not: what runs must be the file
+  that was checked.
 - **The record is the agent's, so the agent can't edit it.** A rewrite or a
   delete keeps the earlier version's findings, marked `earlier`: the bad
   version may have run in a browser before a clean one replaced it. A full
   record (200 files) refuses new files instead of dropping old entries, or a
   flood of harmless files would push a flagged one out. Dismissing a summary
-  needs a login session, like deciding. Over MCP, `persistent_notification.dismiss`
-  of a `selora_file_access*` notification is refused (`mcp_service_call.py`).
+  needs a login session, like deciding. Over MCP, any `persistent_notification`
+  call on a `selora_file_access*` id is refused (`mcp_service_call.py`): a
+  `create` over the id would rewrite the record as surely as a dismiss.
   An agent holding an HA token can still clear the notification through Home
   Assistant itself; the panel's record, and the WARNING log line per request,
   write and end, stay.

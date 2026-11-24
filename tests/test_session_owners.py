@@ -19,7 +19,9 @@ import pytest
 
 from custom_components.selora_ai.const import DOMAIN
 from custom_components.selora_ai.conversation_store import (
+    _MCP_SESSION_MAX_COUNT,
     _SESSION_MAX_COUNT,
+    _SESSION_MAX_TOTAL,
     ConversationStore,
     mcp_session_owner,
 )
@@ -254,6 +256,34 @@ async def test_one_users_chatting_never_evicts_anothers_conversations(
 
     assert len(await store.list_sessions(ALICE)) == _SESSION_MAX_COUNT
     assert [s["id"] for s in await store.list_sessions(BOB)] == [bobs]
+
+
+async def test_an_mcp_caller_keeps_fewer_conversations(hass: HomeAssistant) -> None:
+    store = _store(hass)
+    agent = mcp_session_owner("mcp_token:t1")
+    for i in range(_MCP_SESSION_MAX_COUNT + 3):
+        await _conversation(store, agent, f"task {i}")
+
+    assert len(await store.list_sessions(agent)) == _MCP_SESSION_MAX_COUNT
+
+
+async def test_many_owners_never_grow_the_store_past_its_total(
+    hass: HomeAssistant,
+) -> None:
+    store = _store(hass)
+    per_agent = _MCP_SESSION_MAX_COUNT
+    agents = _SESSION_MAX_TOTAL // per_agent + 2
+    for a in range(agents):
+        owner = mcp_session_owner(f"mcp_token:t{a}")
+        for i in range(per_agent):
+            await _conversation(store, owner, f"task {a}-{i}")
+
+    total = 0
+    for a in range(agents):
+        total += len(await store.list_sessions(mcp_session_owner(f"mcp_token:t{a}")))
+    assert total == _SESSION_MAX_TOTAL
+    # The oldest owner's conversations went first.
+    assert await store.list_sessions(mcp_session_owner("mcp_token:t0")) == []
 
 
 # ── MCP ──────────────────────────────────────────────────────────────

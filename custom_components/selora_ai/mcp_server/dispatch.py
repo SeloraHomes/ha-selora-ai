@@ -633,11 +633,14 @@ def _get_tool_handlers() -> dict[str, Any]:
 
 
 def _credential_key(auth_ctx: SeloraAuthContext) -> str:
-    """Stable per credential: an MCP token is its own key, two tokens two
-    credentials; a Selora login or HA token is keyed by its user, the finest
-    identity those carry."""
+    """Stable per credential: an MCP token or an HA refresh token is its own
+    key, two tokens two credentials, so a grant approved for one app is not
+    another's; a Selora login is keyed by its user, the finest identity it
+    carries."""
     if auth_ctx.auth_type == "mcp_token" and auth_ctx.token_id:
         return f"mcp_token:{auth_ctx.token_id}"
+    if auth_ctx.auth_type == "ha_token" and auth_ctx.refresh_token_id:
+        return f"ha_token:{auth_ctx.user_id}:{auth_ctx.refresh_token_id}"
     if auth_ctx.session_id is not None:
         # An installer's credential lasts one support session: a grant made in
         # one must not carry over to the next.

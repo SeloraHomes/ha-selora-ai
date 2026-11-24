@@ -954,9 +954,10 @@ _PRESENCE_DOMAINS = frozenset({"device_tracker", "person"})
 _STANDBY_DOMAINS = frozenset({"media_player"})
 # Primary-entity domains of always-on devices that also expose a media_player:
 # a voice satellite (Home Assistant Voice PE, other ESPHome or Wyoming
-# satellites) is meant to stay listening, so dropping off the network is an
-# outage, not standby.
-_ALWAYS_ON_DOMAINS = frozenset({"assist_satellite"})
+# satellites) is meant to stay listening, and a wall tablet (Fully Kiosk) or a
+# smart display with a camera is meant to stay up, so dropping off the network
+# is an outage, not standby. A security device is never one to switch off.
+_ALWAYS_ON_DOMAINS = frozenset({"assist_satellite", "camera", "alarm_control_panel", "lock"})
 
 
 def _is_transient(entity_id: str, ent_reg: er.EntityRegistry) -> bool:

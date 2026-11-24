@@ -346,3 +346,30 @@ async def test_voice_satellite_that_drops_is_still_offline(
 
     record = await _audit(hass, health_store)
     assert [f["device_id"] for f in _by_check(record)["offline_devices"]] == [device.id]
+
+
+@pytest.mark.asyncio
+async def test_wall_tablet_that_drops_is_still_offline(
+    hass: HomeAssistant, health_store: HealthStore
+) -> None:
+    """A Fully Kiosk tablet exposes a media_player next to its camera: it is
+    meant to stay on the wall, so losing it is an outage, not standby."""
+    MockConfigEntry(domain="fully_kiosk", entry_id="fk_e", title="Hall tablet").add_to_hass(hass)
+    entry = hass.config_entries.async_get_entry("fk_e")
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id="fk_e", identifiers={("fully_kiosk", "tab")}, name="Hall tablet"
+    )
+    ent_reg = er.async_get(hass)
+    media = ent_reg.async_get_or_create(
+        "media_player", "fully_kiosk", "tab_media", device_id=device.id, config_entry=entry
+    )
+    camera = ent_reg.async_get_or_create(
+        "camera", "fully_kiosk", "tab_cam", device_id=device.id, config_entry=entry
+    )
+    hass.states.async_set(media.entity_id, "unavailable")
+    hass.states.async_set(camera.entity_id, "unavailable")
+
+    await HealthMonitor(hass, health_store).async_scan(trigger_audit=False)
+    sig = (await _unavailable(health_store))[media.entity_id]
+    assert sig["severity"] == "warning"
+    assert "standby" not in sig["evidence"]

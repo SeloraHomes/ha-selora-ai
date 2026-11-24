@@ -128,3 +128,27 @@ async def test_a_stream_says_its_size_in_its_sdp() -> None:
 
 async def test_an_rtsps_stream_is_not_measured() -> None:
     assert await async_stream_size("rtsps://192.168.1.1:7441/abc?enableSrtp") is None
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        "RTSP/1.0 200 OK\r\nCSeq: 1\r\nContent-Length: ²\r\n\r\n",
+        "RTSP/1.0 2²00 OK\r\nCSeq: 1\r\n\r\n",
+        "RTSP/1.0 200 OK\r\nCSeq: 1\r\nContent-Length: " + "9" * 5000 + "\r\n\r\n",
+    ],
+)
+async def test_a_reply_with_odd_numbers_is_no_size(reply: str) -> None:
+    """A camera's reply is untrusted: digits ``int`` refuses are no answer,
+    never an error that fails the whole confirm."""
+
+    async def _serve(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        await reader.readuntil(b"\r\n\r\n")
+        writer.write(reply.encode("latin-1"))
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_server(_serve, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    async with server, asyncio.timeout(5):
+        assert await async_stream_size(f"rtsp://127.0.0.1:{port}/live") is None

@@ -173,16 +173,17 @@ def _risk(hass: HomeAssistant, service: str, target_ids: list[str]) -> tuple[str
 
 
 def _hides_access_record(domain: str, verb: str, data: Any) -> bool:
-    """A dismiss that would clear a temporary-access notification.
+    """A call that would clear or rewrite a temporary-access notification.
 
     ``file_access.py`` posts them as the record of what an agent wrote; an
-    agent clearing them would erase its own trace. (``dismiss_all`` is in
-    ``_BLOCKED_SERVICES`` already.)
+    agent dismissing them, or creating one over the same id with its own text,
+    would erase its own trace. (``dismiss_all`` is in ``_BLOCKED_SERVICES``
+    already.)
     """
     if domain != "persistent_notification":
         return False
     notification_id = data.get("notification_id") if isinstance(data, dict) else None
-    return verb == "dismiss" and str(notification_id or "").startswith("selora_file_access")
+    return str(notification_id or "").startswith("selora_file_access")
 
 
 def check_service_call(

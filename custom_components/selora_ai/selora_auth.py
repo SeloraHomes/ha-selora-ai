@@ -54,6 +54,11 @@ try:
 except ImportError:
     KEY_HASS_USER = "hass_user"  # type: ignore[assignment]
 
+try:
+    from homeassistant.components.http import KEY_HASS_REFRESH_TOKEN_ID
+except ImportError:
+    KEY_HASS_REFRESH_TOKEN_ID = "hass_refresh_token_id"  # type: ignore[assignment]
+
 # KEY_AUTHENTICATED is set by HA's auth middleware on every request
 try:
     from homeassistant.helpers.http import KEY_AUTHENTICATED
@@ -77,6 +82,9 @@ class SeloraAuthContext:
     scopes: frozenset[str] = frozenset()  # OAuth scopes (selora_jwt only)
     session_id: int | None = None  # Connect support session (installer tokens only)
     name: str | None = None  # the person's display name, when Connect sends one
+    # The HA refresh token a request came in on (ha_token only): one user's
+    # long-lived tokens are separate credentials, each its own app.
+    refresh_token_id: str | None = None
 
 
 # ── JWT Validator ─────────────────────────────────────────────────────────────
@@ -242,11 +250,13 @@ async def authenticate_request(
         user = request.get(KEY_HASS_USER)
         user_id = getattr(user, "id", "unknown") if user else "unknown"
         is_admin = bool(user and getattr(user, "is_admin", False))
+        refresh_token_id = request.get(KEY_HASS_REFRESH_TOKEN_ID)
         return SeloraAuthContext(
             user_id=user_id,
             email=None,
             is_admin=is_admin,
             auth_type="ha_token",
+            refresh_token_id=refresh_token_id if isinstance(refresh_token_id, str) else None,
         )
 
     # Path 1b: Manual HA token validation (defensive — covers the case where
@@ -265,6 +275,7 @@ async def authenticate_request(
                 email=None,
                 is_admin=user.is_admin,
                 auth_type="ha_token",
+                refresh_token_id=refresh_token.id,
             )
 
     # Path 2: Selora MCP token (prefix-gated for fast routing)

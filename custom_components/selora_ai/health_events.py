@@ -210,13 +210,17 @@ class HealthEventTracker:
             record = records[iid]
             if iid in present or iid.split(":", 1)[0] not in ran:
                 continue
-            if record["state"] != _ANNOUNCED:
-                # Never announced, so nothing to take back.
+            if record["state"] == _PENDING:
+                # Never confirmed, so nothing to keep or take back.
                 del records[iid]
             elif record["missing_since"] is None:
+                # A standing (baseline) issue waits out the same window as an
+                # announced one: dropped on one missed scan, it would come back
+                # as pending and be pushed as new.
                 record["missing_since"] = scan
             elif _elapsed(record["missing_since"], now) >= HEALTH_EVENT_CONFIRM_SECS:
-                cleared.append(record["issue"])
+                if record["state"] == _ANNOUNCED:
+                    cleared.append(record["issue"])
                 del records[iid]
 
         for check in ran:

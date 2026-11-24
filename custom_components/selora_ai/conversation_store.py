@@ -45,6 +45,13 @@ _SESSION_MAX_MESSAGES = 100
 # owner's oldest sessions (by updated_at) are evicted to stay within budget —
 # per owner, so one person's chatting never evicts another's conversations.
 _SESSION_MAX_COUNT = 200
+# An MCP caller (each token, each installer) is an owner too, and there can be
+# many; an agent's conversations are rarely reopened, so each keeps fewer.
+_MCP_SESSION_MAX_COUNT = 50
+# Every owner's sessions together, past which the oldest anywhere go: the
+# whole store is held in memory and rewritten on each message, so the owners'
+# count must not multiply its size.
+_SESSION_MAX_TOTAL = 600
 
 # Maximum automation ids remembered per session (see set_automation_status).
 # One conversation saving more than this is already past the point where the
@@ -218,16 +225,25 @@ class ConversationStore:
         return self._data["sessions"].get(session_id)
 
     def _evict_oldest_sessions(self, owner: str | None) -> None:
-        """Remove ``owner``'s oldest sessions when their count exceeds the cap."""
+        """Remove ``owner``'s oldest sessions past its cap, then the oldest of
+        anyone's past the store's total."""
         if self._data is None:
             return
         sessions = self._data["sessions"]
+        cap = (
+            _MCP_SESSION_MAX_COUNT
+            if owner is not None and owner.startswith("mcp:")
+            else _SESSION_MAX_COUNT
+        )
         owned = [sid for sid, session in sessions.items() if self._owner_of(session) == owner]
-        if len(owned) <= _SESSION_MAX_COUNT:
-            return
-        owned.sort(key=lambda sid: sessions[sid].get("updated_at", ""))
-        for sid in owned[: len(owned) - _SESSION_MAX_COUNT]:
-            self._remove(sid)
+        if len(owned) > cap:
+            owned.sort(key=lambda sid: sessions[sid].get("updated_at", ""))
+            for sid in owned[: len(owned) - cap]:
+                self._remove(sid)
+        if len(sessions) > _SESSION_MAX_TOTAL:
+            oldest = sorted(sessions, key=lambda sid: sessions[sid].get("updated_at", ""))
+            for sid in oldest[: len(sessions) - _SESSION_MAX_TOTAL]:
+                self._remove(sid)
 
     def _prune_empty_sessions(self) -> None:
         """Remove sessions left without messages past the grace period."""

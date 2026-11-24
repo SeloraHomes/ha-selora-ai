@@ -350,7 +350,8 @@ def split_port(given: str) -> tuple[str, int]:
     if given.count(":") != 1:
         return given, 0
     host, _, port = given.partition(":")
-    return (host, int(port)) if port.isdigit() and 0 < int(port) < 65536 else (given, 0)
+    valid = port.isascii() and port.isdigit() and len(port) <= 5 and 0 < int(port) < 65536
+    return (host, int(port)) if valid else (given, 0)
 
 
 def user_streams(urls: list[str]) -> list[NetworkCamera]:
