@@ -116,12 +116,12 @@ async def _exchange(
                 "0",
             )
             body = b""
-            if length.isdigit() and 0 < int(length) <= _MAX_HEAD:
+            if _is_number(length) and 0 < int(length) <= _MAX_HEAD:
                 body = await reader.readexactly(int(length))
     except (TimeoutError, OSError, asyncio.IncompleteReadError, asyncio.LimitOverrunError) as exc:
         raise RtspError("the camera did not answer RTSP") from exc
     parts = lines[0].split(" ", 2)
-    if len(parts) < 2 or not parts[0].startswith("RTSP/") or not parts[1].isdigit():
+    if len(parts) < 2 or not parts[0].startswith("RTSP/") or not _is_number(parts[1]):
         raise RtspError("the camera did not answer RTSP")
     challenges = [
         line.split(":", 1)[1].strip()
@@ -129,6 +129,12 @@ async def _exchange(
         if line.lower().startswith("www-authenticate:")
     ]
     return int(parts[1]), challenges, body
+
+
+def _is_number(text: str) -> bool:
+    """ASCII digits only, few enough for ``int``: ``str.isdigit`` also accepts
+    ``²``, which ``int`` refuses, and a camera's reply is untrusted."""
+    return 0 < len(text) <= 9 and text.isascii() and text.isdigit()
 
 
 async def async_describe(host: str, port: int, path: str, username: str, password: str) -> int:

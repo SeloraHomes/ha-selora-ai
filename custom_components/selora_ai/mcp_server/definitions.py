@@ -401,8 +401,9 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_LIST_SESSIONS,
         description=(
-            "Return the recent Selora chat sessions this client started (title, id, "
-            "timestamp). The panel's conversations are not included, nor are messages."
+            "Return the recent Selora chat sessions started over MCP by this caller "
+            "(title, id, timestamp): this Selora MCP token, or this Home Assistant or "
+            "Selora account. The panel's conversations are not included, nor are messages."
         ),
         inputSchema={"type": "object", "properties": {}},
     ),

@@ -78,3 +78,8 @@ def test_an_sdp_that_does_not_say_has_no_size() -> None:
     assert video_size("RTSP garbage") is None
     # The audio section's attributes are not the video's.
     assert video_size("m=audio 0 RTP/AVP 96\r\na=framesize:96 1280-720\r\n") is None
+
+
+def test_a_framesize_past_the_digit_limit_is_no_size() -> None:
+    sdp = "m=video 0 RTP/AVP 96\r\na=framesize:96 " + "9" * 5000 + "-720\r\n"
+    assert video_size(sdp) is None

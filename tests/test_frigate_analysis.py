@@ -566,6 +566,31 @@ async def test_frigate_unreachable_is_an_error_not_a_clear(
     assert camera_check["status"] == "error"
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        {"cameras": ["front"]},
+        {"cameras": {"front": {"detect": ["wide"]}}},
+        {"cameras": {"front": {"detect": {"width": "1e400", "height": 720}}}},
+    ],
+)
+async def test_an_unexpected_frigate_answer_fails_only_the_camera_check(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, config: dict
+) -> None:
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=config)
+    aioclient_mock.get(f"{FRIGATE}/api/stats", json={"cameras": {}})
+    aioclient_mock.get(f"{FRIGATE}/api/ffprobe", json=[])
+
+    reports = await async_camera_reports(hass)
+    state = analysis._state(hass)
+    if state.task is not None:
+        await state.task
+
+    assert reports.error is None or reports.reports is None
+    results = await async_run_checks(hass, reports)
+    assert any(r["check_id"] == "camera_analysis" for r in results)
+
+
 async def test_the_health_check_has_one_finding_per_camera(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:

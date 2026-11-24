@@ -20,8 +20,14 @@ from typing import Final
 _H264_HIGH_PROFILES: Final = frozenset(
     {100, 110, 122, 244, 44, 83, 86, 118, 128, 138, 139, 134, 135}
 )
-_FRAMESIZE: Final = re.compile(r"^a=framesize:\s*\d+\s+(\d+)-(\d+)\s*$", re.IGNORECASE)
-_X_DIMENSIONS: Final = re.compile(r"^a=x-dimensions:\s*(\d+)\s*,\s*(\d+)\s*$", re.IGNORECASE)
+# Sizes are at most five ASCII digits: a camera's line is untrusted, and int()
+# refuses a number past Python's digit limit.
+_FRAMESIZE: Final = re.compile(
+    r"^a=framesize:\s*[0-9]+\s+([0-9]{1,5})-([0-9]{1,5})\s*$", re.IGNORECASE
+)
+_X_DIMENSIONS: Final = re.compile(
+    r"^a=x-dimensions:\s*([0-9]{1,5})\s*,\s*([0-9]{1,5})\s*$", re.IGNORECASE
+)
 _MAX_SIDE: Final = 16384
 
 

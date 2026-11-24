@@ -17,7 +17,11 @@ from custom_components.selora_ai.const import (
     EVENT_HEALTH_ISSUE_RAISED,
     SIGNAL_INSIGHTS_UPDATED,
 )
-from custom_components.selora_ai.health_events import HealthEventTracker, issue_id
+from custom_components.selora_ai.health_events import (
+    HealthEventTracker,
+    confirmed_issues,
+    issue_id,
+)
 from custom_components.selora_ai.health_store import HealthStore
 from custom_components.selora_ai.insights_audit import AuditRunner
 from custom_components.selora_ai.sensor import HealthIssuesSensor
@@ -107,6 +111,25 @@ async def test_first_run_is_a_silent_baseline(hass: HomeAssistant, store) -> Non
     await hass.async_block_till_done()
     assert raised == [] and cleared == []
     assert (await store.get_health_events())["issues"] == {}
+
+
+@pytest.mark.asyncio
+async def test_baseline_missed_once_stays_baseline(hass: HomeAssistant, store) -> None:
+    """A standing problem one scan misses is still standing, not new: it keeps
+    counting and is never pushed when the next scan finds it again."""
+    raised = async_capture_events(hass, EVENT_HEALTH_ISSUE_RAISED)
+    tracker = HealthEventTracker(hass, store)
+    await tracker.async_process(_results(_offline()), scan=_at(0))
+
+    await tracker.async_process(_results(), scan=_at(15))
+    assert len(confirmed_issues((await store.get_health_events())["issues"])) == 1
+
+    await tracker.async_process(_results(_offline()), scan=_at(20))
+    await tracker.async_process(_results(_offline()), scan=_at(40))
+    await hass.async_block_till_done()
+    assert raised == []
+    state = await store.get_health_events()
+    assert state["issues"]["offline_devices:dev1"]["state"] == "baseline"
 
 
 @pytest.mark.asyncio

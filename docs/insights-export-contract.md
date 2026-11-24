@@ -123,7 +123,9 @@ health by polling `manifest.json` alone** — no artifact copy, no gunzip.
   one on 36.
 - **A media device that is off is not an outage.** An `unavailable` signal on a
   device with a primary `media_player` (TV, speaker, streamer — any platform)
-  that is not also a voice satellite (`assist_satellite`)
+  that is not also an always-on device (`assist_satellite`, `camera`,
+  `alarm_control_panel` or `lock`: a voice satellite, a wall tablet, a smart
+  display)
   carries `severity: "info"` and `evidence.standby: true`, from the first scan
   and across restarts. It is not in `Devices offline`; once it has been off a
   whole day the audit lists it under the `standby_media` check, which subtracts

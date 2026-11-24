@@ -288,6 +288,17 @@ def _is_served_browser_code(rel: str) -> bool:
     return rel.startswith("www/") and _is_browser_code(rel)
 
 
+def _is_precompressed(rel: str) -> bool:
+    """A ``www/`` file the static server may send in place of its base name.
+
+    aiohttp serves ``card.js.br`` for ``card.js`` to a browser that accepts
+    brotli, typed from ``card.js``: what runs would be a file nobody reviewed.
+    """
+    import mimetypes  # noqa: PLC0415
+
+    return rel.startswith("www/") and mimetypes.guess_type(rel)[1] is not None
+
+
 def _access_manager(hass: HomeAssistant) -> Any:
     return hass.data.get(DOMAIN, {}).get("file_access")
 
@@ -341,6 +352,15 @@ async def async_write(
         path, rel = await _async_resolve(hass, file, write=True)
     except FileToolError as exc:
         return {"error": str(exc)}
+    if _is_precompressed(rel):
+        return {
+            "written": False,
+            "file": rel,
+            "error": (
+                "Compressed copies (.br, .gz) are not written to www/: a browser can "
+                "be served one in place of the file it asked for. Write the plain file."
+            ),
+        }
     grant: dict[str, Any] | None = None
     if _is_served_browser_code(rel):
         manager = _access_manager(hass)

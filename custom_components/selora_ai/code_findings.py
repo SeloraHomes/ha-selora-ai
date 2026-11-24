@@ -39,6 +39,17 @@ class Finding(TypedDict):
 
 
 _SEVERITY_ORDER: Final[dict[str, int]] = {"high": 0, "medium": 1, "info": 2}
+# Within a severity, what a reviewer must not miss comes first: a token read
+# or code run from text matters more than the fortieth outside address.
+_KIND_ORDER: Final[dict[str, int]] = {
+    "credentials": 0,
+    "dynamic_code": 1,
+    "network": 2,
+    "admin_api": 3,
+    "obfuscation": 4,
+    "service": 5,
+    "external_url": 6,
+}
 _MAX_FINDINGS: Final = 25
 _MAX_DETAIL: Final = 80
 _MINIFIED_LINE: Final = 2000
@@ -237,8 +248,46 @@ def analyze(text: str) -> list[Finding]:
         if counts[key] > 1:
             finding["detail"] = f"{finding['detail']} (×{counts[key]})"
         findings.append(finding)
-    findings.sort(key=lambda f: (_SEVERITY_ORDER[f["severity"]], f["line"] or 0))
-    return findings[:_MAX_FINDINGS]
+    findings.sort(
+        key=lambda f: (_SEVERITY_ORDER[f["severity"]], _KIND_ORDER[f["kind"]], f["line"] or 0)
+    )
+    return _capped(findings)
+
+
+def _capped(findings: list[Finding]) -> list[Finding]:
+    """At most ``_MAX_FINDINGS``, keeping every kind and saying what was left out.
+
+    A plain cut lets a file bury what matters: 25 harmless outside addresses
+    above one token read would show only the addresses. Each kind keeps its
+    first finding, the rest fill up in order, and one more finding counts the
+    dropped ones at their worst severity, so the summary never reads lighter
+    than the file.
+    """
+    if len(findings) <= _MAX_FINDINGS:
+        return findings
+    room = _MAX_FINDINGS - 1
+    kept: set[int] = set()
+    seen_kinds: set[str] = set()
+    for index, finding in enumerate(findings):
+        if finding["kind"] not in seen_kinds:
+            seen_kinds.add(finding["kind"])
+            kept.add(index)
+    for index in range(len(findings)):
+        if len(kept) >= room:
+            break
+        kept.add(index)
+    shown = [f for i, f in enumerate(findings) if i in kept]
+    dropped = [f for i, f in enumerate(findings) if i not in kept]
+    worst = min(dropped, key=lambda f: _SEVERITY_ORDER[f["severity"]])["severity"]
+    shown.append(
+        Finding(
+            kind="obfuscation",
+            severity=worst,
+            detail=f"{len(dropped)} more findings not shown",
+            line=None,
+        )
+    )
+    return shown
 
 
 def summarize(findings: Iterable[Finding]) -> str:
