@@ -22,7 +22,8 @@ ha-mcp's file tools. All four are admin-only.
   and `url()` lookups can carry what it reads off the page). Registered as a
   dashboard resource it runs in every admin's browser with their session, and
   a `confirmed` flag would not guard it: the agent that writes the file sets
-  the flag too. `selora_add_dashboard_resource` adds a `/local/` path because
+  the flag too. The one exception is a grant a person gave this MCP client
+  for one `www/` subfolder (`file-access.md`). `selora_add_dashboard_resource` adds a `/local/` path because
   the file there came from HACS or the user, never from this tool.
   - **Decided by extension AND by the type the web server would serve**
     (`_is_browser_code`): `.xht`, `.xml`, `.xsl` render as documents that run

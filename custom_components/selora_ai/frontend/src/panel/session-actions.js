@@ -250,6 +250,17 @@ export function _checkTabParam() {
     url.searchParams.delete("setup_flow");
     window.history.replaceState({}, "", url);
   }
+
+  // An agent's request for temporary browser-code access: the phone and HA
+  // notifications link here, straight to the approval dialog.
+  const fileAccess = params.get("file_access");
+  if (fileAccess) {
+    if (this.hass) this._openFileAccess(fileAccess);
+    else this._pendingFileAccess = fileAccess;
+    const url = new URL(window.location);
+    url.searchParams.delete("file_access");
+    window.history.replaceState({}, "", url);
+  }
 }
 
 export async function _openSetupFlow(flowId) {

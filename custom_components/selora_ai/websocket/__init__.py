@@ -16,6 +16,7 @@ from homeassistant.components import websocket_api
 from . import (
     automations,
     devices,
+    file_access,
     frigate,
     home_suggestions,
     insights,
@@ -56,6 +57,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     frigate.async_register(hass)
     version.async_register(hass)
     trash.async_register(hass)
+    file_access.async_register(hass)
 
     # HA-mediated OAuth link (works inside Companion app WebViews).
     from ..oauth_link import async_register as _register_oauth_link

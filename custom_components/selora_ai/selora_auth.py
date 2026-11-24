@@ -76,6 +76,7 @@ class SeloraAuthContext:
     token_id: str | None = None  # set only for mcp_token
     scopes: frozenset[str] = frozenset()  # OAuth scopes (selora_jwt only)
     session_id: int | None = None  # Connect support session (installer tokens only)
+    name: str | None = None  # the person's display name, when Connect sends one
 
 
 # ── JWT Validator ─────────────────────────────────────────────────────────────
@@ -171,6 +172,7 @@ class SeloraJWTValidator:
             email=payload.get("email"),
             is_admin=is_admin,
             auth_type="selora_jwt",
+            name=payload["name"] if isinstance(payload.get("name"), str) else None,
             scopes=frozenset(scopes),
             session_id=session_id,
         )

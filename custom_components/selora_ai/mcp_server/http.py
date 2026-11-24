@@ -605,7 +605,13 @@ class SeloraAIMCPView(HomeAssistantView):
         timeout = request_timeout(method, params)
         try:
             async with asyncio.timeout(timeout):
-                result = await _jsonrpc_dispatch(hass, method, params, auth_ctx)
+                result = await _jsonrpc_dispatch(
+                    hass,
+                    method,
+                    params,
+                    auth_ctx,
+                    user_agent=request.headers.get("User-Agent", ""),
+                )
         except TimeoutError:
             _LOGGER.warning("MCP request timed out after %ss", timeout)
             return web.json_response(

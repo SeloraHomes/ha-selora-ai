@@ -18,6 +18,7 @@ from ..const import (
     DOMAIN,
     FRIGATE_NAME_NOTE,
 )
+from ..helpers import CallerCredential
 from ..selora_auth import SeloraAuthContext
 from .access import FRIGATE_TOOLS, _can_access_tool, _check_tool_access
 from .apps import (
@@ -98,6 +99,7 @@ from .files import (
     _tool_delete_file,
     _tool_list_files,
     _tool_read_file,
+    _tool_request_file_access,
     _tool_write_file,
 )
 from .frigate import (
@@ -258,6 +260,7 @@ from .names import (
     TOOL_REMOVE_FRIGATE_CAMERA,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
+    TOOL_REQUEST_FILE_ACCESS,
     TOOL_RESTART_HOME_ASSISTANT,
     TOOL_RESTORE_DELETED,
     TOOL_SEARCH_APP_STORE,
@@ -419,9 +422,16 @@ async def _jsonrpc_dispatch(
     method: str,
     params: dict[str, Any] | None,
     auth_ctx: SeloraAuthContext,
+    *,
+    user_agent: str = "",
 ) -> dict[str, Any]:
     """Dispatch a JSON-RPC method and return the result payload."""
     if method == "initialize":
+        from .clients import remember  # noqa: PLC0415
+
+        client_info = (params or {}).get("clientInfo")
+        if isinstance(client_info, dict):
+            remember(hass, _credential_key(auth_ctx), user_agent, client_info.get("name"))
         return {
             "protocolVersion": _MCP_PROTOCOL_VERSION,
             "capabilities": {"tools": {}},
@@ -447,7 +457,9 @@ async def _jsonrpc_dispatch(
     if method == "tools/call":
         tool_name = (params or {}).get("name", "")
         arguments = (params or {}).get("arguments", {})
-        content = await _dispatch(hass, tool_name, arguments, auth_ctx=auth_ctx)
+        content = await _dispatch(
+            hass, tool_name, arguments, auth_ctx=auth_ctx, user_agent=user_agent
+        )
         return {"content": [dataclasses.asdict(c) for c in content]}
     raise ValueError(f"Unknown method: {method}")
 
@@ -555,6 +567,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_READ_FILE: _tool_read_file,
         TOOL_WRITE_FILE: _tool_write_file,
         TOOL_DELETE_FILE: _tool_delete_file,
+        TOOL_REQUEST_FILE_ACCESS: _tool_request_file_access,
         TOOL_HACS_SEARCH: _tool_hacs_search,
         TOOL_HACS_INFO: _tool_hacs_info,
         TOOL_GET_CAMERA_IMAGE: _tool_get_camera_image,
@@ -619,12 +632,53 @@ def _get_tool_handlers() -> dict[str, Any]:
     }
 
 
+def _credential_key(auth_ctx: SeloraAuthContext) -> str:
+    """Stable per credential: an MCP token is its own key, two tokens two
+    credentials; a Selora login or HA token is keyed by its user, the finest
+    identity those carry."""
+    if auth_ctx.auth_type == "mcp_token" and auth_ctx.token_id:
+        return f"mcp_token:{auth_ctx.token_id}"
+    if auth_ctx.session_id is not None:
+        # An installer's credential lasts one support session: a grant made in
+        # one must not carry over to the next.
+        return f"{auth_ctx.auth_type}:{auth_ctx.user_id}:session:{auth_ctx.session_id}"
+    return f"{auth_ctx.auth_type}:{auth_ctx.user_id}"
+
+
+async def _caller_credential(
+    hass: HomeAssistant, auth_ctx: SeloraAuthContext, user_agent: str = ""
+) -> CallerCredential:
+    """The credential this call came in on, and the app it came from."""
+    from .clients import recall  # noqa: PLC0415
+
+    key = _credential_key(auth_ctx)
+    client = recall(hass, key, user_agent)
+    if auth_ctx.auth_type == "mcp_token" and auth_ctx.token_id:
+        store = hass.data.get(DOMAIN, {}).get("mcp_token_store")
+        name = store.token_name(auth_ctx.token_id) if store is not None else None
+        return CallerCredential(key, "mcp_token", name, client)
+    if auth_ctx.auth_type == "selora_jwt":
+        # `sub` is Connect's internal id ("user:2"), which means nothing to the
+        # person approving; the name, then the email, is what they recognise.
+        return CallerCredential(
+            key,
+            "selora_account",
+            auth_ctx.name or auth_ctx.email or None,
+            client,
+            support_session=auth_ctx.session_id,
+            email=auth_ctx.email,
+        )
+    user = await hass.auth.async_get_user(auth_ctx.user_id)
+    return CallerCredential(key, "ha_token", user.name if user else None, client)
+
+
 async def _dispatch(
     hass: HomeAssistant,
     name: str,
     arguments: dict[str, Any],
     *,
     auth_ctx: SeloraAuthContext,
+    user_agent: str = "",
 ) -> list[MCPTextContent | MCPImageContent]:
     """Route a tool call to its handler and return its MCP content blocks."""
     result: dict[str, Any] | list[dict[str, Any]] | ToolImage
@@ -632,6 +686,8 @@ async def _dispatch(
         _check_tool_access(auth_ctx, name)
 
         from ..helpers import caller_scope  # noqa: PLC0415
+
+        credential = await _caller_credential(hass, auth_ctx, user_agent)
 
         handler = _get_tool_handlers().get(name)
         # _check_tool_access has already gated the tool itself; this carries the
@@ -648,6 +704,7 @@ async def _dispatch(
             auth_ctx.is_admin,
             can_write=any(_can_access_tool(auth_ctx, name) for name in _dashboard_write_tools()),
             caller_id=auth_ctx.user_id,
+            credential=credential,
         ):
             if handler is None:
                 result = {"error": f"Unknown tool: {name}"}

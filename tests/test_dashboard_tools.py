@@ -1433,7 +1433,6 @@ async def test_the_mcp_surface_carries_caller_identity(board: HomeAssistant) -> 
 @pytest.mark.parametrize(
     "value",
     [
-        "[[[ return states['light.lamp'].state === 'on' ? 'light.lamp' : 'light.other' ]]]",
         "{{ states('input_text.target') }}",
         "",
     ],

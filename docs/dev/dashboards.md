@@ -220,6 +220,17 @@ renders "Unknown type encountered: fan" on the wall. Three checks stand in:
   `_ENTITY_ID_RE` first — in `entity`/`entity_id` too — because a custom card may
   hold a TEMPLATE there (button-card `[[[ … ]]]`, Jinja), and an `entities` row
   may be a label or divider.
+- **A write never introduces JavaScript** (`dashboard_scripts.py`, checked in
+  `_save` and in `async_insert_card`, which places through the recipes path).
+  Custom cards evaluate their own config in every viewer's browser with that
+  viewer's session — button-card/streamline `[[[ … ]]]` and `*_javascript`
+  keys, config-template-card `${ … }`, apexcharts `EVAL:`, and any
+  `javascript:` URL — so writing one is writing browser code, which
+  `config-files.md` forbids. Detected by marker, not card type: the cards that
+  evaluate are custom, and a type list is never complete. Code already in the
+  stored document (or, for a cross-dashboard move, in the source) is the
+  user's and may be kept, moved and grouped; an edited string is new code.
+  A revert (`restoring=True`) puts back what was stored and is not checked.
 - **The vocabulary is handed over before composing** (`dashboard_cards.py`) on
   `get_dashboard`'s result, once per turn. Kept short (it shares the 16K budget);
   card options are omitted since the model knows Lovelace's schemas.
