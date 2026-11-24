@@ -1254,6 +1254,7 @@
     "settings_health_monitoring_desc": "Determinisztikus ellenőrzések offline eszközökre, gyenge elemekre, integrációs hibákra és automatizálási problémákra – ezekből áll az Állapot oldal.",
     "settings_health_monitoring_label": "Állapotfigyelés",
     "settings_scan_interval_seconds_label": "Vizsgálati időköz (s)",
-    "insights_open_settings": "Megnyitás a Beállításokban"
+    "insights_open_settings": "Megnyitás a Beállításokban",
+    "approval_pick_one": "Az alkalmazáshoz jelöljön be legalább egy kamerát."
   }
 }

@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "오프라인 기기, 배터리 부족, 통합 오류, 자동화 문제를 결정론적으로 점검하며 상태 페이지의 기반이 됩니다.",
     "settings_health_monitoring_label": "상태 모니터링",
     "settings_scan_interval_seconds_label": "스캔 간격(초)",
-    "insights_open_settings": "설정에서 열기"
+    "insights_open_settings": "설정에서 열기",
+    "approval_pick_one": "적용하려면 카메라를 하나 이상 선택하세요."
   },
   "options": {
     "step": {

@@ -397,6 +397,17 @@ on a camera Frigate already has, behind the destructive confirmation card
   the card was built from (`_fingerprint`), then applies the call's `add` /
   `remove` / `objects` to that list.
 - Asking for what it already looks for answers `unchanged`, with no card.
+- **The user picks the cameras.** A search that found nothing because no
+  camera looks for it offers every camera that could; turning detection on
+  everywhere, and restarting Selora Vision for it, is not the hub's call. A
+  card made only of cameras (`pickable`) ticks every row, and Apply sends the
+  ticked `targets`; the resolver applies only those, refusing a pick that is
+  empty or names a row the card did not have.
+- **It follows the answer to a question that was not about the cameras.** The
+  model searches "was the dog fed?" too. When the message names no camera,
+  place a camera watches or seeing (`camera_question.points_at_cameras`), the
+  card keeps the model's answer above it (`answer_first`) and only asks;
+  otherwise it stands in for the reply and says why nothing was found.
 - **Checked against the list saved, not the one running.** `/api/config` is
   Frigate's running configuration, and a write runs only after the restart
   (never, when Frigate cannot restart itself). The list written is kept

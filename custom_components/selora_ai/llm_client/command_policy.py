@@ -3488,6 +3488,14 @@ def _build_delete_approval_response(
     )
     if why:
         proposal["why"] = why
+    # Which cameras look for it is the user's to say: the card lets them untick
+    # some, and the resolver applies only those left (``targets``).
+    if (
+        not deletes
+        and len(actions) > 1
+        and all(a.get("kind") == "frigate_objects" for a in actions)
+    ):
+        proposal["pickable"] = True
     answer = str(result.get("response") or "").strip() if after_answer else ""
     if answer:
         proposal["answer_first"] = True

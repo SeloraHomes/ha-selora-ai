@@ -190,6 +190,9 @@ async def _handle_websocket_revoke_mcp_token(
         # - "all":  grant the service wildcard for any future entity.
         # Ignored for ``once``/``deny`` scopes.
         vol.Optional("entity_scope", default="this"): vol.In(["this", "all"]),
+        # On a card that lets the user pick (``pickable``), the target ids of
+        # the rows left ticked: a subset of the card's own.
+        vol.Optional("targets"): [str],
         vol.Optional("language"): vol.Any(str, None),
     }
 )

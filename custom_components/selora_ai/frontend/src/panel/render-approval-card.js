@@ -322,7 +322,11 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           : ""
       }
       <div style="display:flex;flex-direction:column;">
-        ${rows.map((row) => copy.renderRow(host, row))}
+        ${rows.map((row) =>
+          approval.pickable
+            ? _renderPickRow(host, msg, row, copy.renderRow(host, row))
+            : copy.renderRow(host, row),
+        )}
       </div>
       ${
         approval.remaining_intent
@@ -408,6 +412,39 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           : ""
       }
     </div>
+  `;
+}
+
+// The rows the user left ticked on a card that lets them pick (the cameras to
+// look for something): every row, until one is unticked.
+export function pickedTargets(msg) {
+  const unpicked = new Set(msg?._unpicked || []);
+  return (msg?.command_approval?.actions || [])
+    .map((a) => String(a.target_id || ""))
+    .filter((id) => id && !unpicked.has(id));
+}
+
+function _renderPickRow(host, msg, row, rendered) {
+  const id = String(row.target_id || "");
+  const picked = !(msg._unpicked || []).includes(id);
+  const toggle = () => {
+    const rest = (msg._unpicked || []).filter((t) => t !== id);
+    msg._unpicked = picked ? [...rest, id] : rest;
+    host._messages = [...(host._messages || [])];
+    host.requestUpdate?.();
+  };
+  return html`
+    <label
+      style="display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px;cursor:pointer;opacity:${picked ? 1 : 0.5};"
+    >
+      <input
+        type="checkbox"
+        style="width:16px;height:16px;accent-color:var(--selora-accent);margin:0;"
+        .checked=${picked}
+        @change=${toggle}
+      />
+      ${rendered}
+    </label>
   `;
 }
 

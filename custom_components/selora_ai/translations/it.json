@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "Controlli deterministici su dispositivi offline, batterie scariche, errori delle integrazioni e problemi delle automazioni: alimentano la pagina Stato.",
     "settings_health_monitoring_label": "Monitoraggio dello stato",
     "settings_scan_interval_seconds_label": "Intervallo di scansione (s)",
-    "insights_open_settings": "Apri nelle Impostazioni"
+    "insights_open_settings": "Apri nelle Impostazioni",
+    "approval_pick_one": "Seleziona almeno una telecamera per applicare."
   },
   "options": {
     "step": {

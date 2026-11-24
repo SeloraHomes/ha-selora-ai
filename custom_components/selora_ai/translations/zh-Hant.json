@@ -1234,7 +1234,8 @@
     "settings_health_monitoring_desc": "對離線裝置、低電量、整合錯誤和自動化問題進行確定性檢查，為「健康」頁面提供資料。",
     "settings_health_monitoring_label": "健康監控",
     "settings_scan_interval_seconds_label": "掃描間隔（秒）",
-    "insights_open_settings": "在設定中開啟"
+    "insights_open_settings": "在設定中開啟",
+    "approval_pick_one": "請至少勾選一個攝影機再套用。"
   },
   "options": {
     "step": {
