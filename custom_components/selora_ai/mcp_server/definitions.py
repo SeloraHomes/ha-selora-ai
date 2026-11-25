@@ -58,6 +58,7 @@ from .names import (
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
     TOOL_FIRE_EVENT,
+    TOOL_FIX_FRIGATE_CAMERA,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
     TOOL_GET_APP_OPTIONS,
@@ -1900,6 +1901,13 @@ _FRIGATE_CHANGES: dict[str, tuple[str, str]] = {
         "Point a camera already in Frigate at its new network address, when the "
         "router gave it another IP. It keeps the camera's name, history, entities "
         "and login: never add it again instead, and never pass a password.",
+    ),
+    TOOL_FIX_FRIGATE_CAMERA: (
+        "fix_frigate_camera",
+        "Fix how Frigate analyses a camera that costs the hub too much: detection "
+        "reading its main stream moves to its substream, detection above 720p is "
+        "scaled down. how_to_fix is what only the user can change (the camera's own "
+        "settings, a motion mask, its network): tell them.",
     ),
     TOOL_SET_CAMERA_DESCRIPTIONS: (
         "set_camera_descriptions",

@@ -61,7 +61,7 @@ _NOT_A_STREAM: Final = frozenset({"snapshot", "snapshots"})
 
 # go2rtc restreams every camera to Frigate on this address, so each camera is
 # connected to once however many roles read it.
-_RESTREAM: Final = "rtsp://127.0.0.1:8554/{}"
+RESTREAM: Final = "rtsp://127.0.0.1:8554/{}"
 _SINGLE_STREAM_DETECT: Final = {"width": 1280, "height": 720}
 # The largest frame Frigate detects on (landscape; turned for a portrait one).
 _DETECT_BOX: Final = (1280, 720)
@@ -475,6 +475,46 @@ async def async_camera_candidates(
     return candidates, skipped
 
 
+async def async_device_substreams(hass: HomeAssistant, main_url: str) -> list[str]:
+    """The substreams Home Assistant has for the camera that streams ``main_url``,
+    best first, credentials included: never shown.
+
+    The camera is the device one of whose stream entities serves ``main_url``
+    (compared by ``source_key``, so a login Frigate masked still matches).
+    """
+    main_key = source_key(main_url)
+    if main_key is None:
+        return []
+    by_device: dict[str, list[er.RegistryEntry]] = {}
+    for entry in er.async_get(hass).entities.values():
+        if (
+            entry.domain == "camera"
+            and entry.platform != FRIGATE_DOMAIN
+            and entry.disabled_by is None
+            and entry.device_id
+            and hass.states.get(entry.entity_id) is not None
+            and not _NOT_A_STREAM & _words(entry)
+        ):
+            by_device.setdefault(entry.device_id, []).append(entry)
+    for entries in by_device.values():
+        urls = {e.entity_id: await _async_stream_source(hass, e.entity_id) for e in entries}
+        if not any(url and source_key(url) == main_key for url in urls.values()):
+            continue
+        subs = sorted(
+            (
+                (rank, url)
+                for e in entries
+                if (url := urls[e.entity_id])
+                and source_key(url) != main_key
+                and _is_local(url)
+                and (rank := _sub_rank(_words(e))) is not None
+            ),
+            key=lambda s: s[0],
+        )
+        return [for_go2rtc(url) for _rank, url in subs]
+    return []
+
+
 def model_labels(config: dict[str, Any]) -> frozenset[str] | None:
     """The labels Frigate's running model can report, or None when Frigate
     does not say, which checks nothing.
@@ -685,7 +725,7 @@ def build_config(
         if main_roles:
             inputs.append(
                 {
-                    "path": _RESTREAM.format(c.camera),
+                    "path": RESTREAM.format(c.camera),
                     "input_args": "preset-rtsp-restream",
                     "roles": main_roles,
                 }
@@ -694,7 +734,7 @@ def build_config(
             streams[f"{c.camera}_sub"] = [go2rtc_source(c.sub.url)]
             inputs.append(
                 {
-                    "path": _RESTREAM.format(f"{c.camera}_sub"),
+                    "path": RESTREAM.format(f"{c.camera}_sub"),
                     "input_args": "preset-rtsp-restream",
                     "roles": ["detect"],
                 }

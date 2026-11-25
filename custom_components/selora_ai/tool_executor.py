@@ -180,6 +180,7 @@ class ToolExecutor:
             "get_face_recognition": self._get_face_recognition,
             "set_face_recognition": self._set_face_recognition,
             "move_frigate_camera": self._move_frigate_camera,
+            "fix_frigate_camera": self._fix_frigate_camera,
             "find_camera_events": self._find_camera_events,
             "show_camera_events": self._show_camera_events,
             "get_frigate_status": self._get_frigate_status,
@@ -744,6 +745,11 @@ class ToolExecutor:
         from .frigate.moving import async_preview_move_camera
 
         return await async_preview_move_camera(self._hass, arguments)
+
+    async def _fix_frigate_camera(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.repair import async_preview_fix_camera
+
+        return await async_preview_fix_camera(self._hass, arguments)
 
     async def _add_cameras_to_frigate(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .frigate.setup import async_preview_add_cameras

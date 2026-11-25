@@ -195,7 +195,13 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   sends. The detect stream's size is written scaled down to fit 1280×720,
   shape kept, never up. A substream as large as the main stream is dropped
   (it costs a second connection and saves nothing); an unmeasured one is left
-  to Frigate, as before. `rtsps` (UniFi) is not measured.
+  to Frigate, as before. `rtsps` (UniFi, Wyze) is measured over TLS without
+  verifying the camera's self-signed certificate, as FFmpeg reads it.
+- **A camera whose SDP gives no size is measured from its video.** A Wyze's
+  SDP has no parameter sets, so the same connection sets up every track,
+  plays, and reads RTP until the first SPS (sent with each keyframe). Every
+  track, not only the video: a Wyze sends nothing until its audio is set up
+  too. Nothing is decoded; it is bounded in time and bytes.
 - **A substream larger than 1080p is named to the user.** Detection is
   scaled, but the hub still decodes every frame at full size, which only the
   camera's own settings can fix. The result card says so under the camera
@@ -254,6 +260,43 @@ analysis" check shows it, and the insights export ships it for Selora's alerts
 - **Not announced** (`NOTIFY_CHECKS`): a camera set up badly is Selora's to fix,
   not a push to the owner. The export reports it even when the owner ignored
   the Health finding.
+
+## Fixing a camera
+
+`fix_frigate_camera` (`frigate/repair.py`) changes what the camera check found
+that lives in the camera's own Frigate section, behind a card
+(`kind: "frigate_fix"`); MCP has it as `selora_fix_frigate_camera`.
+
+- **Detection reading the main stream moves to a substream.** Only when the
+  detect input also records and decodes above 1080p (`detect_stream_heavy`).
+  Home Assistant's stream entities for the same camera come first, found by
+  matching the main stream's `source_key`; without one, the brand's substream
+  path beside the main one (`_SUB_PATHS`: Reolink, Hikvision, Dahua, Uniview,
+  Tapo, and Wyze's own RTSPS `stream0` → `stream1`). A guessed path is offered
+  only once it answers over RTSP or RTSPS with a picture
+  smaller than the main stream's: a path that merely looks right is not a
+  substream (Univiews serve the main stream at every path).
+- **The substream's login is the main stream's**, read from
+  `/api/config/raw` at preview (to measure it) and at confirm (to write it),
+  or Home Assistant's. It never reaches the card, the model or a log.
+- **The detect size follows the stream detected on**: the substream's,
+  scaled to fit 720p. Unmeasured (the camera did not say), a size written for the main stream
+  is cleared so Frigate measures it; left, it would scale the substream up.
+- **Detection above 720p** on any other camera is scaled down, shape kept.
+- **What only the camera or its surroundings can change is said, never
+  written** (`how_to_fix`): a substream set too large, constant motion (a
+  motion mask), a camera sending nothing. On the card it is the `why`.
+- **The issues come from the last Health audit**, not a fresh read: the live
+  symptoms need their confirmation window, and a probe connects to the camera.
+
+**A failing camera is the first home suggestion** (`fix_camera`, score 1.0,
+above discovered devices): until it is fixed, every camera on the hub can
+miss detections. One row per camera with an issue of its own; a camera only
+falling behind (`skipping_frames`) while another has one is named on that
+row instead, since fixing the other is what helps it. The row's id hashes the
+issues and the inputs, and the confirm dismisses it: the same issues after the
+inputs changed are a new row. Acting on it opens the card the server writes
+(`selora_ai/frigate/fix_start`), with no model turn.
 
 ## Cameras already in Frigate
 

@@ -125,6 +125,27 @@ async def _tool_move_frigate_camera(
     return await async_move_camera_confirmed(hass, card["target_id"], token, arguments)
 
 
+async def _tool_fix_frigate_camera(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.repair import (  # noqa: PLC0415
+        async_fix_camera_confirmed,
+        async_preview_fix_camera,
+    )
+
+    preview = await async_preview_fix_camera(hass, arguments)
+    card = preview.get("destructive")
+    if card is None:
+        return preview
+    if not _confirmed(arguments):
+        return _ask(
+            card, **({"how_to_fix": preview["how_to_fix"]} if "how_to_fix" in preview else {})
+        )
+    if not (token := _token(arguments)):
+        return {"error": _NO_TOKEN}
+    return await async_fix_camera_confirmed(hass, card["target_id"], token, arguments)
+
+
 async def _tool_remove_frigate_camera(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:

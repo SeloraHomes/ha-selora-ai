@@ -646,6 +646,72 @@ describe("renderHomeSuggestions", () => {
     expect(h._askInNewChat).not.toHaveBeenCalled();
   });
 
+  const failingCamera = {
+    suggestion_id: "fix_camera:living_room:0123456789ab",
+    type: "fix_camera",
+    entities: [{ entity_id: "camera.living_room", name: "Living Room" }],
+    collection: { source: "frigate", name: "Living Room", ref: "living_room" },
+    camera_report: {
+      issues: ["detect_stream_heavy"],
+      analysed: [1280, 720],
+      stream: [2560, 1440],
+      records_too: true,
+      skipped_fps: null,
+    },
+    members: [{ entity_id: "", name: "Reolink Kitchen" }],
+    score: 1,
+  };
+
+  it("says why a failing camera needs fixing, with the cameras it slows down", () => {
+    const h = host([failingCamera]);
+    handlers(renderHomeSuggestions(h))[0]();
+    const text = flatten(renderHomeSuggestions(h));
+
+    expect(text).toContain("Fix how Selora Vision watches Living Room");
+    expect(text).toContain(
+      "Selora Vision analyses it from its 2560×1440 main stream",
+    );
+    expect(text).toContain(
+      "Until it is fixed, the hub also falls behind on Reolink Kitchen.",
+    );
+    expect(text).toContain("Fix it");
+  });
+
+  it("titles a camera by its most telling issue", () => {
+    const h = host([
+      {
+        ...failingCamera,
+        camera_report: {
+          ...failingCamera.camera_report,
+          issues: ["no_video"],
+        },
+        members: [],
+      },
+    ]);
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Living Room sends Selora Vision no picture",
+    );
+  });
+
+  it("opens the camera's fix card the server wrote, with no model turn", async () => {
+    const h = host([failingCamera]);
+    h.hass.callWS = vi.fn(async () => ({ session_id: "s11" }));
+    h._setActiveTab = vi.fn();
+    h._openSession = vi.fn(async () => {});
+    handlers(renderHomeSuggestions(h))[0]();
+
+    await handlers(renderHomeSuggestions(h)).at(-1)();
+
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/frigate/fix_start",
+      title: "Fix how Selora Vision watches Living Room",
+      camera: "living_room",
+      language: "en",
+    });
+    expect(h._openSession).toHaveBeenCalledWith("s11");
+    expect(h._askInNewChat).not.toHaveBeenCalled();
+  });
+
   const scene = {
     suggestion_id: "scene:light.ceiling=off,light.reading=on,light.sofa=on",
     type: "create_scene",

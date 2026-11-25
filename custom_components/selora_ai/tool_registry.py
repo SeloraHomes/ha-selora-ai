@@ -2614,6 +2614,29 @@ TOOL_MOVE_FRIGATE_CAMERA = ToolDef(
     large_context_only=True,
 )
 
+TOOL_FIX_FRIGATE_CAMERA = ToolDef(
+    name="fix_frigate_camera",
+    description=(
+        "Fix how Frigate analyses a camera that costs the hub too much: detection "
+        "reading the camera's main stream (it moves to the camera's substream) or "
+        "running above 720p (it is scaled down). Use it when the user asks to fix a "
+        "camera that is slow, drops frames, or that Health or a suggestion flagged. "
+        "The user gets a card naming the change and that Frigate restarts. "
+        "how_to_fix is what only the user can change (the camera's own settings, a "
+        "motion mask, its network): tell them."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="The Frigate camera: its name, its friendly name, or its camera entity.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_SET_CAMERA_OBJECTS = ToolDef(
     name="set_camera_objects",
     description=(
@@ -3530,6 +3553,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_SET_CAMERA_OBJECTS,
     TOOL_SET_CAMERA_SNAPSHOTS,
     TOOL_MOVE_FRIGATE_CAMERA,
+    TOOL_FIX_FRIGATE_CAMERA,
     TOOL_GET_CAMERA_DESCRIPTIONS,
     TOOL_SET_CAMERA_DESCRIPTIONS,
     TOOL_GET_FACE_RECOGNITION,
@@ -3548,6 +3572,7 @@ FRIGATE_TOOL_NAMES: frozenset[str] = frozenset(
         TOOL_SET_CAMERA_OBJECTS.name,
         TOOL_SET_CAMERA_SNAPSHOTS.name,
         TOOL_MOVE_FRIGATE_CAMERA.name,
+        TOOL_FIX_FRIGATE_CAMERA.name,
         TOOL_GET_CAMERA_DESCRIPTIONS.name,
         TOOL_SET_CAMERA_DESCRIPTIONS.name,
         TOOL_GET_FACE_RECOGNITION.name,
@@ -3622,6 +3647,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "set_camera_objects",
         "set_camera_snapshots",
         "move_frigate_camera",
+        "fix_frigate_camera",
         "get_camera_descriptions",
         "set_camera_descriptions",
         "get_face_recognition",
@@ -3720,6 +3746,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "set_camera_objects",
         "set_camera_snapshots",
         "move_frigate_camera",
+        "fix_frigate_camera",
         "get_camera_descriptions",
         "set_camera_descriptions",
         "get_face_recognition",

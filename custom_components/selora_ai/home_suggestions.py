@@ -22,6 +22,9 @@ together, so the intent is inferred from coverage instead of stored:
   Face Library (``frigate.faces``).
 * **set_up_discovered** — a device Home Assistant discovered that nobody set
   up or ignored yet: one of its Discovered cards.
+* **fix_camera** — a camera the last Health audit found costing the hub, or
+  sending no picture (``frigate.repair``). It comes first: until it is fixed,
+  every camera on the hub can miss what it should detect.
 * **automation_idea**, **create_scene** — what the home's usage suggests
   (``usage_suggestions``): the pattern engine's automations, and scenes for
   devices the user keeps setting together.
@@ -107,10 +110,11 @@ _IDEA_PREFIX: Final = "idea:"
 # How likely the user is to act on each kind of row, 0 to 1. The chat home
 # shows the highest first; a recipe row carries a score of its own, from how
 # specific to this home the devices it needs are (``recipe_suggestions``). A
-# device waiting to be set up comes before anything organised around it, and
-# a new device missing from its collection before ideas the user never asked
-# about.
+# failing camera comes first, then a device waiting to be set up before
+# anything organised around it, and a new device missing from its collection
+# before ideas the user never asked about.
 _TYPE_SCORES: Final[dict[str, float]] = {
+    "fix_camera": 1.0,
     "set_up_discovered": 0.95,
     "add_to_collection": 0.9,
     "group_entities": 0.7,
@@ -592,6 +596,7 @@ async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     from .frigate.descriptions import async_describe_suggestions  # noqa: PLC0415
     from .frigate.faces import async_face_suggestions  # noqa: PLC0415
     from .frigate.ideas import async_camera_ideas  # noqa: PLC0415
+    from .frigate.repair import async_fix_camera_suggestions  # noqa: PLC0415
     from .frigate.setup import async_frigate_suggestions  # noqa: PLC0415
 
     store = get_home_suggestion_store(hass)
@@ -610,6 +615,7 @@ async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     found = discovered[:1]
     if found:
         found[0]["waiting"] = len(discovered) - 1
+    found += await async_fix_camera_suggestions(hass)
     found += [s for s, _ in _detect(hass, automations)]
     # Setting Frigate up is one step at a time, so its steps take one row of
     # the few the chat home shows: the first the user has not dismissed.

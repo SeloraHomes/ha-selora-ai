@@ -31,6 +31,7 @@ import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
 import { renderFlowEntityLink } from "./entity-link.js";
 import { describeIdea, describeIdeas } from "./camera-ideas.js";
+import { cameraReportValues, describeCameraFix } from "./camera-fix.js";
 
 const MAX_SHOWN = 3;
 const MAX_NAMED = 3;
@@ -103,7 +104,11 @@ async function act(host, suggestion, d) {
   const guide = SERVER_GUIDES[suggestion.type];
   if (guide) {
     // Every question in it is known, so the server writes the chat: no model.
-    if (await openServerGuide(host, guide, said)) return;
+    const params =
+      suggestion.type === "fix_camera"
+        ? { camera: suggestion.collection.ref }
+        : {};
+    if (await openServerGuide(host, guide, said, params)) return;
   }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
@@ -135,6 +140,7 @@ const FRIGATE_GUIDES = new Set([
   "add_to_frigate",
   "recognize_faces",
   "describe_cameras",
+  "fix_camera",
 ]);
 
 function guideFor(suggestion, d) {
@@ -153,13 +159,16 @@ function guideFor(suggestion, d) {
 const SERVER_GUIDES = {
   describe_cameras: "selora_ai/frigate/describe_start",
   recognize_faces: "selora_ai/frigate/faces_start",
+  // The card fixing the camera, and what only the user can change.
+  fix_camera: "selora_ai/frigate/fix_start",
 };
 
-async function openServerGuide(host, type, title) {
+async function openServerGuide(host, type, title, params = {}) {
   try {
     const { session_id } = await host.hass.callWS({
       type,
       title,
+      ...params,
       ...(host.hass?.language ? { language: host.hass.language } : {}),
     });
     host._setActiveTab("chat");
@@ -309,6 +318,7 @@ function describe(host, s) {
     area: s.area || "",
     waiting: s.waiting || 0,
     days: s.days || 0,
+    ...cameraReportValues(s.camera_report),
   };
   const t = (key, fallback) => interpolate(host._t(key, fallback), values);
   // A reason, with the entities it names as links.
@@ -405,6 +415,7 @@ function describe(host, s) {
       ? { icon: d.icon, title: d.title, prompt: d.prompt, why: d.why }
       : null;
   }
+  if (s.type === "fix_camera") return describeCameraFix(s, t, tl);
   if (s.type === "add_to_frigate") {
     return {
       icon: "mdi:cctv",

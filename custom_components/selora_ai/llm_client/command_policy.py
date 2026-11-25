@@ -2996,6 +2996,7 @@ _DESTRUCTIVE_TOOLS = frozenset(
         "set_camera_objects",
         "set_camera_snapshots",
         "move_frigate_camera",
+        "fix_frigate_camera",
         "set_camera_descriptions",
         "set_face_recognition",
     }

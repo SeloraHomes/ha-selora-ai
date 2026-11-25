@@ -105,6 +105,7 @@ from .files import (
 from .frigate import (
     _tool_add_cameras_to_frigate,
     _tool_add_face_photo,
+    _tool_fix_frigate_camera,
     _tool_get_camera_descriptions,
     _tool_get_face_recognition,
     _tool_get_frigate_snapshot,
@@ -183,6 +184,7 @@ from .names import (
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
     TOOL_FIRE_EVENT,
+    TOOL_FIX_FRIGATE_CAMERA,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
     TOOL_GET_APP_OPTIONS,
@@ -578,6 +580,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_SET_CAMERA_OBJECTS: _tool_set_camera_objects,
         TOOL_SET_CAMERA_SNAPSHOTS: _tool_set_camera_snapshots,
         TOOL_MOVE_FRIGATE_CAMERA: _tool_move_frigate_camera,
+        TOOL_FIX_FRIGATE_CAMERA: _tool_fix_frigate_camera,
         TOOL_REMOVE_FRIGATE_CAMERA: _tool_remove_frigate_camera,
         TOOL_GET_CAMERA_DESCRIPTIONS: _tool_get_camera_descriptions,
         TOOL_SET_CAMERA_DESCRIPTIONS: _tool_set_camera_descriptions,
