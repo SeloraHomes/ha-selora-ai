@@ -446,6 +446,98 @@ async def test_a_confirmed_symptom_without_its_rate_states_no_number(
     assert "much of a processor core" in sentences["high_cpu"][1]
 
 
+async def test_the_reports_say_how_busy_the_hub_is(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    stats = _stats(kitchen={"skipped_fps": 1.6, "detection_fps": 4.5})
+    stats["cpu_usages"]["frigate.full_system"] = {"cpu": "46.7", "mem": "84.2"}
+    # One detector at 23ms a frame analyses about 43 a second; 4.9 are asked.
+    stats["detectors"] = {"ov": {"inference_speed": 23.0, "pid": 9}}
+    stats["detection_fps"] = 4.9
+    _api(aioclient_mock, {"kitchen": _camera([["detect"]])}, stats=stats)
+
+    with patch.object(analysis, "_start_probes"):
+        (report,) = await _reports(hass, probed=False)
+
+    assert report["stats"]["system_cpu"] == 46.7
+    assert report["stats"]["detector_load"] == pytest.approx(0.113, abs=0.001)
+    assert analysis.hub_has_room(report["stats"])
+
+
+@pytest.mark.parametrize(
+    ("stats", "room"),
+    [
+        ({"system_cpu": 40.0, "detector_load": 0.2}, True),
+        ({"system_cpu": 95.0, "detector_load": 0.2}, False),
+        ({"system_cpu": 40.0, "detector_load": 0.9}, False),
+        # Frigate did not say: the hub is not shown to have room.
+        ({"system_cpu": 40.0}, False),
+        ({}, False),
+    ],
+)
+def test_the_hub_has_room_only_when_both_say_so(stats: dict[str, float], room: bool) -> None:
+    assert analysis.hub_has_room(stats) is room  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("hub", "rates", "issues"),
+    [
+        # Back Yard on an idle hub: frames arrive in bursts, nothing is set wrong.
+        ("40.0", {"skipped_fps": 1.3}, ["stream_uneven"]),
+        ("95.0", {"skipped_fps": 1.3}, ["skipping_frames"]),
+        # A camera costly itself falls behind for its own reason.
+        ("40.0", {"skipped_fps": 1.3, "detect_cpu": 146.8}, ["skipping_frames", "high_cpu"]),
+    ],
+)
+async def test_a_camera_falling_behind_on_an_idle_hub_has_an_uneven_stream(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    hub: str,
+    rates: dict[str, float],
+    issues: list[str],
+) -> None:
+    stats = _stats(back_yard=dict(rates))
+    stats["cpu_usages"]["frigate.full_system"] = {"cpu": hub}
+    stats["detectors"] = {"ov": {"inference_speed": 23.0}}
+    stats["detection_fps"] = 4.9
+    _api(aioclient_mock, {"back_yard": _camera([["detect"]])}, stats=stats)
+    clock = [1_000_000.0]
+
+    with (
+        patch.object(analysis.time, "time", side_effect=lambda: clock[0]),
+        patch.object(analysis, "_start_probes"),
+    ):
+        await _reports(hass, probed=False)
+        clock[0] += 600
+        reports = await _reports(hass, probed=False)
+    (camera_check,) = [
+        r
+        for r in await async_run_checks(hass, CameraReports(reports))
+        if r["check_id"] == "camera_analysis"
+    ]
+
+    assert reports[0]["issues"] == issues
+    # Not a misconfiguration: the network, not Selora Vision, needs a look.
+    (finding,) = camera_check["findings"]
+    assert (finding["severity"] == "info") is (issues == ["stream_uneven"])
+
+
+def test_an_uneven_stream_is_not_blamed_on_the_hub() -> None:
+    report = {
+        "name": "Back Yard",
+        "detect": {"width": 640, "height": 360, "fps": 5},
+        "streams": [],
+        "stats": {"skipped_fps": 1.3},
+    }
+
+    title, sentence = insights_checks._camera_sentences(report)["stream_uneven"]  # type: ignore[arg-type]
+
+    assert title == "Back Yard's stream arrives unevenly"
+    assert "while the hub has power to spare" in sentence
+    assert "cannot keep up" not in sentence
+
+
 @pytest.mark.parametrize("outage", ["unreachable", "unloaded"])
 async def test_a_pending_symptom_starts_over_after_frigate_was_gone(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any, outage: str

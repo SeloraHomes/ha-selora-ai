@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision erhält kein Bild von dieser Kamera. Prüfe, ob sie Strom hat, im Netzwerk ist und ihr Stream eingeschaltet ist.",
     "home_suggestion_camera_skipping_why": "Sie verliert {fps} Bilder pro Sekunde, weil der Hub nicht mitkommt, daher kommen Erkennungen zu spät oder gar nicht.",
     "home_suggestion_camera_skipping_why_plain": "Sie verliert Bilder, weil der Hub nicht mitkommt, daher kommen Erkennungen zu spät oder gar nicht.",
+    "home_suggestion_camera_stalling_why": "Sie verliert {fps} Bilder pro Sekunde, obwohl der Hub Leistung übrig hat: Die Kamera sendet sie ungleichmäßig, meist wegen schwachem WLAN-Signal oder zu hoher Bitrate.",
+    "home_suggestion_camera_uneven": "Der Stream von {entity} kommt ungleichmäßig an",
     "home_suggestion_camera_720p_why": "Selora Vision analysiert sie in {analysed}. 720p reicht, um Personen und Gesichter zu erkennen, für einen Bruchteil der Arbeit.",
     "home_suggestion_camera_main_stream_why": "Selora Vision analysiert sie aus ihrem Hauptstream in {stream}, daher dekodiert der Hub jedes Bild vollständig. Ihr Substream liefert dieselben Erkennungen für einen Bruchteil der Arbeit.",
     "home_suggestion_camera_heavy_sub_why": "Ihr Substream hat {stream}, daher dekodiert der Hub jedes Bild vollständig. In den Kameraeinstellungen auf 720p gesenkt, liefert er dieselben Erkennungen für einen Bruchteil der Arbeit.",

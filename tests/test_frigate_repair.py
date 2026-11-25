@@ -407,6 +407,23 @@ async def test_a_camera_falling_behind_alone_is_its_own_row(
     assert "members" not in row
 
 
+async def test_a_camera_falling_behind_on_an_idle_hub_keeps_its_own_row(
+    hass: HomeAssistant, frigate: MockConfigEntry, reports: list
+) -> None:
+    # The living room costs the hub, but the hub has room: fixing it would not
+    # help the kitchen, whose stream arrives unevenly.
+    reports.append(
+        _report("reolink_kitchen", ("stream_uneven",), [(["detect"], 640, 360)], skipped_fps=1.6)
+    )
+
+    first, kitchen = await repair.async_fix_camera_suggestions(hass)
+
+    assert first["collection"]["ref"] == "living_room"
+    assert "members" not in first
+    assert kitchen["collection"]["ref"] == "reolink_kitchen"
+    assert kitchen["camera_report"]["issues"] == ["stream_uneven"]
+
+
 async def test_no_row_without_frigate(hass: HomeAssistant, reports: list) -> None:
     assert await repair.async_fix_camera_suggestions(hass) == []
 

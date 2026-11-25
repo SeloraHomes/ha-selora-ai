@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision no recibe imagen de esta cámara. Comprueba que tiene alimentación, está en la red y su transmisión está activada.",
     "home_suggestion_camera_skipping_why": "Pierde {fps} fotogramas por segundo porque el hub no da abasto, así que las detecciones llegan tarde o se pierden.",
     "home_suggestion_camera_skipping_why_plain": "Pierde fotogramas porque el hub no da abasto, así que las detecciones llegan tarde o se pierden.",
+    "home_suggestion_camera_stalling_why": "Pierde {fps} fotogramas por segundo aunque el hub tiene potencia de sobra: la cámara los envía a trompicones, normalmente por una señal Wi-Fi débil o una tasa de bits alta.",
+    "home_suggestion_camera_uneven": "La transmisión de {entity} llega a trompicones",
     "home_suggestion_camera_720p_why": "Selora Vision la analiza a {analysed}. 720p basta para detectar personas y caras, con una fracción del trabajo.",
     "home_suggestion_camera_main_stream_why": "Selora Vision la analiza desde su transmisión principal de {stream}, así que el hub decodifica cada fotograma completo. Su subtransmisión da las mismas detecciones con una fracción del trabajo.",
     "home_suggestion_camera_heavy_sub_why": "Su subtransmisión es de {stream}, así que el hub decodifica cada fotograma completo. Bajada a 720p en los ajustes de la cámara, da las mismas detecciones con una fracción del trabajo.",

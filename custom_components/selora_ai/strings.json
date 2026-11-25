@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision gets no picture from it. Check it is powered, on the network, and its stream is on.",
     "home_suggestion_camera_skipping_why": "It drops {fps} frames a second because the hub cannot keep up, so detections arrive late or are missed.",
     "home_suggestion_camera_skipping_why_plain": "It drops frames because the hub cannot keep up, so detections arrive late or are missed.",
+    "home_suggestion_camera_stalling_why": "It drops {fps} frames a second while the hub has power to spare: the camera sends them unevenly, usually from a weak Wi-Fi signal or a high bitrate.",
+    "home_suggestion_camera_uneven": "{entity}'s stream arrives unevenly",
     "home_suggestion_camera_720p_why": "Selora Vision analyses it at {analysed}. 720p is enough to spot people and faces, for a fraction of the work.",
     "home_suggestion_camera_main_stream_why": "Selora Vision analyses it from its {stream} main stream, so the hub decodes every frame in full. Its substream gives the same detections for a fraction of the work.",
     "home_suggestion_camera_heavy_sub_why": "Its substream is {stream}, so the hub decodes every frame in full. Lowered to 720p in the camera's own settings, it gives the same detections for a fraction of the work.",

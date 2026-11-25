@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision 收不到這台攝影機的畫面。請檢查它是否通電、已連網，以及串流是否開啟。",
     "home_suggestion_camera_skipping_why": "中樞跟不上，每秒丟棄 {fps} 幀，因此偵測會延遲或遺漏。",
     "home_suggestion_camera_skipping_why_plain": "中樞跟不上，正在丟幀，因此偵測會延遲或遺漏。",
+    "home_suggestion_camera_stalling_why": "集線器仍有餘力，它卻每秒遺失 {fps} 幀：攝影機傳送畫面不均勻，通常是 Wi-Fi 訊號弱或位元率過高所致。",
+    "home_suggestion_camera_uneven": "{entity} 的視訊串流到達不均勻",
     "home_suggestion_camera_720p_why": "Selora Vision 以 {analysed} 分析它。辨識人和人臉用 720p 就夠了，工作量只需一小部分。",
     "home_suggestion_camera_main_stream_why": "Selora Vision 從它的 {stream} 主串流進行分析，中樞要完整解碼每一幀。用子串流可以得到相同的偵測，工作量只需一小部分。",
     "home_suggestion_camera_heavy_sub_why": "它的子串流是 {stream}，中樞要完整解碼每一幀。在攝影機自身設定中降到 720p，就能以一小部分工作量得到相同的偵測。",

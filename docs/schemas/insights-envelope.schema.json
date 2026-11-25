@@ -111,7 +111,9 @@
             "skipped_fps": { "type": "number" },
             "detection_fps": { "type": "number" },
             "detect_cpu": { "type": "number", "description": "% of one core used by the camera's detection process." },
-            "decode_cpu": { "type": "number", "description": "% of one core used by its FFmpeg." }
+            "decode_cpu": { "type": "number", "description": "% of one core used by its FFmpeg." },
+            "system_cpu": { "type": "number", "description": "% of the whole system Frigate reports; the same on every camera." },
+            "detector_load": { "type": "number", "description": "Frames a second asked of the detectors over what their inference speed allows (1 is saturated); the same on every camera." }
           }
         },
         "issues": {
@@ -123,6 +125,7 @@
               "detect_stream_unreadable",
               "no_video",
               "skipping_frames",
+              "stream_uneven",
               "detect_above_720p",
               "detect_stream_heavy",
               "high_cpu"

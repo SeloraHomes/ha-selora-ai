@@ -693,6 +693,28 @@ describe("renderHomeSuggestions", () => {
     );
   });
 
+  it("tells a camera falling behind on an idle hub that its stream is uneven", () => {
+    const h = host([
+      {
+        ...failingCamera,
+        camera_report: {
+          ...failingCamera.camera_report,
+          issues: ["stream_uneven"],
+          skipped_fps: 1.6,
+        },
+        members: [],
+      },
+    ]);
+    handlers(renderHomeSuggestions(h))[0]();
+    const text = flatten(renderHomeSuggestions(h));
+
+    expect(text).toContain("Living Room's stream arrives unevenly");
+    expect(text).toContain(
+      "It drops 1.6 frames a second while the hub has power to spare",
+    );
+    expect(text).not.toContain("cannot keep up");
+  });
+
   it("opens the camera's fix card the server wrote, with no model turn", async () => {
     const h = host([failingCamera]);
     h.hass.callWS = vi.fn(async () => ({ session_id: "s11" }));

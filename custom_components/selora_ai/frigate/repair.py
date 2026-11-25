@@ -37,6 +37,7 @@ from .analysis import (
     HIGH_CPU,
     NO_VIDEO,
     SKIPPING_FRAMES,
+    STREAM_UNEVEN,
 )
 from .cameras import (
     HEAVY_DETECT_PIXELS,
@@ -255,6 +256,12 @@ async def _plan(
             "Selora Vision reads only its main stream, and Selora AI found no "
             "substream for it: turn the camera's substream on, in its app or as its "
             "substream entity in Home Assistant, then ask again."
+        )
+    if STREAM_UNEVEN in issues:
+        advice.append(
+            "The hub has power to spare, so its frames arrive in bursts from the "
+            "camera: check its Wi-Fi signal, or lower its substream's bitrate in "
+            "the camera's own settings (its app or web page)."
         )
     if SKIPPING_FRAMES in issues and sub is None and detect is None:
         advice.append(
@@ -511,7 +518,8 @@ async def async_fix_camera_suggestions(hass: HomeAssistant) -> list[HomeSuggesti
 
     A camera that only falls behind (``skipping_frames``) is a victim when
     another camera has issues of its own: it is named on that camera's row,
-    since fixing that one is what helps it.
+    since fixing that one is what helps it. One whose stream arrives unevenly
+    (``stream_uneven``) is helped by no other camera's fix: it keeps its row.
     """
     if FrigateClient.from_hass(hass) is None:
         return []
@@ -525,9 +533,11 @@ async def async_fix_camera_suggestions(hass: HomeAssistant) -> list[HomeSuggesti
         and r.get("issues")
         and not (r.get("entity_id") and r["entity_id"] in ignored)
     ]
-    causes = [r for r in reports if set(r["issues"]) - {SKIPPING_FRAMES}]
-    rows = [_row(r) for r in causes or reports]
-    if causes and (victims := [r for r in reports if r not in causes]):
+    causes = [r for r in reports if set(r["issues"]) - {SKIPPING_FRAMES, STREAM_UNEVEN}]
+    behind = [r for r in reports if r not in causes]
+    victims = [r for r in behind if causes and SKIPPING_FRAMES in r["issues"]]
+    rows = [_row(r) for r in causes + behind if r not in victims]
+    if victims:
         rows[0]["members"] = [
             {"entity_id": r["entity_id"] or "", "name": r["name"]} for r in victims
         ]

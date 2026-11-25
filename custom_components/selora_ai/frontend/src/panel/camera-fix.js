@@ -19,7 +19,8 @@ export function cameraReportValues(report) {
 // A camera the last Health audit found costing the hub, or sending no
 // picture. The title names its most telling issue (the server lists them in
 // that order); the card the server opens names the change and what only the
-// user can do. The cameras dropping frames because of it are named too.
+// user can do. The cameras dropping frames because of it are named too; one
+// dropping them on a hub with power to spare (stream_uneven) keeps its own row.
 export function describeCameraFix(s, t, tl) {
   const report = s.camera_report || {};
   const issues = new Set(report.issues || []);
@@ -44,6 +45,14 @@ export function describeCameraFix(s, t, tl) {
             "home_suggestion_camera_skipping_why_plain",
             "It drops frames because the hub cannot keep up, so detections arrive late or are missed.",
           ),
+    );
+  }
+  if (issues.has("stream_uneven")) {
+    why.push(
+      t(
+        "home_suggestion_camera_stalling_why",
+        "It drops {fps} frames a second while the hub has power to spare: the camera sends them unevenly, usually from a weak Wi-Fi signal or a high bitrate.",
+      ),
     );
   }
   if (issues.has("detect_above_720p")) {
@@ -93,6 +102,11 @@ export function describeCameraFix(s, t, tl) {
     title = t(
       "home_suggestion_camera_behind",
       "{entity} is falling behind in Selora Vision",
+    );
+  } else if (lead === "stream_uneven") {
+    title = t(
+      "home_suggestion_camera_uneven",
+      "{entity}'s stream arrives unevenly",
     );
   } else if (lead === "high_cpu") {
     title = t("home_suggestion_camera_busy", "{entity} keeps your hub busy");
