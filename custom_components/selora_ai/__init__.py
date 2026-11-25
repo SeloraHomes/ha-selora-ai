@@ -5322,6 +5322,14 @@ async def _apply_destructive_actions(
                 res = await async_move_camera_confirmed(
                     hass, target_id, str(action.get("fingerprint") or ""), payload
                 )
+            elif kind == "frigate_fix":
+                # target_id is the Frigate camera; the fingerprint is the camera
+                # as shown and the change the card named.
+                from .frigate.repair import async_fix_camera_confirmed  # noqa: PLC0415
+
+                res = await async_fix_camera_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or ""), payload
+                )
             elif kind == "repair":
                 # target_id is "<domain>/<issue_id>"; the fingerprint is the issue
                 # as the card showed it, so one re-raised since is not fixed blind.
@@ -5356,6 +5364,7 @@ async def _apply_destructive_actions(
             if frigate is not None and kind in (
                 "frigate_objects",
                 "frigate_move",
+                "frigate_fix",
                 "frigate_snapshots",
             ):
                 frigate.append(res)

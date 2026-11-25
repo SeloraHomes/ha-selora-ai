@@ -34,6 +34,7 @@ from ..frigate.faces import (
     async_start as async_faces_start,
 )
 from ..frigate.ideas import async_camera_ideas
+from ..frigate.repair import async_preview_fix_camera
 from ..frigate.setup import async_add_cameras_confirmed, async_use_full_quality
 from ..home_suggestions import get_home_suggestion_store
 
@@ -285,6 +286,74 @@ async def _handle_websocket_frigate_describe_start(
     connection.send_result(msg["id"], {"session_id": session["id"]})
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/fix_start",
+        # The Frigate camera the suggestion names.
+        vol.Required("camera"): vol.All(str, vol.Length(min=1, max=128)),
+        # The suggestion's title, shown as the user's message.
+        vol.Required("title"): vol.All(str, vol.Length(min=1, max=200)),
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_frigate_fix_start(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open a conversation holding the card that fixes a camera, with no model
+    turn: what the fix is, and what only the user can change, are known."""
+    if not _require_admin(connection, msg):
+        return
+    from ..llm_client.command_policy import (  # noqa: PLC0415
+        _build_delete_approval_response,
+        _pending_destructive_from_log,
+    )
+
+    arguments = {"camera": msg["camera"]}
+    preview = await async_preview_fix_camera(hass, arguments)
+    if "error" in preview:
+        connection.send_error(msg["id"], "fix_failed", preview["error"])
+        return
+    advice = " ".join(preview.get("how_to_fix") or [])
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.create_session(owner=connection.user.id)
+    await store.append_message(session["id"], "user", msg["title"])
+    if preview.get("requires_approval"):
+        log = [{"tool": "fix_frigate_camera", "arguments": arguments, "result": preview}]
+        reply = _build_delete_approval_response(
+            {},
+            [],
+            log,
+            hass,
+            language=_language(msg),
+            actions=_pending_destructive_from_log(log),
+        )
+        approval = reply["command_approval"]
+        if advice:
+            approval["why"] = advice
+        await store.append_message(
+            session["id"],
+            "assistant",
+            str(reply.get("response") or ""),
+            intent="command_approval",
+            command_approval=approval,
+            approval_status="pending",
+            quick_actions=reply.get("quick_actions"),
+        )
+    else:
+        await store.append_message(
+            session["id"],
+            "assistant",
+            advice
+            or f"Selora AI has nothing left to change in how Selora Vision analyses "
+            f"{preview['name']}.",
+        )
+    await store.update_session_title(session["id"], msg["title"])
+    connection.send_result(msg["id"], {"session_id": session["id"]})
+
+
 # The panel downscales each photo first; HA closes the websocket on a frame
 # past 4 MiB, so one photo goes per call.
 _MAX_PHOTO_B64: Final = 3 * 1024 * 1024
@@ -420,6 +489,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_answer)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_start)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_start)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_fix_start)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_answer)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_people)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_add_photo)

@@ -416,6 +416,16 @@ class HomeSuggestionRecipe(TypedDict):
     description: str
 
 
+class HomeSuggestionCameraReport(TypedDict):
+    """Why a fix_camera row asks to fix a camera, from the last Health audit."""
+
+    issues: list[str]  # the camera check's codes, most telling first
+    analysed: list[int] | None  # [width, height] Frigate analyses at
+    stream: list[int] | None  # [width, height] of the stream it decodes for that
+    records_too: bool  # that stream is also the one recorded: the main stream
+    skipped_fps: float | None
+
+
 class HomeSuggestion(TypedDict):
     """A change Selora proposes from how the home is organised.
 
@@ -428,7 +438,9 @@ class HomeSuggestion(TypedDict):
     (a device Home Assistant discovered, not set up yet), "automation_idea"
     (a pattern engine suggestion), "create_scene" (devices the user keeps
     setting together), both usage_suggestions.py, or "recipe" (a catalog
-    recipe the home has the devices for, recipe_suggestions.py).
+    recipe the home has the devices for, recipe_suggestions.py), or
+    "fix_camera" (a camera the Health audit found costing the hub or sending
+    no picture, frigate/repair.py).
     """
 
     suggestion_id: str
@@ -443,6 +455,7 @@ class HomeSuggestion(TypedDict):
     state: NotRequired[str]
     # add_to_collection only: the members of the entity's kind the collection
     # already holds, and the area they all cover (None: the whole home).
+    # fix_camera: the cameras falling behind because of this one.
     members: NotRequired[list[HomeSuggestionEntity]]
     area: NotRequired[str | None]
     # set_up_discovered only: the other discovered devices, shown one at a
@@ -457,6 +470,8 @@ class HomeSuggestion(TypedDict):
     evidence: NotRequired[str]
     # create_scene only: on how many days the user set these together.
     days: NotRequired[int]
+    # fix_camera only: what the Health audit found.
+    camera_report: NotRequired[HomeSuggestionCameraReport]
 
 
 # ── Chat attachments ──────────────────────────────────────────────────
