@@ -14,6 +14,9 @@ insights export, where Selora alerts on ``issues``. Each issue is a stable code:
 * ``no_video``, ``skipping_frames``, ``high_cpu`` — from Frigate's live rates,
   which move every second: raised only once present for
   ``HEALTH_EVENT_CONFIRM_SECS`` with no audit in between missing them.
+* ``stream_uneven`` — ``skipping_frames`` on a hub with power to spare, from a
+  camera that is not itself costly: its frames arrive in bursts (weak Wi-Fi, a
+  high bitrate), which nothing on the hub fixes.
 
 Stream sizes come from Frigate's own ffprobe of each input
 (``/api/ffprobe?paths=camera:<name>``), which uses the logins Frigate holds, so
@@ -54,12 +57,14 @@ DETECT_STREAM_HEAVY: Final = "detect_stream_heavy"
 DETECT_STREAM_UNREADABLE: Final = "detect_stream_unreadable"
 NO_VIDEO: Final = "no_video"
 SKIPPING_FRAMES: Final = "skipping_frames"
+STREAM_UNEVEN: Final = "stream_uneven"
 HIGH_CPU: Final = "high_cpu"
 # Most telling first: a camera Frigate cannot read explains its other symptoms.
 ISSUES: Final = (
     DETECT_STREAM_UNREADABLE,
     NO_VIDEO,
     SKIPPING_FRAMES,
+    STREAM_UNEVEN,
     DETECT_ABOVE_720P,
     DETECT_STREAM_HEAVY,
     HIGH_CPU,
@@ -71,6 +76,11 @@ _SUSTAINED: Final = (NO_VIDEO, SKIPPING_FRAMES, HIGH_CPU)
 _SKIPPING_FPS: Final = 0.5
 # The camera's detection process (motion, tracking) using more than a core.
 _HIGH_CPU: Final = 100.0
+# Below both, the hub has power to spare: a camera dropping frames is sent
+# them unevenly, not refused them. % of the whole system; share of the frames
+# a second the detectors can analyse.
+_ROOM_SYSTEM_CPU: Final = 85.0
+_ROOM_DETECTOR_LOAD: Final = 0.8
 # A probe that failed this many times in a row is a stream that does not answer.
 _UNREADABLE_AFTER: Final = 2
 
@@ -298,11 +308,47 @@ def _stats(name: str, stats: dict[str, Any]) -> CameraStats:
         if (value := _number(rates.get(key))) is not None:
             out[key] = value  # type: ignore[literal-required]
     usages = stats.get("cpu_usages") or {}
-    for key, pid in (("detect_cpu", rates.get("pid")), ("decode_cpu", rates.get("ffmpeg_pid"))):
+    for key, pid in (
+        ("detect_cpu", rates.get("pid")),
+        ("decode_cpu", rates.get("ffmpeg_pid")),
+        ("system_cpu", "frigate.full_system"),
+    ):
         usage = usages.get(str(pid)) if pid is not None else None
         if isinstance(usage, dict) and (value := _number(usage.get("cpu"))) is not None:
             out[key] = value  # type: ignore[literal-required]
+    if (load := _detector_load(stats)) is not None:
+        out["detector_load"] = load
     return out
+
+
+def _detector_load(stats: dict[str, Any]) -> float | None:
+    """The share of the frames a second its detectors can analyse that Frigate
+    asks of them: they share one queue, each taking a frame per inference."""
+    detectors = stats.get("detectors")
+    asked = _number(stats.get("detection_fps"))
+    if not isinstance(detectors, dict) or asked is None:
+        return None
+    speeds = [
+        speed
+        for d in detectors.values()
+        if isinstance(d, dict) and (speed := _number(d.get("inference_speed"))) and speed > 0
+    ]
+    if not speeds:
+        return None
+    return round(asked / sum(1000 / speed for speed in speeds), 3)
+
+
+def hub_has_room(stats: CameraStats) -> bool:
+    """Whether Frigate's last statistics show the hub with power to spare.
+    False when they do not say: a camera falls behind on a busy hub unless
+    shown otherwise."""
+    cpu, load = stats.get("system_cpu"), stats.get("detector_load")
+    return (
+        cpu is not None
+        and load is not None
+        and cpu < _ROOM_SYSTEM_CPU
+        and load < _ROOM_DETECTOR_LOAD
+    )
 
 
 def _symptoms(stats: CameraStats) -> dict[str, bool]:
@@ -326,6 +372,7 @@ def _issues(
     probe: _Probe | None,
     symptoms: dict[str, bool],
     now: float,
+    room: bool,
 ) -> list[str]:
     found: set[str] = set()
     width, height = detect["width"], detect["height"]
@@ -356,6 +403,11 @@ def _issues(
             state.confirmed.discard(key)
         if key in state.confirmed:
             found.add(issue)
+    # Dropping frames on a hub with power to spare, without costing it: the
+    # frames arrive unevenly. Relabelled, not timed apart, so a hub whose load
+    # moves does not restart the clock.
+    if room and SKIPPING_FRAMES in found and HIGH_CPU not in found:
+        found = found - {SKIPPING_FRAMES} | {STREAM_UNEVEN}
     return [issue for issue in ISSUES if issue in found]
 
 
@@ -447,6 +499,7 @@ async def _async_camera_reports(hass: HomeAssistant) -> CameraReports:
                     current,
                     _symptoms(camera_stats),
                     now,
+                    hub_has_room(camera_stats),
                 )
                 if enabled
                 else [],

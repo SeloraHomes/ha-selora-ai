@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision이 이 카메라에서 영상을 받지 못하고 있습니다. 전원, 네트워크 연결, 스트림이 켜져 있는지 확인하세요.",
     "home_suggestion_camera_skipping_why": "허브가 따라가지 못해 초당 {fps}프레임을 놓치고 있어 감지가 늦거나 누락됩니다.",
     "home_suggestion_camera_skipping_why_plain": "허브가 따라가지 못해 프레임을 놓치고 있어 감지가 늦거나 누락됩니다.",
+    "home_suggestion_camera_stalling_why": "허브에 여유가 있는데도 초당 {fps}프레임을 놓치고 있습니다. 카메라가 프레임을 고르지 않게 보내며, 보통 Wi-Fi 신호가 약하거나 비트레이트가 높아서입니다.",
+    "home_suggestion_camera_uneven": "{entity}의 스트림이 고르지 않게 들어옵니다",
     "home_suggestion_camera_720p_why": "Selora Vision이 {analysed}로 분석하고 있습니다. 사람과 얼굴을 찾는 데는 720p면 충분하며 부담은 훨씬 적습니다.",
     "home_suggestion_camera_main_stream_why": "Selora Vision이 {stream} 메인 스트림으로 분석하고 있어 허브가 모든 프레임을 전부 디코딩합니다. 서브 스트림을 쓰면 훨씬 적은 부담으로 같은 감지를 합니다.",
     "home_suggestion_camera_heavy_sub_why": "서브 스트림이 {stream}이라 허브가 모든 프레임을 전부 디코딩합니다. 카메라 설정에서 720p로 낮추면 훨씬 적은 부담으로 같은 감지를 합니다.",

@@ -1418,6 +1418,9 @@ class CameraStats(TypedDict, total=False):
     detection_fps: float
     detect_cpu: float  # % of one core: the camera's detection process
     decode_cpu: float  # % of one core: its FFmpeg
+    # The whole hub, the same on every camera: what says whether it has room.
+    system_cpu: float  # % of the whole system
+    detector_load: float  # share of the frames a second the detectors can analyse
 
 
 class CameraReport(TypedDict):

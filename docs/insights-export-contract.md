@@ -206,7 +206,8 @@ points) while it starves every other camera on the hub.
   ],
   "streams_measured_at": "2026-11-18T06:00:00+00:00",
   "stats": { "camera_fps": 5.0, "process_fps": 5.0, "skipped_fps": 0.0,
-             "detection_fps": 20.2, "detect_cpu": 146.8, "decode_cpu": 1.6 },
+             "detection_fps": 20.2, "detect_cpu": 146.8, "decode_cpu": 1.6,
+             "system_cpu": 46.7, "detector_load": 0.113 },
   "issues": ["detect_above_720p", "detect_stream_heavy", "high_cpu"]
 }]
 ```
@@ -219,15 +220,22 @@ points) while it starves every other camera on the hub.
 | `detect_stream_unreadable` | Frigate's ffprobe got no answer from the stream it analyses, twice in a row | the camera is off the network, or that stream is disabled in the camera |
 | `no_video` | no frames from the camera for 10 minutes | as above |
 | `skipping_frames` | Frigate dropping over 0.5 frames a second for 10 minutes: the hub can't keep up | the camera's other issues, or another camera's |
+| `stream_uneven` | the same drop on a hub with power to spare (`system_cpu` under 85, `detector_load` under 0.8) from a camera without `high_cpu`: its frames arrive in bursts. Not a misconfiguration; the Health finding is `info` when it is the camera's only issue | the camera's Wi-Fi signal, or a lower bitrate in the camera's own settings |
 | `detect_above_720p` | Frigate analyses frames larger than 1280×720 (`detect` says the size) | set `detect` to the detect stream's size scaled to 720p |
 | `detect_stream_heavy` | the stream decoded for detection is above 1080p (`streams[]` with `detect` says the size), so every frame is decoded in full | if that stream also has `record`, Frigate reads only the main stream: add the camera's substream as the `detect` input; otherwise lower the substream to 720p in the camera's own settings |
 | `high_cpu` | the camera's detection process over 100% of a core for 10 minutes, usually constant motion | a motion mask over trees, a street |
 
+- **`skipping_frames` and `stream_uneven` never appear together**: the hub's
+  room at the audit decides which one a camera that drops frames gets.
+- **`system_cpu` and `detector_load` describe the whole hub**, the same on
+  every camera: `system_cpu` is Frigate's % of the whole system,
+  `detector_load` the frames a second asked of the detectors over what their
+  inference speed allows (1 is saturated).
 - **`issues` is reported whatever the owner did on the Health page.** Ignoring
   the finding there hides the card from the owner, not the camera from Selora.
 - **A camera turned off in Frigate** (`enabled: false`) has no issues.
 - **The live issues need 10 minutes** (`no_video`, `skipping_frames`,
-  `high_cpu`): Frigate's rates move every second, and an issue is raised only
+  `stream_uneven`, `high_cpu`): Frigate's rates move every second, and an issue is raised only
   once it has held across Health audits that long. `stats` itself is the
   instant the audit read it.
 - **`streams` are Frigate's own measurement** of each input, in its config

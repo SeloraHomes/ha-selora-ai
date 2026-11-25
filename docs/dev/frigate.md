@@ -292,8 +292,20 @@ that lives in the camera's own Frigate section, behind a card
 **A failing camera is the first home suggestion** (`fix_camera`, score 1.0,
 above discovered devices): until it is fixed, every camera on the hub can
 miss detections. One row per camera with an issue of its own; a camera only
-falling behind (`skipping_frames`) while another has one is named on that
-row instead, since fixing the other is what helps it. The row's id hashes the
+falling behind (`skipping_frames`) on a busy hub while another has one is named
+on that row instead, since fixing the other is what helps it.
+
+**Falling behind is not always the hub.** A camera whose stream stalls and
+catches up drops frames on an idle hub, and no other camera's fix helps it.
+`hub_has_room()` reads Frigate's whole-system CPU and the detectors' load
+(frames a second asked, over what their inference speed allows); below both,
+a confirmed `skipping_frames` on a camera without `high_cpu` is reported as
+`stream_uneven` instead. It is its own code, not a flag, because Connect
+alerts on the codes: "the hub cannot keep up" raised a misconfiguration
+incident for a Wi-Fi camera. It keeps its own row, an `info` Health finding,
+and the advice to check Wi-Fi or bitrate. When Frigate gives neither figure,
+the hub is taken as busy. It is relabelled, not timed apart, so a hub whose
+load moves does not restart the 10-minute clock. The row's id hashes the
 issues and the inputs, and the confirm dismisses it: the same issues after the
 inputs changed are a new row. Acting on it opens the card the server writes
 (`selora_ai/frigate/fix_start`), with no model turn.

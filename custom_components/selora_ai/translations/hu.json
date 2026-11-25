@@ -1115,6 +1115,8 @@
     "home_suggestion_camera_no_picture_why": "A Selora Vision nem kap képet ettől a kamerától. Ellenőrizd, hogy van-e áram, a hálózaton van-e, és be van-e kapcsolva a streamje.",
     "home_suggestion_camera_skipping_why": "Másodpercenként {fps} képkockát hagy ki, mert a hub nem bírja, így az észlelések késve érkeznek vagy elmaradnak.",
     "home_suggestion_camera_skipping_why_plain": "Képkockákat hagy ki, mert a hub nem bírja, így az észlelések késve érkeznek vagy elmaradnak.",
+    "home_suggestion_camera_stalling_why": "Másodpercenként {fps} képkockát dob el, pedig a hubnak van tartaléka: a kamera egyenetlenül küldi őket, általában gyenge Wi-Fi-jel vagy túl magas bitráta miatt.",
+    "home_suggestion_camera_uneven": "{entity} adatfolyama egyenetlenül érkezik",
     "home_suggestion_camera_720p_why": "A Selora Vision {analysed} felbontásban elemzi. A 720p elég az emberek és arcok felismeréséhez, a munka töredékéért.",
     "home_suggestion_camera_main_stream_why": "A Selora Vision a {stream} fő streamjéből elemzi, így a hub minden képkockát teljesen dekódol. A mellékstreamje ugyanazokat az észleléseket adja a munka töredékéért.",
     "home_suggestion_camera_heavy_sub_why": "A mellékstreamje {stream}, így a hub minden képkockát teljesen dekódol. A kamera saját beállításaiban 720p-re csökkentve ugyanazokat az észleléseket adja a munka töredékéért.",

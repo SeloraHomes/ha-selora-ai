@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision はこのカメラから映像を受け取れていません。電源、ネットワーク接続、ストリームが有効かを確認してください。",
     "home_suggestion_camera_skipping_why": "ハブの処理が追いつかず毎秒 {fps} フレームを落としているため、検出が遅れたり漏れたりします。",
     "home_suggestion_camera_skipping_why_plain": "ハブの処理が追いつかずフレームを落としているため、検出が遅れたり漏れたりします。",
+    "home_suggestion_camera_stalling_why": "ハブには余裕があるのに、毎秒 {fps} フレームを落としています。カメラの送信が不安定で、多くは Wi-Fi の電波が弱いかビットレートが高すぎることが原因です。",
+    "home_suggestion_camera_uneven": "{entity} の映像が不安定に届いています",
     "home_suggestion_camera_720p_why": "Selora Vision は {analysed} で解析しています。人や顔の検出には 720p で十分で、負荷はごく一部で済みます。",
     "home_suggestion_camera_main_stream_why": "Selora Vision は {stream} のメインストリームから解析しているため、ハブは毎フレームを丸ごとデコードしています。サブストリームなら同じ検出をごく一部の負荷で行えます。",
     "home_suggestion_camera_heavy_sub_why": "サブストリームが {stream} のため、ハブは毎フレームを丸ごとデコードしています。カメラ側の設定で 720p に下げれば、同じ検出をごく一部の負荷で行えます。",

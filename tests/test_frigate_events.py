@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import time
 from typing import Any
 from unittest.mock import MagicMock
@@ -210,7 +211,13 @@ async def test_a_description_search_without_semantic_search_keeps_the_other_filt
     _api(aioclient_mock, [EVENTS[0]])
 
     result = await async_find_events(
-        hass, {"query": "a white car", "objects": ["car"], "start": "2026-10-25"}
+        hass,
+        {
+            "query": "a white car",
+            "objects": ["car"],
+            # Inside the lookback whatever the day the test runs.
+            "start": (dt_util.now() - timedelta(days=2)).date().isoformat(),
+        },
     )
 
     url = next(c[1] for c in aioclient_mock.mock_calls if "/api/events" in str(c[1]))

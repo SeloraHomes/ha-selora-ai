@@ -1095,6 +1095,8 @@
     "home_suggestion_camera_no_picture_why": "Selora Vision ne reçoit aucune image de cette caméra. Vérifiez qu'elle est alimentée, connectée au réseau et que son flux est activé.",
     "home_suggestion_camera_skipping_why": "Elle perd {fps} images par seconde car le hub ne suit pas : les détections arrivent en retard ou sont manquées.",
     "home_suggestion_camera_skipping_why_plain": "Elle perd des images car le hub ne suit pas : les détections arrivent en retard ou sont manquées.",
+    "home_suggestion_camera_stalling_why": "Elle perd {fps} images par seconde alors que le hub a de la marge : la caméra les envoie par à-coups, souvent à cause d'un signal Wi-Fi faible ou d'un débit trop élevé.",
+    "home_suggestion_camera_uneven": "Le flux de {entity} arrive par à-coups",
     "home_suggestion_camera_720p_why": "Selora Vision l'analyse en {analysed}. Le 720p suffit pour repérer les personnes et les visages, pour une fraction du travail.",
     "home_suggestion_camera_main_stream_why": "Selora Vision l'analyse à partir de son flux principal {stream} : le hub décode chaque image en entier. Son flux secondaire donne les mêmes détections pour une fraction du travail.",
     "home_suggestion_camera_heavy_sub_why": "Son flux secondaire est en {stream} : le hub décode chaque image en entier. Réglé en 720p dans les paramètres de la caméra, il donne les mêmes détections pour une fraction du travail.",

@@ -58,6 +58,7 @@ from .frigate.analysis import (
     HIGH_CPU,
     NO_VIDEO,
     SKIPPING_FRAMES,
+    STREAM_UNEVEN,
     CameraReports,
 )
 from .health_store import get_health_store
@@ -827,6 +828,18 @@ def _camera_sentences(report: CameraReport) -> dict[str, tuple[str, str]]:
             )
             + " because the hub cannot keep up, so detections arrive late or are missed.",
         ),
+        STREAM_UNEVEN: (
+            f"{name}'s stream arrives unevenly",
+            "Selora Vision is dropping "
+            + (
+                f"{skipped:g} frames a second"
+                if (skipped := stats.get("skipped_fps")) is not None
+                else "frames"
+            )
+            + " while the hub has power to spare: the camera sends them in bursts, "
+            "usually from a weak Wi-Fi signal or a high bitrate. Detections arrive "
+            "late or are missed.",
+        ),
         DETECT_ABOVE_720P: (
             f"{name} is analysed at {analysed}",
             f"Selora Vision analyses this camera at {analysed}, which takes much of "
@@ -870,14 +883,18 @@ def _check_camera_analysis(ctx: _CheckContext) -> list[Finding]:
             continue
         sentences = _camera_sentences(report)
         title = sentences[report["issues"][0]][0]
+        # Nothing in Selora Vision is set up wrong: the camera's network is.
+        uneven = report["issues"] == [STREAM_UNEVEN]
         finding: Finding = {
             "check_id": "camera_analysis",
-            "severity": "warning",
+            "severity": "info" if uneven else "warning",
             "category": "fix",
             "title": title,
             "detail": " ".join(sentences[issue][1] for issue in report["issues"]),
             "entities": [report["entity_id"]] if report["entity_id"] else [],
-            "action": "Check the camera's Selora Vision settings",
+            "action": "Check the camera's Wi-Fi signal and bitrate"
+            if uneven
+            else "Check the camera's Selora Vision settings",
         }
         if report["device_id"]:
             finding["device_id"] = report["device_id"]
