@@ -336,6 +336,111 @@ async def test_a_symptom_that_stops_starts_its_clock_again(
     assert report["issues"] == []
 
 
+async def _skipping_series(
+    hass: HomeAssistant,
+    aioclient_mock: Any,
+    rates: list[dict[str, Any]],
+    step: float = 900,
+    start: float = 1_000_000.0,
+) -> list[list[str]]:
+    """The yard camera's issues at each Health audit, ``step`` seconds apart."""
+    clock = [start]
+    seen: list[list[str]] = []
+    with (
+        patch.object(analysis.time, "time", side_effect=lambda: clock[0]),
+        patch.object(analysis, "_start_probes"),
+    ):
+        for rate in rates:
+            aioclient_mock.clear_requests()
+            _api(
+                aioclient_mock,
+                {"yard": _camera([["record", "detect"]])},
+                stats=_stats(yard=dict(rate)),
+            )
+            (report,) = await _reports(hass, probed=False)
+            seen.append(report["issues"])
+            clock[0] += step
+    return seen
+
+
+async def test_a_confirmed_symptom_outlasts_a_quiet_reading(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """One quiet audit between noisy ones would otherwise raise it anew."""
+    noisy, quiet = {"skipped_fps": 2.0}, {"skipped_fps": 0.1}
+
+    seen = await _skipping_series(hass, aioclient_mock, [noisy, noisy, quiet, noisy, quiet])
+
+    assert seen == [
+        [],
+        ["skipping_frames"],
+        ["skipping_frames"],
+        ["skipping_frames"],
+        ["skipping_frames"],
+    ]
+
+
+async def test_a_confirmed_symptom_clears_once_quiet_for_an_hour(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    noisy, quiet = {"skipped_fps": 2.0}, {"skipped_fps": 0.1}
+
+    seen = await _skipping_series(hass, aioclient_mock, [noisy, noisy, *[quiet] * 6])
+
+    assert seen[-3] == ["skipping_frames"]  # quiet for 45 minutes
+    assert seen[-2:] == [[], []]  # an hour, then more
+
+
+async def test_an_unreadable_audit_restarts_a_pending_clear(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    noisy, quiet = {"skipped_fps": 2.0}, {"skipped_fps": 0.1}
+    await _skipping_series(hass, aioclient_mock, [noisy, noisy, quiet, quiet])
+    with patch.object(analysis, "_stats", side_effect=TypeError("odd shape")):
+        broken = await analysis.async_camera_reports(hass)
+    assert broken.error is not None
+
+    # Quiet since 1_001_800: an hour by the last reading, but not since the
+    # unreadable audit.
+    seen = await _skipping_series(hass, aioclient_mock, [quiet] * 3, start=1_003_600)
+
+    assert seen == [["skipping_frames"]] * 3
+
+
+async def test_a_camera_sending_frames_again_is_back_at_once(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    dark, back = {"camera_fps": 0.0, "process_fps": 0.0}, {"camera_fps": 5.0}
+
+    seen = await _skipping_series(hass, aioclient_mock, [dark, dark, back])
+
+    assert seen == [[], ["no_video"], []]
+
+
+@pytest.mark.parametrize(
+    ("rates", "skipping"),
+    [
+        # Back Yard on an idle hub: 0.6 of 5.1 fps, frames in bursts.
+        ({"camera_fps": 5.1, "skipped_fps": 0.6}, False),
+        ({"camera_fps": 5.0, "skipped_fps": 1.0}, True),
+        # A fair share of a fast camera, but under one frame in two seconds.
+        ({"camera_fps": 1.0, "skipped_fps": 0.4}, False),
+        # Without what the camera sends, the rate alone decides.
+        ({"camera_fps": None, "skipped_fps": 0.6}, True),
+    ],
+)
+async def test_skipping_frames_needs_a_share_of_what_the_camera_sends(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    rates: dict[str, Any],
+    skipping: bool,
+) -> None:
+    seen = await _skipping_series(hass, aioclient_mock, [rates, rates])
+
+    assert ("skipping_frames" in seen[-1]) is skipping
+
+
 async def test_a_confirmed_symptom_stands_while_the_rates_are_missing(
     hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:

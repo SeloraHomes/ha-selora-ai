@@ -255,6 +255,12 @@ analysis" check shows it, and the insights export ships it for Selora's alerts
   for `HEALTH_EVENT_CONFIRM_SECS` with no audit in between missing them. A
   rate Frigate does not give (statistics down, a camera or field missing)
   proves nothing: a confirmed issue stays, a pending one starts over.
+- **`skipping_frames` and `high_cpu` clear only after an hour without them.**
+  An audit reads one instant every 15 minutes, so clearing on the first quiet
+  reading raised a camera with a bursty stream again every few hours, each
+  time a new alert. `no_video` clears at once: frames arriving are proof.
+- **Skipping is a share, not just a rate**: over 0.5 fps *and* over 15% of the
+  camera's fps. A tenth of the frames comes and goes with a bursty stream.
 - **Frigate unreachable is an errored check**, never a clear one, and the
   export then has no `cameras`. A camera turned off in Frigate has no issues.
 - **Not announced** (`NOTIFY_CHECKS`): a camera set up badly is Selora's to fix,
