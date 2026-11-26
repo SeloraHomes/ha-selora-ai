@@ -71,9 +71,16 @@ ISSUES: Final = (
 )
 _SUSTAINED: Final = (NO_VIDEO, SKIPPING_FRAMES, HIGH_CPU)
 
-# Frigate drops frames it cannot process in time; a few a second is a camera
-# that has fallen behind, not a hiccup.
+# Frigate drops frames it cannot process in time; a few a second, and a fair
+# share of what the camera sends, is a camera that has fallen behind, not a
+# hiccup: one frame in ten comes and goes with a bursty stream.
 _SKIPPING_FPS: Final = 0.5
+_SKIPPING_SHARE: Final = 0.15
+# A rate that swings (frames dropped, CPU) clears only once absent this long:
+# Health audits read one instant every 15 minutes, so one quiet reading
+# between noisy ones would clear the issue and raise it again, alerting anew.
+# A camera sending frames again is back at once.
+_CLEAR_AFTER: Final = {SKIPPING_FRAMES: 3600.0, HIGH_CPU: 3600.0}
 # The camera's detection process (motion, tracking) using more than a core.
 _HIGH_CPU: Final = 100.0
 # Below both, the hub has power to spare: a camera dropping frames is sent
@@ -107,6 +114,8 @@ class _State:
     since: dict[tuple[str, str], float] = field(default_factory=dict)
     # (camera, issue) pairs that held long enough to be issues.
     confirmed: set[tuple[str, str]] = field(default_factory=set)
+    # (camera, issue) -> time.time() a confirmed issue was first seen absent.
+    quiet: dict[tuple[str, str], float] = field(default_factory=dict)
     task: asyncio.Task[None] | None = None
 
 
@@ -358,7 +367,10 @@ def _symptoms(stats: CameraStats) -> dict[str, bool]:
     if (fps := stats.get("camera_fps")) is not None:
         found[NO_VIDEO] = fps == 0
     if (skipped := stats.get("skipped_fps")) is not None:
-        found[SKIPPING_FRAMES] = skipped > _SKIPPING_FPS
+        sent = stats.get("camera_fps")
+        found[SKIPPING_FRAMES] = skipped > _SKIPPING_FPS and (
+            not sent or skipped > sent * _SKIPPING_SHARE
+        )
     if (cpu := stats.get("detect_cpu")) is not None:
         found[HIGH_CPU] = cpu > _HIGH_CPU
     return found
@@ -389,18 +401,25 @@ def _issues(
     if probe is not None and probe.failures >= _UNREADABLE_AFTER:
         found.add(DETECT_STREAM_UNREADABLE)
     # Live rates move every second: an issue only once it has held across
-    # readings. Without its rate, a confirmed issue stands and a pending one
-    # starts over, since nothing shows it held in between.
+    # readings, and gone only once it has stayed away. Without its rate, a
+    # confirmed issue stands and a pending one (or a pending clear) starts
+    # over, since nothing shows it held in between.
     for issue in _SUSTAINED:
         key = (name, issue)
         shows = symptoms.get(issue)
         if shows:
+            state.quiet.pop(key, None)
             first = state.since.setdefault(key, now)
             if now - first >= HEALTH_EVENT_CONFIRM_SECS:
                 state.confirmed.add(key)
-        elif shows is False or key not in state.confirmed:
+        elif key not in state.confirmed:
+            state.since.pop(key, None)
+        elif shows is None:
+            state.quiet.pop(key, None)
+        elif now - state.quiet.setdefault(key, now) >= _CLEAR_AFTER.get(issue, 0.0):
             state.since.pop(key, None)
             state.confirmed.discard(key)
+            state.quiet.pop(key, None)
         if key in state.confirmed:
             found.add(issue)
     # Dropping frames on a hub with power to spare, without costing it: the
@@ -412,8 +431,9 @@ def _issues(
 
 
 def _forget_pending(state: _State) -> None:
-    """An audit without rates: a pending symptom starts over."""
+    """An audit without rates: a pending symptom, or a pending clear, starts over."""
     state.since = {k: v for k, v in state.since.items() if k in state.confirmed}
+    state.quiet.clear()
 
 
 async def async_camera_reports(hass: HomeAssistant) -> CameraReports:
@@ -426,6 +446,7 @@ async def async_camera_reports(hass: HomeAssistant) -> CameraReports:
         return await _async_camera_reports(hass)
     except (KeyError, TypeError, AttributeError, ValueError, OverflowError) as exc:
         _LOGGER.warning("Frigate answered in a shape the camera check can't read: %r", exc)
+        _forget_pending(_state(hass))
         return CameraReports(None, "Frigate answered in an unexpected shape")
 
 
@@ -461,6 +482,7 @@ async def _async_camera_reports(hass: HomeAssistant) -> CameraReports:
     live = {n for n, c in cameras.items() if c.get("enabled") is not False}
     state.since = {k: v for k, v in state.since.items() if k[0] in live}
     state.confirmed = {k for k in state.confirmed if k[0] in live}
+    state.quiet = {k: v for k, v in state.quiet.items() if k[0] in live}
     entities = _camera_entities(hass)
     now = time.time()
     reports: list[CameraReport] = []

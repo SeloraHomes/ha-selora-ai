@@ -219,7 +219,7 @@ points) while it starves every other camera on the hub.
 |---|---|---|
 | `detect_stream_unreadable` | Frigate's ffprobe got no answer from the stream it analyses, twice in a row | the camera is off the network, or that stream is disabled in the camera |
 | `no_video` | no frames from the camera for 10 minutes | as above |
-| `skipping_frames` | Frigate dropping over 0.5 frames a second for 10 minutes: the hub can't keep up | the camera's other issues, or another camera's |
+| `skipping_frames` | Frigate dropping over 0.5 frames a second, and over 15% of the camera's, for 10 minutes: the hub can't keep up | the camera's other issues, or another camera's |
 | `stream_uneven` | the same drop on a hub with power to spare (`system_cpu` under 85, `detector_load` under 0.8) from a camera without `high_cpu`: its frames arrive in bursts. Not a misconfiguration; the Health finding is `info` when it is the camera's only issue | the camera's Wi-Fi signal, or a lower bitrate in the camera's own settings |
 | `detect_above_720p` | Frigate analyses frames larger than 1280×720 (`detect` says the size) | set `detect` to the detect stream's size scaled to 720p |
 | `detect_stream_heavy` | the stream decoded for detection is above 1080p (`streams[]` with `detect` says the size), so every frame is decoded in full | if that stream also has `record`, Frigate reads only the main stream: add the camera's substream as the `detect` input; otherwise lower the substream to 720p in the camera's own settings |
@@ -236,8 +236,10 @@ points) while it starves every other camera on the hub.
 - **A camera turned off in Frigate** (`enabled: false`) has no issues.
 - **The live issues need 10 minutes** (`no_video`, `skipping_frames`,
   `stream_uneven`, `high_cpu`): Frigate's rates move every second, and an issue is raised only
-  once it has held across Health audits that long. `stats` itself is the
-  instant the audit read it.
+  once it has held across Health audits that long. `skipping_frames`,
+  `stream_uneven` and `high_cpu` then stay until absent for an hour, so a
+  rate that swings is one issue, not one per swing; `no_video` goes as soon
+  as frames arrive. `stats` itself is the instant the audit read it.
 - **`streams` are Frigate's own measurement** of each input, in its config
   order, made with the logins Frigate holds. A camera is measured once a day,
   an hour after a failure, and as soon as its inputs change; until its first
