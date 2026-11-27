@@ -22,6 +22,7 @@ import pytest
 from custom_components.selora_ai.llm_client.intent import (
     _filter_entities_by_keywords,
     _low_context_keywords,
+    _pinned_needs,
 )
 from custom_components.selora_ai.providers import create_provider
 
@@ -313,3 +314,54 @@ def test_outside_temperature_keeps_the_outdoor_sensor(hass: HomeAssistant, messa
     ids = _rendered(hass, message, "chat_answer", home=home)
     assert "weather.weather_service" in ids, ids
     assert "sensor.bme280_3" in ids, ids
+
+
+def _garden_home() -> list[EntitySnapshot]:
+    """home2-ru's front yard (Allen benchmark ``water-valve.yaml``): a Garden
+    Light beside an Irrigation Valve, plus enough garden-named lights and
+    switches that the cap decides what the model sees. "water the garden"
+    shares a word with every one of them and none with the valve."""
+    ents: list[EntitySnapshot] = [
+        _e("light.garden_light", "Garden Light", "Front Yard"),
+        _e("valve.irrigation_valve", "Irrigation Valve", "Front Yard"),
+        _e("water_heater.boiler", "Boiler", "Basement"),
+    ]
+    for i in range(40):
+        ents.append(_e(f"light.garden_spot_{i}", f"Garden Spot {i}", "Back Yard"))
+    for i in range(30):
+        ents.append(_e(f"switch.garden_plug_{i}", f"Garden Plug {i}", "Back Yard"))
+    return ents
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "water the garden",
+        "turn on the sprinklers",
+        "start irrigation",
+        "arrose le jardin",
+        "gieße den Garten",
+        "riega el jardín",
+    ],
+)
+def test_watering_request_reaches_the_valve(hass: HomeAssistant, message: str) -> None:
+    """A watering request names what it does, not the valve that does it; the
+    model can't open a valve it was never shown."""
+    ids = _rendered(hass, message, "chat_command", home=_garden_home())
+    assert "valve.irrigation_valve" in ids, ids
+
+
+def test_water_heater_does_not_pin_valves(hass: HomeAssistant) -> None:
+    """ "water heater" is the appliance: it keeps the water_heater need and
+    does not spend a slot on the irrigation valve."""
+    ids = _rendered(hass, "turn on the water heater", "chat_command", home=_garden_home())
+    assert "water_heater.boiler" in ids, ids
+    assert "valve.irrigation_valve" not in ids, ids
+
+
+def test_water_heater_from_keywords_alone_does_not_pin_valves() -> None:
+    """Without the raw message, "water" beside "heater" still reads as the
+    appliance."""
+    _, domains = _pinned_needs(_low_context_keywords("turn on the water heater"))
+    assert "water_heater" in domains
+    assert "valve" not in domains
