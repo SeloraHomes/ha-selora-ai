@@ -1955,7 +1955,78 @@ _DOMAIN_NEED_TOKENS: dict[str, tuple[str, ...]] = {
     "shade": ("cover",),
     "shades": ("cover",),
     "garage": ("cover",),
+    # Watering is asked for by what it does, not by the device: "water the
+    # garden" names the area or a plant bed, never the irrigation valve, so a
+    # neighbouring "Garden Light" outscores it and the valve sorts past the cap.
+    "water": ("valve",),
+    "watering": ("valve",),
+    "irrigate": ("valve",),
+    "irrigation": ("valve",),
+    "sprinkler": ("valve",),
+    "sprinklers": ("valve",),
+    "valve": ("valve",),
+    "valves": ("valve",),
 }
+
+# Watering words in the shipped conversational locales (fr/de/es/it), in
+# :func:`normalize` form (casefolded, accents kept, "ß" folded to "ss") with
+# accent-free variants, like the multilingual category map.
+_DOMAIN_NEED_TOKENS.update(
+    dict.fromkeys(
+        (
+            # fr
+            "arroser",
+            "arrose",
+            "arrosez",
+            "arrosage",
+            "arroseur",
+            "arroseurs",
+            "irriguer",
+            "vanne",
+            "vannes",
+            # de
+            "giessen",
+            "giesse",
+            "giess",
+            "bewässern",
+            "bewässere",
+            "bewässerung",
+            "bewassern",
+            "bewasserung",
+            "rasensprenger",
+            "ventil",
+            "ventile",
+            # es
+            "regar",
+            "riega",
+            "riego",
+            "aspersor",
+            "aspersores",
+            "válvula",
+            "válvulas",
+            "valvula",
+            "valvulas",
+            # it
+            "annaffiare",
+            "annaffia",
+            "annaffiatura",
+            "irrigare",
+            "irriga",
+            "irrigazione",
+            "irrigatore",
+            "irrigatori",
+            "valvola",
+            "valvole",
+        ),
+        ("valve",),
+    )
+)
+
+# "water heater" is a water_heater, not watering. The tokenizer splits it into
+# "water" + "heater", so the "water" entry above would pin valves too; a
+# request that names the appliance drops that valve need unless another
+# watering word asks for it.
+_WATER_HEATER_RE = re.compile(r"\bwater[\s_-]*heaters?\b", re.IGNORECASE)
 
 # AC / air-conditioner phrasing the keyword tokenizer can't surface as a need
 # token: "ac" and "a/c" are ≤2-char tokens that _low_context_keywords drops,
@@ -2086,7 +2157,14 @@ def _pinned_needs(keywords: set[str], message: str = "") -> tuple[frozenset[str]
     """
     device_classes: set[str] = set()
     domains: set[str] = set()
+    names_water_heater = (
+        bool(_WATER_HEATER_RE.search(message))
+        if message
+        else "water" in keywords and bool(keywords & {"heater", "heaters"})
+    )
     for kw in keywords:
+        if kw == "water" and names_water_heater:
+            continue
         device_classes.update(_DEVICE_CLASS_NEED_TOKENS.get(kw, ()))
         domains.update(_DOMAIN_NEED_TOKENS.get(kw, ()))
     # A temperature condition that compares against a setpoint implies a
